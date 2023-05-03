@@ -1,12 +1,12 @@
-# Python Datastructure 정리!
+# Python Datastructure (컨벤션 객체) 정리!
 
 ## List
 
-### 내장함수
+### List 메서드
 
 - `reverse()`
-  <br>Return 값 없이 함수를 호출한 list 객체의 순서를 거꾸로 바꿈. (원본 변경됨)
-  <br>Return type은 None 입니다.
+  - 함수를 호출한 list 객체의 순서를 거꾸로 바꿈. (원본 변경됨)
+  - Return type은 None 입니다.
 
 ### List Comprehension
 
@@ -30,7 +30,8 @@ print(array) # ['hh', 'ee', 'll', 'll', 'oo']
 ```
 
 - for 문을 사용하지 않고 길고 규칙적인 list를 생성할 수 있습니다.
-- for 문에 append 메서드를 사용해서 생성하는 것 보다 속도가 빠릅니다. (jupyter notebook 에서 비교)
+- for 문에 append 메서드를 사용해서 생성하는 것 보다 속도가 빠릅니다.
+- 속도 비교 예제 (jupyter notebook 에서 비교)
 
 ```python
 %%time
@@ -54,6 +55,11 @@ print(array) # [14, 28, 42, 56, 70, 84, 98]
 ```
 
 - 다중배열도 손쉽게 장성할 수 있다.(다음 기회에...)
+
+```python
+array2 = [[0 for n in range(3)] for k in range(3)]
+print(array2) #[[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+```
 
 ---
 

@@ -49,7 +49,8 @@
 
 ## Built in function : map
 
-- 함수 형태 : map(function, iterable, \*iterables)
+> 함수 형태 : map(function, iterable, \*iterables)
+
 - 첫 번째 매개변수는 iterable의 원소에 각각 적용할 function
   - lambda 로 처리하는 경우가 많습니다.
 - 두 번째 매개변수는 반복 가능한 자료형(리스트, 튜플 등)
@@ -139,7 +140,8 @@ a1, a2, a3, a4, a5 = map(lambda x: x*2, a)
 
 ## Built in Function : filter 함수
 
-- 함수 형태 : map(function, iterable)
+> 함수 형태 : map(function, iterable)
+
 - 첫 번째 매개변수는 iterable의 원소에 각각 적용할 function
   - lambda 로 처리하는 경우가 많습니다.
   - fucntion 은 반드시 조건을 가르는 함수이어야 합니다. 조건에 True인 요소만 걸러짐
@@ -233,8 +235,74 @@ a1, a2, a3, a4, a5 = map(lambda x: x*2, a)
   print(ord('€')) # 8364
   ```
 
-## Python Collections 모듈
+## Built in Function : isinstance()
 
-- to be continue...
+> 함수 형태 : isinstance(object, classinfo)
 
-## lambda 함수!
+- 첫 번째 인자 : 특정 클래스의 인스턴스인지 확인할 object
+- 두 번째 인자 : object의 타입을 판별할 class
+- object가 classinfo의 인스턴스일 때 True, 아니면 False 를 return <br>정확히는 direct, indirect 또는 virtual subclass일때
+- 요약 : object가 classinfo 객체인지 확인하는 빌트인 함수
+
+- 예제
+
+```python
+# 정수인지 확인
+res = isinstance(100, int)
+print(res)  #true
+
+# 실수인지 확인
+res = isinstance(100, float)
+print(res)  #false
+
+# 문자열인지 확인
+res = isinstance('is instance??', str)
+print(res)  #true
+
+# 리스트인지 확인
+res = isinstance([1,2,3], list)
+print(res)  #true
+
+# 해당 클래스의 인스턴스인지 확인1
+class Myclass:
+    pass
+
+mc = Myclass()
+res = isinstance(mc, Myclass)
+print(res)  #true
+
+```
+
+- 한 object에 대해 여러 클래스인지 확인이 가능
+
+```python
+# 판단하고 싶은 종류의 class를 tuple로 넘겨줌
+# 전달한 tuple 중 1 개만 맞으면 True
+res = isinstance(10.1, (int, float, str))
+print(res)  #true
+res = isinstance([1,2,3], (int, float, str))
+print(res)  #false
+```
+
+- 상속 관계에서 자식 클래스의 object인 경우 True를 반환(반대의 경우는 False)
+
+```python
+class Parent:
+  pass
+
+class Driven(Parent):
+  pass
+
+p = Parent()
+d = Driven()
+
+res = isinstance(d, Parnet)
+print(res)  #True
+
+res = isinstance(p, Driven)
+print(res)  #False
+```
+
+- [참고](https://blockdmask.tistory.com/536)
+
+## Built in Function : locals()
