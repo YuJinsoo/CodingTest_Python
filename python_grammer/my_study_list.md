@@ -305,4 +305,105 @@ print(res)  #False
 
 - [참고](https://blockdmask.tistory.com/536)
 
+## Built in Function : zip()
+
+> 함수 형태 : zip(\*iterables, strict=False)
+
+- iterable 객체들을 같은 인덱스에 있는 값 끼리 tuple로 묶어서 zip object로 return 함
+- iterable의 길이가 짧은 것을 기준으로 짝지어주고 남는 요소들은 버려진다. (strict=False)
+- return 값은 zip object
+
+```python
+li = [1,2,3]
+st = ['VScode', 'Pycharm', 'Jupyter notebook']
+
+z = zip(li, st)
+
+print(z)
+print(type(z))
+
+list(z)[0]      # 이후에 z는 있지만 모든 원소가 사라져 비어있게됨 >> map object도 마찬가지!
+print(z)        # 같은 객체 z 있기는 하지만....
+tmp= list(z)
+print(tmp)      # [] 빈 리스트.
+
+# zip한 것을 list 변수로 저장한다음에 써야 함
+tmp2 = list(zip(li, st))
+print(tmp2)     # [(1, 'VScode'), (2, 'Pycharm'), (3, 'Jupyter notebook')]
+
+#str
+```
+
+```python
+li = [1,2,3]
+st = [10, 20, 30, 40]
+
+# 길이가 다른 두 리스트의 경우 짧은 것을 기준으로 남는 원소는 무시
+z = zip(li,st)
+print(list(z))
+
+## zip object의 출력방식
+## __iter__ atribute를 가지고 있으므로 next() 사용 가능
+## list, dict로 형변환할 수 있음
+z = zip(li,st)
+print(next(z))
+print(next(z))
+print(next(z))
+
+```
+
+- strict는 디폴트로 False를 가지고 있다
+- strict 를 True로 하면 iterable 객체의 길이가 동일하지 않으면 Error를 뱉음
+
+```python
+# 에러나는 코드
+# zip 함수를 수행할 때에는 에러가 나지 않지만 접근하려고하면 에러 발생
+li = [1,2,3]
+st = [10, 20, 30, 40]
+z = zip(li,st, strict=True)
+print(list(z)) ## ValueError: zip() argument 2 is longer than argument 1
+
+```
+
+- zip()을 활용하여 컨벤션 객체를 생성할 수 있다
+
+```python
+
+# 짝짓는 것이므로 dictionary 만들기 편리하다
+d = dict(zip('abcd',[1,2,3,4]))
+print(d)  # {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+
+# list의 경우 tuple을 원소로 가지게 된다.
+l = list(zip('abcd',(1,2,3,4)))
+print(l)  # [('a', 1), ('b', 2), ('c', 3), ('d', 4)]
+print(type(l[0])) # <class 'tuple'>
+
+
+```
+
+## map object, zip object 등의 값을 참조하면 바로 사라지는 이유
+
+- 비어있는 이유는 한 번 next가 되면 되돌아가지 못하기 때문입니다. (range()도 마찬가지입니다.)
+- 즉, 한 번 앞으로 가면 뒤로 되돌아가지 못해서 object가 비어있는 것입니다.
+- 한 번 순회가 끝나면 메모리를 비우기 때문에 그렇습니다. 순회가 끝나면 다시 앞으로 되돌아가지 않아요.
+- zip/map 함수 객체가 한 번 호출되서 값을 읽으면 모든 요소를 반환하고 iterator가 소멸됩니다.
+  <br>따라서, 객체를 다시 사용하려면 새로운 iterator를 생성해야 합니다.
+- iterator는 소멸하지만 zip/map object 자체 변수의 메모리 값은 유지됩니다.
+  제너레이터를 한 번 만들어보시면 이해가 되실겁니다. 클래스에 **iter**도 관련이 있습니다.
+
+```python
+li = [1,2,3]
+st = ['VScode', 'Pycharm', 'Jupyter notebook']
+
+z = zip(li, st)
+
+print(z)
+print(type(z))
+
+list(z)[0]      # 이후에 z는 있지만 모든 원소가 사라져 비어있게됨 >> map object도 마찬가지!
+print(z)        # 같은 객체 z 있기는 하지만....
+tmp= list(z)
+print(tmp)      # [] 빈 리스트.
+```
+
 ## Built in Function : locals()
