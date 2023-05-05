@@ -97,3 +97,7 @@ closure_x10.__closure__[0].cell_contents # 10
       return a + b
   # 함수 외부의 값을 변경하므로 순수함수가 아니다.
   ```
+
+## Generator
+
+-

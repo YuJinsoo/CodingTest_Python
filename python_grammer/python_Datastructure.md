@@ -63,8 +63,53 @@ print(array2) #[[0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
 ---
 
-## Tuple
-
 ## Dictionary
+
+- 두 dictionary 객체를 새로운 dicrionary로 생성
+
+```python
+
+## 두개 이상의 dictionary를 새 dict()로 병합하기
+a = {'2' : 2, '4' :4}
+b = {'1' : 1 , '3' : 3}
+c = {'a' : 64 , 'b' : 77}
+
+## 이 방식으로는 key가 겹치면 뒤에 있는 값으로 덮어씌워진다.
+d = dict(a, **b)
+print(d)              # {'2': 2, '4': 4, '1': 1, '3': 3}
+d = dict(a, **b, **c)
+print(d)              # {'2': 2, '4': 4, '1': 1, '3': 3, 'a': 64, 'b': 77}
+
+```
+
+- key <--> value 교환한 dictionary 생성
+
+```python
+## key value 바꾸기
+d = {'a' : 64 , 'b' : 77}
+
+newd = {}
+for key, value in d.items():
+    newd[value] = key
+
+print(newd)
+
+# dictionary comprehension 으로
+print({v:k for k,v in d.items()})
+
+# zip으로 dictionary 교체
+print(dict(zip(d.values(), d.keys())))
+
+```
+
+### Dicrionary Comprehension
+
+- 리스트를 간단하게 한 줄로 생성할 수 있는 파이썬 문법
+
+  > 기본 형식: <br>`python [(변수를 활용한 값) for (사용할 변수 이름) in (순회할 수 있은 객체) ] `
+
+- 예제
+
+## Tuple
 
 ## Set

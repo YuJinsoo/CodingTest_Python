@@ -31,8 +31,6 @@
 
   - A if 조건 else B if 조건 else C
 
-- ~~map 함수 공부하기 >> 밑에 정리됨~~
-
 - 문자열 다루기
   - 문자열 뒤집기
     1. 인덱싱
@@ -383,13 +381,15 @@ print(type(l[0])) # <class 'tuple'>
 
 ## map object, zip object 등의 값을 참조하면 바로 사라지는 이유
 
-- 비어있는 이유는 한 번 next가 되면 되돌아가지 못하기 때문입니다. (range()도 마찬가지입니다.)
+- 비어있는 이유는 한 번 next가 되면 되돌아가지 못하기 때문입니다.
 - 즉, 한 번 앞으로 가면 뒤로 되돌아가지 못해서 object가 비어있는 것입니다.
 - 한 번 순회가 끝나면 메모리를 비우기 때문에 그렇습니다. 순회가 끝나면 다시 앞으로 되돌아가지 않아요.
 - zip/map 함수 객체가 한 번 호출되서 값을 읽으면 모든 요소를 반환하고 iterator가 소멸됩니다.
-  <br>따라서, 객체를 다시 사용하려면 새로운 iterator를 생성해야 합니다.
-- iterator는 소멸하지만 zip/map object 자체 변수의 메모리 값은 유지됩니다.
-  제너레이터를 한 번 만들어보시면 이해가 되실겁니다. 클래스에 **iter**도 관련이 있습니다.
+  <br>따라서, 객체를 다시 사용하려면 새로운 iterator를 다시 생성해야 합니다.
+- iterator는 소멸하지만 object 자체 변수의 메모리 값은 유지됩니다.
+- 제너레이터를 한 번 만들어보시면 이해가 되실겁니다. 클래스에 `__iter__`도 관련이 있습니다.
+
+> map object, zip object, range object
 
 ```python
 li = [1,2,3]
@@ -406,4 +406,45 @@ tmp= list(z)
 print(tmp)      # [] 빈 리스트.
 ```
 
+- 아래 예제와 같이 한 번만 출력되는 것을 확인할 수 있습니다
+
+```python
+li = [1,2,3]
+st = ['VScode', 'Pycharm', 'Jupyter notebook']
+z = zip(li, st)
+
+for i in z:
+    print(i)
+
+for i in z:
+    print(i)
+```
+
 ## Built in Function : locals()
+
+- 현재 스코프(scope)의 지역변수들을 리턴해준다.
+- Return 값은 dictionary({str : str}) 타입으로 반환됨 <br/> '변수명': '값'
+
+```python
+class Myclass:
+    pass
+
+class_a = Myclass()
+
+def outer():
+    first_a = 10
+
+    def inner():
+        second_a = '10'
+        print(locals())         # {'second_a': '10'}
+        print(type(locals()))   # <class 'dict'>
+
+    inner()
+    print(locals())     # {'first_a': 10, 'inner': <function outer.<locals>.inner at 0x7fb91ddd0280>}
+
+outer()
+
+print(locals())         ## __main__이라는 scope 이름과 함께 정의한 함수, 클래스 등 내부의 모든 내용이 출력됨.
+                        # Automatically created module for IPython interactive environment
+
+```
