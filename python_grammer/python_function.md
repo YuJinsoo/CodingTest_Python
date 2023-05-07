@@ -1,8 +1,70 @@
 # python 함수 관련 정리
 
+## 제너레이터 (Generator)
+
+1. Generator란?
+
+- yield 구문을 자기고 있으면서 iterator를 반환하는 함수
+- iterator란 next()메소드를 통해 데이터에 순차적으로 접근이 가능한 객체
+- `yield`는 계산 값
+- 특징
+
+  1. 메모리 효율성
+
+  - list는 데이터를 한 번에 메모리에 적재하기 때문에 메모리가 부족하면 프로그램이 죽을 수 있음
+  - 반면 제너레이터는 **데이터에 접근할 때 마다 메모리에 적재**하기 때문에 큰 데이터를 다루는 경우 list보다 안정적이고 효율적이다.
+
+  2. 게으른 연산
+
+  - list comprehension을 수행할 때 모든 값의 연산을 먼저 수행하기 때문에 수행되는 연산이 오래걸리거나 연산된 값에 접근하는 시간이 걸린다
+  - 반면, 제너레이터는 `yield` 로 값에 접근하기 때문에 수행 시간이 긴 연산을 필요한 순간까지 늦출 수 있다.
+
+  ```python
+  def sleep_f(x):
+      print('sleep...')
+      time.sleep(1)
+      return x
+
+  # list
+  l = [sleep_func(x) for x in range(5)]
+  for i in gen:
+      print i
+  # sleep...
+  # sleep...
+  # sleep...
+  # sleep...
+  # sleep...
+  # 0
+  # 1
+  # 2
+  # 3
+  # 4
+
+  # generator
+  gen = (sleep_func(x) for x in range(5))
+  for i in gen:
+      print i
+
+  # sleep...
+  # 0
+  # sleep...
+  # 1
+  # sleep...
+  # 2
+  # sleep...
+  # 3
+  # sleep...
+  # 4
+
+  ```
+
+## 이터레이터 (Iterator)
+
 ## 데코레이터 (decorator)
 
 - 함수는 아니지만...
+
+<br>
 
 ---
 
@@ -33,6 +95,8 @@ func2(1,2) #3
 func3 = lambda x, y, z : 100*x + 10*y + z
 func3(1,2,3) # 123
 ```
+
+<br>
 
 ---
 
@@ -70,6 +134,8 @@ closure_x10.__closure__[0].cell_contents # 10
 - 일반적으로 클로저 패턴보다는 **데코레이터 패턴**으로 사용
 - Python은 클로저 패턴이 활발하게 사용되는 언어는 아님
 - 정보은닉의 이유로 사용
+
+<br>
 
 ---
 

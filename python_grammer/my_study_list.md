@@ -376,7 +376,13 @@ l = list(zip('abcd',(1,2,3,4)))
 print(l)  # [('a', 1), ('b', 2), ('c', 3), ('d', 4)]
 print(type(l[0])) # <class 'tuple'>
 
+t = tuple(zip('abcd',(1,2,3,4)))
+print(t)  # (('a', 1), ('b', 2), ('c', 3), ('d', 4))
+print(type(t[0])) # <class 'tuple'>
 
+s = set(zip('abcd',(1,2,3,4)))
+print(s)  # {('a', 1), ('c', 3), ('b', 2), ('d', 4)}
+('a', 1) in s # True
 ```
 
 ## map object, zip object 등의 값을 참조하면 바로 사라지는 이유
