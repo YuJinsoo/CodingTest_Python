@@ -480,6 +480,8 @@ print(ddict)    # defaultdict(<class 'list'>, {'A': [123, 78], 'B': [45, 9], 'C'
 
 # itertools 모듈
 
+- itertools 모듈에는 반복 가능한 데이터 스트림을 처리하는 데 유용한 많은 함수와 제너레이터가 포함되어 있습니다.
+
 ## itertools.chain()
 
 > 함수 형태 : itertools.chain(\*iterables)

@@ -29,7 +29,7 @@
 
 - 3항 연산 문법
 
-  - A if 조건 else B if 조건 else C
+  - A if 조건a else B if 조건b else C
 
 - 문자열 다루기
   - 문자열 뒤집기
@@ -395,7 +395,7 @@ print(s)  # {('a', 1), ('c', 3), ('b', 2), ('d', 4)}
 - iterator는 소멸하지만 object 자체 변수의 메모리 값은 유지됩니다.
 - 제너레이터를 한 번 만들어보시면 이해가 되실겁니다. 클래스에 `__iter__`도 관련이 있습니다.
 
-> map object, zip object, range object
+> map object, zip object, range object 등등..
 
 ```python
 li = [1,2,3]
@@ -454,3 +454,74 @@ print(locals())         ## __main__이라는 scope 이름과 함께 정의한 �
                         # Automatically created module for IPython interactive environment
 
 ```
+
+## Built in Function : enumerate()
+
+> 함수 형태 : enumerate(iterable, start=0)
+
+- for문이나 iterable한 객체의 순서를 함께 확인하고 싶을 때 사용하는 내장 함수
+- enumerate object를 리턴함
+- `__next__()`메서드는 tuple을 리턴함
+- 예제
+
+```python
+li = ['spring', 'summer', 'fall', 'winter']
+print(list(enumerate(li)))      # [(0, 'spring'), (1, 'summer'), (2, 'fall'), (3, 'winter')]
+print(list(enumerate(li, 10)))  # [(10, 'spring'), (11, 'summer'), (12, 'fall'), (13, 'winter')]
+
+for i in enumerate(li):
+  print(i)
+
+# tuple
+# (0, 'spring')
+# (1, 'summer')
+# (2, 'fall')
+# (3, 'winter')
+
+for i, j in enumerate(li, 5):
+  print(i, j) # unpacking
+
+# 5 spring
+# 6 summer
+# 7 fall
+# 8 winter
+
+```
+
+## Built in Function : hasattr()
+
+> 함수형식 : hasattr(object, name)
+
+- name 파라메터는 `str` 타입을 넣어줘야 한다
+- object가 name의 attribute를 가지고 있으면 `True` 아니면 `False`를 리턴함
+- 오브젝트가의 멤버 변수가 있는지 확인
+- 사실 `dir()`메서드로 확인해볼 수 있음!
+
+```python
+li = [1,2,3]
+print(hasattr(li, '__iter__'))  # True
+print(hasattr(li, '__add__'))  # True
+
+d = {'one': 1, 'two':2}
+print(hasattr(d, '__iter__'))   # True
+print(hasattr(d, '__add__'))    # False
+
+```
+
+## Built in Function : getattr()
+
+> 함수양식 : getattr(object, name, default)
+
+- 오브젝트에서 name에 해당하는 값을 리턴. 없다면 default를 리턴
+
+## Built in Function : setattr()
+
+> 함수양식 : setattr(object, name, value)
+
+- 오브젝트에 name에 해당하는 변수를 생성해서 값을 할당 (이미 있다면 값을 수정)
+
+## Built in Functino : delattr()
+
+> 함수양식 : delattr(object, name)
+
+- 오브젝트에 name에 해당하는 변수를 제거
