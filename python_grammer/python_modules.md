@@ -512,3 +512,5 @@ for i in aa:
 ```
 
 # functools 모듈
+
+# random 모듈
