@@ -45,7 +45,7 @@
 
 ---
 
-## Built in function : map
+## Built in function : map()
 
 > 함수 형태 : map(function, iterable, \*iterables)
 
@@ -136,7 +136,7 @@ a1, a2, a3, a4, a5 = map(lambda x: x*2, a)
   # '__class__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__lt__', '__ne__', '__new__', '__next__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__'
   ```
 
-## Built in Function : filter 함수
+## Built in Function : filter() 함수
 
 > 함수 형태 : map(function, iterable)
 
@@ -282,6 +282,34 @@ res = isinstance([1,2,3], (int, float, str))
 print(res)  #false
 ```
 
+- 특수한 경우 : bool class 는 int 클래스로 인식된다.
+-
+
+```python
+# bool 타입은 int타입으로인식됨.
+# 그렇다면 bool 클래스는 int를 상속받았다고 생각할 수 있을 것 같다.
+# 그런데 진짜로 상속받았음
+# builtins.pyi 파일 확인결과 아래와 같이 확인했다
+'''
+@final
+class bool(int):
+    def __new__(cls, __o: object = ...) -> Self: ...
+    # The following overloads could be represented more elegantly with a TypeVar("_B", bool, int),
+    # however mypy has a bug regarding TypeVar constraints (https://github.com/python/mypy/issues/11880).
+'''
+
+isinstance(True, int)   # True
+isinstance(10, int)     # True
+isinstance(10., int)    # False
+isinstance(10.1, int)   # False
+
+isinstance(True, float) # False
+isinstance(10, float)   # False
+isinstance(10., float)  # True
+isinstance(10.1, float) # True
+
+```
+
 - 상속 관계에서 자식 클래스의 object인 경우 True를 반환(반대의 경우는 False)
 
 ```python
@@ -424,6 +452,57 @@ for i in z:
 
 for i in z:
     print(i)
+```
+
+## Built in Function : sorted()
+
+> 함수 형태 : sorted(iterable, /, key=None, reverse=False)
+
+- iterbale 객체가 정렬된 **새로운 list object**를 리턴한다. (list의 sort() 는 본인을 바꿈)
+- key 옵션 (key 파라메터): 어떤 기준으로 정렬할 것인가
+- reverse 옵션 (reverse 파라메터): True : 오름차순, False : 내림차순
+
+```python
+
+li = [1,50,5,7,-5,100,3,76]
+
+a = sorted(li)
+b = sorted(li, reverse=True)
+
+print(li)   # [1, 50, 5, 7, -5, 100, 3, 76]
+print(a)    # [-5, 1, 3, 5, 7, 50, 76, 100]
+print(b)    # [100, 76, 50, 7, 5, 3, 1, -5]
+print(f'li:{id(li)}, a:{id(a)}, b:{id(b)}') # 모두 다른 객체
+
+```
+
+- key 파라메터 활용
+
+```python
+fee = [7700, 2300, 1200, 3500, 4700, 5500]
+bus = ['a', 'b', 'c', 'd', 'e', 'f']
+
+d = dict(zip(bus, fee))
+
+# 각각 정렬해보기
+li_items = sorted(d.items()) # dict.items()는 key-value를 tuple로 리턴
+# [('a', 7700), ('b', 2300), ('c', 1200), ('d', 3500), ('e', 4700), ('f', 5500)]
+
+li_keys = sorted(d.keys())
+li_values = sorted(d.values())
+
+print(li_items)
+print(li_keys)
+print(li_values)
+
+# value 기준으로 item을 정렬하기
+li_item_val = sorted(d.items(), key=lambda x: x[1])
+li_item_val_rev = sorted(d.items(), key=lambda x: x[1], reverse=True)
+
+print(li_item_val)
+print(li_item_val_rev)
+# [('c', 1200), ('b', 2300), ('d', 3500), ('e', 4700), ('f', 5500), ('a', 7700)]
+# [('a', 7700), ('f', 5500), ('e', 4700), ('d', 3500), ('b', 2300), ('c', 1200)]
 ```
 
 ## Built in Function : locals()

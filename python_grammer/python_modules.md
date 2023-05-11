@@ -514,3 +514,11 @@ for i in aa:
 # functools 모듈
 
 # random 모듈
+
+- 임의로 난수를 생성하는 모듈
+
+# json 모듈
+
+- json 파일을 읽고 json 파일 형식으로 파일을 작성하기 편리하게 지원하는 모듈
+
+# os 모듈
