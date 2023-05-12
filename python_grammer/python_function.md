@@ -102,7 +102,7 @@ def iter_sometime():
 #     return list(iter_something())
 ```
 
-3. generator expression
+3. generator expression( yield expression )
 
 - generator 함수를 쉽게 사용할 수 있도록 generator expression을 제공한다
 - list comprehension과 비슷하지만, `[]`대신 `()`를 사용하면 된다.
@@ -380,7 +380,7 @@ for i in Myiterator(3):
 - 데코레이터는 파이썬에서 함수나 클래스를 꾸며주는 역할을 합니다.
 - 데코레이터는 함수나 클래스를 감싸는 함수로, 기존의 함수나 클래스에 추가적인 기능을 제공합니다.
 
-> `@decoratorname`을 데코레이터 적용할 함수 위에 적어주면 된다.
+> 데코레이터를 정의한 후 `@decoratorname`을 데코레이터를 적용할 함수 정의 위에 적어주면 된다.
 
 ```python
 # 함수 데코레이터 정의
@@ -388,6 +388,7 @@ def deco(func):
     def wrap_func():
         print('start')
         func()
+
     return wrap_func
 
 # 데코레이터 적용한 함수
@@ -401,7 +402,7 @@ say_hi()
 # 안녕하세요
 ```
 
-- 함수의 인자를 전달해야 하는 경우에는 데코레이터 내부 wrapper 함수에 인자 개수를 맞추어 받아주어야 한다
+- 함수의 인자를 전달해야 하는 경우에는 데코레이터 내부 wrapper 함수 인자 개수를 맞추어 받아주어야 한다
 
 ```python
 def pre(func):  # 제너레이터 적용된 함수가 호출된 것이 func로
@@ -422,15 +423,15 @@ print(cal_avg(['1', 2, 3, '4']))    # 2.5
 
 ```python
 # 데코레이터 여러개 테스트해보기
-def print_hello(func): # def decorator_name(below function)
-    def wrap_func():
-        print('hello')
-        func()
-    return wrap_func
-
 def print_world(func):
     def wrap_func():
         print('world')
+        func()
+    return wrap_func
+
+def print_hello(func): # def decorator_name(below function)
+    def wrap_func():
+        print('hello')
         func()
     return wrap_func
 
@@ -441,8 +442,8 @@ def func1():
     print('function1 입니다.')
 
 func1()
-# hello
 # world
+# hello
 # function1 입니다.
 ```
 
@@ -453,16 +454,16 @@ func1()
 ```python
 def decorator1(func):
     def wrapper():
-        print('decorator1 - wrapper func id:', id(func))
         func()
-    print('decorator1 wapper id: ', id(wrapper))
+    print('decorator1 - func id:', id(func))
+    print('decorator1 wapper id:', id(wrapper))
     return wrapper
 
 def decorator2(func):
     def wrapper():
-        print('decorator2 - wrapper func id:', id(func))
         func()
-    print('decorator2 wapper id: ', id(wrapper))
+    print('decorator2 - func id:', id(func))
+    print('decorator2 wapper id:', id(wrapper))
     return wrapper
 
 # 데코레이터를 여러 개 지정 wrapper 함수가 위의 decorator의 func로 들어감
@@ -472,11 +473,16 @@ def hello():
     print('hello')
 
 hello()
-# decorator2 wapper id:  140486531090608
-# decorator1 wapper id:  140486745348640
-# decorator1 - wrapper func id: 140486531090608
-# decorator2 - wrapper func id: 140486531090752
+print(id(hello))
+# 가장 바깥쪽 wrapper 함수와 id가 같다!
+
+## 출력
+# decorator2 - func id: 140661872843008
+# decorator2 wapper id: 140661872846320
+# decorator1 - func id: 140661872846320
+# decorator1 wapper id: 140661872846464
 # hello
+# 140661872846464
 ```
 
 - 데코레이터에 아규먼트를 전달하고 싶을 때에는 한번 더 함수로 감싸주면 된다.
@@ -582,7 +588,7 @@ closure_x10.__closure__[0].cell_contents # 10
 
 - 일반적으로 클로저 패턴보다는 **데코레이터 패턴**으로 사용
 - Python은 클로저 패턴이 활발하게 사용되는 언어는 아님
-- 정보은닉의 이유로 사용
+- 정보은닉의 이유로 사용.
 
 <br>
 

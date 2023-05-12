@@ -521,4 +521,157 @@ for i in aa:
 
 - json 파일을 읽고 json 파일 형식으로 파일을 작성하기 편리하게 지원하는 모듈
 
+## json.dump()
+
+- 인자로 file object가 있어서 `str`로 변환해 파일에 쓰는 기능까지 포함
+- json 파일에 입력할 데이터는 `dictionary` 타입으로 되어있어야 한다.
+
+```python
+import json
+d = {'one': 1, 'two': 2, 'three': 3}
+
+with open('filename.json', 'w', encoding='utf-8') as f:
+  json.dump(d, f, indent='\t')
+```
+
+## json.dumps()
+
+- `str` 타입 문자열을 반환해줌(파일에 쓰는 기능은 없음)
+- json 파일에 입력할 데이터는 `dictionary` 타입으로 되어있어야 한다.
+
+```python
+import json
+d = {'one': 1, 'two': 2, 'three': 3}
+s = json.dumps(d, indent='\t')
+f = open('filname.txt', 'w', encoding='utf-8')
+f.write(s)
+f.close()
+```
+
 # os 모듈
+
+- os.getcwd() : 현재 경로를 str 문자열로 반환
+- os.listdir() : 현재 경로에 있는 모든 파일 및 폴더를 str 문자여 요소의 list로 반홚
+
+# glob 모듈
+
+- 파일 검색이 아주 용이한 모듈로 `*` 이나 `?` 문자로 파일명을 쉽게 필터링할 수 있다.
+- 정규표현식과 같이 사용이 안되는 걸로 알고 있다.. >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>확인이 필요함
+
+# sys 모듈
+
+- 인터프리터? 디버깅하는거 있던데...
+
+# pytz 모듈
+
+- 세계 시간 기준으로 관리해주는 패키지
+
+# 엑셀모듈 : xlsxwriter
+
+- openpyxl 등등이 있었음
+
+# 크롤링 모듈 : beautifulsoup
+
+> 임포트 형식 : `from bs4 import BeautifulSoup`
+
+- `BeautifulSoup`은 HTML과 XML 문서를 파싱하는 라이브러리입니다.
+- 웹 크롤링을 할 때, HTML 문서에서 원하는 데이터를 추출하는 데 자주 사용됩니다.
+- str 타입의 html 데이터를 html 구조를 가진 데이터로 가공하는 것도 가능합니다.
+
+- `reausts` 모듈로 가져온 응답을 파싱해서 원하는 정보를 보여줄 수 있음
+- 일반적으로 아래와 같이 원하는 url의 html파일을 요청받은 후 BeautifulSoup객체를 생성해 사용함
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get('http://www.paullab.co.kr/stock.html')
+
+response.encoding = 'utf-8'
+html = response.text
+
+soup = BeautifulSoup(html, 'html.parser')
+```
+
+-
+
+- 교육 크롤링 페이지의 거래량 총합을 구하는 코드
+
+```python
+
+# advanced 과제 :
+# 제주코딩베이스캠프 연구원에 2019.09.24일 부터 2019.10.23일까지 거래된 거래총량을 구해주세요.
+
+# https://paullab.co.kr/stock.html
+
+### 제출답안### >> 주석제거후 제출했음
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get('http://www.paullab.co.kr/stock.html')
+
+response.encoding = 'utf-8'
+html = response.text
+
+soup = BeautifulSoup(html, 'html.parser')
+# print(type(soup)) # <class 'bs4.BeautifulSoup'>
+
+# 테이블 이름을 미리 저장
+table_title = soup.select_one('.main>#제주코딩베이스캠프연구원').text
+
+# 연구원 이 들어간 객체만 골라서 가져오기
+data = soup.select('.main')
+
+lab_table = list(filter(lambda x: '연구원' in x.text, data))
+# print(lab_table)
+# print(len(lab_table))
+
+data_list = lab_table[0].select('table>tbody>tr>td')
+# print(type(data_list[0]))   #<class 'bs4.element.Tag'>
+# print(dir(data_list[0]))
+
+# len(data_list) # 140
+total_trading_volume = 0
+
+# 7번째 데이터마다 거래량
+for i in range(6,len(data_list),7):
+    # print(data_list[i].text)
+    total_trading_volume += int(data_list[i].text.replace(',', ''))
+
+print(f'{table_title}의 기간동안 거래총량은 {total_trading_volume:,} 회 입니다.')
+
+```
+
+- 더 간단하게 풀이한 방법. 상태클래스를 사용하면 더 쉽게 활용할 수 있다.
+
+```python
+# advanced 과제 : 더 쉽게 풀기. td에 :nth-child(7) 으로 검색하면 7번째 데이터를 바로 읽어온다.
+# 제주코딩베이스캠프 연구원에 2019.09.24일 부터 2019.10.23일까지 거래된 거래총량을 구해주세요.
+
+# https://paullab.co.kr/stock.html
+
+### 제출답안### >> 주석제거후 제출했음
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get('http://www.paullab.co.kr/stock.html')
+
+response.encoding = 'utf-8'
+html = response.text
+
+soup = BeautifulSoup(html, 'html.parser')
+
+# 테이블 이름을 미리 저장
+table_title = soup.select_one('.main>#제주코딩베이스캠프연구원').text
+
+# 연구원 이 들어간 객체만 골라서 가져오기
+data = soup.select('.main')
+lab_table = list(filter(lambda x: '연구원' in x.text, data))
+
+data_list = lab_table[0].select('table > tbody > tr > td:nth-child(7)') # > span은 있어도 되고 없어도 되네..
+data_list2 = [i.text.replace(',','') for i in data_list]
+
+total_trading_volume = sum(map(int, data_list2))
+
+print(f'{table_title}의 기간동안 거래총량은 {total_trading_volume:,} 회 입니다.')
+```

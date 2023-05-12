@@ -548,3 +548,89 @@ import re
 def solution(my_string):
     return sum(int(n) for n in re.sub('[^1-9]', '', my_string))
 ```
+
+### 문제 : 숨어있는 숫자의 덧셈(1)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120851
+
+```python
+#1
+def solution(my_string):
+    li = []
+    for i in my_string:
+        li.append(i.lower() if i.isupper() else i.upper())
+    answer = ''.join(li)
+    return answer
+
+#2
+def solution(my_string):
+    answer = ''
+    for i in my_string:
+        if i.isupper():
+            answer += i.lower()
+        else:
+            answer += i.upper()
+    return answer
+```
+
+### 문제 : 가위 바위 보
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120839
+
+```python
+#1
+def solution(rsp):
+    d = {'2':'0', '5':'2', '0':'5'}
+    answer = ''
+    for i in rsp:
+        answer += d[i]
+    return answer
+
+```
+
+### 문제 : 문자열 정렬하기(2)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120911
+
+```python
+## sorted에 list뿐만 아니라 str도 그냥 넣어도 되나봅니다
+#1
+def solution(my_string):
+    answer = ''.join(sorted([i for i in my_string.lower()]))
+    return answer
+
+#2
+def solution(my_string):
+    return ''.join(sorted(my_string.lower()))
+
+```
+
+### 문제 : 배열 회전시키기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120844
+
+```python
+#1
+def solution(numbers, direction):
+    answer = []
+    if direction == 'right':
+        answer = [numbers[i] for i in range(len(numbers)-1) ]
+        answer.insert(0, numbers.pop())
+    else:
+        answer = [numbers[i] for i in range(1,len(numbers)) ]
+        answer.append(numbers.pop(0))
+
+    return answer
+
+#2
+from collections import deque
+
+def solution(numbers, direction):
+    numbers = deque(numbers)
+    if direction == "right": direction = 1
+    if direction == "left": direction = -1
+    numbers.rotate(direction)
+    return list(numbers)
+
+
+```

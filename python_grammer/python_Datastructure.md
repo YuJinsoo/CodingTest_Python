@@ -65,7 +65,7 @@ print(array2) #[[0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
 ## Dictionary
 
-- 두 dictionary 객체를 새로운 dicrionary로 생성
+- 두 dictionary 객체를 새로운 dictionary로 생성
 
 ```python
 

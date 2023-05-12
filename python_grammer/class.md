@@ -281,17 +281,81 @@ print(Calc.sub(10,20))  # -10
 
 ### `__str__`과 `__repr__`의 차이?
 
-- `__str__`은 서로 다른 자료형 간에 인터페이스를 제공하기 위해서 존재한다.
+- 두 함수 모두 str 문자열을 반환한다는 공통점이있습니다
 
-  - 객체정보를 str 클래스로 표현 [1, 2, 3, ...]
+- `__str__`은 서로 다른 자료형 간에 인터페이스를 제공하기 위해서 존재한다.(정보 출력용)
 
-- `__repr__`은 해당 객체를 인간이 이해할 수 있는 표현으로 나타내기 위한 용도이다.
-  - < function oject ~~~ >
+  - `str()`, `format()` 및 `print()`에 의해 호출됨
+  - 객체의 '비공식적' 표현 또는 보기 좋게 인쇄 가능한 문자열 표현을 출력합니다
+  - 객체정보를 str 클래스로 표현 ex) '[1, 2, 3]'
+
+- `__repr__`은 해당 객체를 인간이 이해할 수 있는 표현으로 나타내기 위한 용도이다.(재구현, 디버깅용)
+
+  - `repr()` 빌트인 함수로 호출되며 `__str__`이 정의되지 않았을 때 `print()`에 의해 호출됩니다
+  - 동일한 객체를 다시 만드는데 사용될 수 있는 유효한 파이썬 표현식으로 나타나야 핮니다
+  - 이것이 가능하지 않다면 `< function oject ~~~ >` 이러한 형식의 문자열이 반환되어야 합니다
+  - 일반적으로 디버깅에 사용하므로 모호하지 않고 명확해야 합니다
+
+```python
+class Myclass():
+    def __init__(self, value):
+        self.member = value
+
+    def __str__(self):
+        return str({'member': self.member})
+
+    def __repr__(self):
+        return f'< Myclass object : Myclass({self.member})>'
+
+inst = Myclass(10)
+print(str(inst))    # {'member': 10}
+print(repr(inst))   # < Myclass object : Myclass(10)>
+
+print(inst.__str__())   # {'member': 10}
+print(inst.__repr__())  # < Myclass object : Myclass(10)>
+
+```
+
+- `__str__`을 정의하지 않았을 때 `print()`는 `__repr__`를 호출한다.
+
+```python
+## __str__이 정의되지 않았을 때에는 __repr__이 호출된다
+class Myclass():
+    def __init__(self, value):
+        self.member = value
+
+    def __repr__(self):
+        return f'< Myclass object : Myclass({self.member})>'
+
+inst = Myclass(10)
+print(inst)         #< Myclass object : Myclass(10)>
+print(repr(inst))   #< Myclass object : Myclass(10)>
+
+print(inst.__str__())   #< Myclass object : Myclass(10)>
+print(inst.__repr__())  #< Myclass object : Myclass(10)>
+
+```
+
+- `datetime` 패키지로 `__str__`과 `__repr__` 비교하기
+
+```python
+import datetime as dt
+
+today = dt.date.today()
+
+print(today)        # 2023-05-11
+print(repr(today))  # datetime.date(2023, 5, 11)
+## repr 함수로 리턴된 문자열 그대로 입력함녀 같은 내용을 가진 객체를 생성할 수 있다.
+
+second_today = dt.date(2023, 5, 11)
+print(second_today)    # 2023-05-11
+```
 
 ## 클래스에서 클래스 메서드 호출
 
-- 일반적으로 `self`를 인자로 받는 메서드는 클래스로 호출할 수 없다.
-- 왜냐하면 `self`는 인스턴스를 가리키기는데 클래스 자체는 인스턴스가 아니기 때문
+- `self`를 인자로 받는 메서드는 클래스로 호출할 수 없다.
+  <br> 왜냐하면 `self`는 인스턴스를 가리키기는데 클래스 자체는 인스턴스가 아니기 때문입니다.
+- `클래스이름.클래스메서드()` 로 호출해야 함
 
 ```python
 
@@ -313,7 +377,7 @@ from abc import *
 
 class Transport(metaclass=ABCMeta):
     @abstractmethod
-    def fee(self):
+    def fee(self):  # 추상클래스에서는 구현하지 않음
         pass
 
 
@@ -325,3 +389,11 @@ maeul = Bus()
 maeul.fee()
 
 ```
+
+# Garbage Collection 사용하기
+
+- https://wikidocs.net/13969
+
+# 매직 메서드
+
+- 매직 메서드 정리한 내용 https://ziwon.github.io/post/python_magic_methods/
