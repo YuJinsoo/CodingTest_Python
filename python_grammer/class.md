@@ -390,10 +390,6 @@ maeul.fee()
 
 ```
 
-# Garbage Collection 사용하기
-
-- https://wikidocs.net/13969
-
 # 매직 메서드
 
 - 매직 메서드 정리한 내용 https://ziwon.github.io/post/python_magic_methods/
