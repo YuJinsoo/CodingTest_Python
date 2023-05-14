@@ -485,7 +485,7 @@ print(id(hello))
 # 140661872846464
 ```
 
-- 데코레이터에 아규먼트를 전달하고 싶을 때에는 한번 더 함수로 감싸주면 된다.
+- 데코레이터 자체에 아규먼트를 전달하고 싶을 때에는 한번 더 함수로 감싸주면 된다.
 
 ```python
 # 데코레이터에 argument를 넣는 방법
@@ -515,11 +515,140 @@ hello()
 
 ---
 
-## 데코레이터 (decorator) - 클래스
+## 클래스 데코레이터 ( class decorator)
 
 - 데코레이터를 클래스로 생성할 수 있습니다.
+  ~~- 데코레이터 함수의 **파라미터로 함수가 아닌 클래스를 받는 데코레이터**를 의미합니다.~~
+- 클래스 데코레이터가 복잡하고 가독성을 떨어뜨릴 수 있습니다.
 
--
+- 함수형 데코레이터의 형식이 `decorator(func)` 꼴 인데 이는 클래스의 `__call__()` 매직메서드를 호출하는 것과 동일한 형태입니다.
+  <br> 동일한 형태를 이용해서 클래스 데코레이터를 만들 수 있습니다.
+
+- `__init__()` 메서드에서 꾸며줄 함수를 인자로 받아서 저장하고, `__call__()`매직메서드에서 인자를 전달합니다.
+
+```python
+# 함수로 생성한 데코레이터 다시보기
+# 함수 인자로 함수를, 내부 함수 인자로 argument를 넘겨줄 수 있습니다.
+
+def deco_func(func):
+    print(f'함수로 만든 데코레이터. 전달받은 인자: {func}')
+    def wrapper(arg):
+        print(f'아규먼트: {arg}')
+        return func(arg)
+    return wrapper
+
+@deco_func
+def tentimes(arg):
+    return 10*arg
+
+hello(5)
+# 함수로 만든 데코레이터. 전달받은 인자: <function hello at 0x7f416017e830>
+# 아규먼트: 5
+# 50
+```
+
+- 위 함수 데코레이터와 같은 기능을 하는 클래스 데코레이터는 아래와 같습니다.
+- 데코레이터에서 꾸며준 함수가 호출할 때 연산자 `()`를 사용하므로 `__call__()`매직 메서드에서 인자를 전달 받을 수 있습니다.
+
+```python
+# 클래스로 데코레이터를 만들어보자
+# __init__으로 함수객체를 받아오고, __call__ 매직메서드로 인자를 받아올 수 있습니다
+class DecoClass():
+    def __init__(self, func):
+        print(f'함수로 만든 데코레이터. 전달받은 인자: {func}')
+        self.func = func
+
+    def __call__(self, arg):
+        print(f'아규먼트: {arg}')
+        return self.func(arg)
+
+@DecoClass
+def tentimes(arg):
+    return 10*arg
+
+hello(5)
+# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes at 0x7f416017e9e0>
+# 아규먼트: 5
+# 50
+```
+
+- 클래스 데코레이터의 `__call__()`메서드에 가변인자를 주어 파라메터 개수가 다른 함수에 동시에 적용이 가능합니다!
+
+```python
+## __call__ 메서드에 가변인자를 주어
+## 다양한 개수의 파라메터를 가진 함수에 적용이 가능하다
+
+class DecoClass():
+    def __init__(self, func):
+        print(f'클래스로 만든 데코레이터. init. 전달받은 인자: {func}')
+        self.func = func
+
+    def __call__(self, *arg):
+        print(f'아규먼트: {arg}')
+        return self.func(*arg)
+
+@DecoClass
+def tentimes(arg):
+    return 10*arg
+
+@DecoClass
+def tentimes_two(arg1, arg2):
+    return 10*arg1, 10*arg2
+
+
+print(tentimes(5))
+print(tentimes_two(3, 4))
+## 출력
+# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes at 0x7f413b9c1c60>
+# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes_two at 0x7f413baf3a30>
+# 아규먼트: (5,)
+# 50
+# 아규먼트: (3, 4)
+# (30, 40)
+```
+
+- 데코레이터 자체에 아규먼트를 넘기고 싶을 때 함수 데코레이터는 한번 더 함수로 감싸주어야 했습니다.
+- 클래스 데코레이터에서 데코레이터 아규먼트를 전달하고 싶으면 `__init__()`에서는 테코레이터의 아규먼트를 전달받고,
+- `__call__()` 메서드에서 꾸며줄 함수를 인자로 받습니다.
+- 꾸며줄 함수의 인자는 `__call__()`메서드 안에 내부 함수를 한번 생성하여 전달합니다.
+
+```python
+## 클래스 데코레이터에 인자전달하기
+
+class DecoClass():
+    def __init__(self, pre_string):
+        self.pre_string = pre_string
+
+    def __call__(self, func):
+        print(self.pre_string)
+        print(f'클래스로 만든 데코레이터. call. 전달받은 인자: {func}')
+        def wrapper(*arg):
+            print(f'아규먼트: {arg}')
+            return func(*arg)
+        return wrapper
+
+@DecoClass('---------------')
+def tentimes(arg):
+    return 10*arg
+
+@DecoClass('$$$$$$$$$$$$$$$')
+def tentimes_two(arg1, arg2):
+    return 10*arg1, 10*arg2
+
+print(tentimes(5))
+print(tentimes_two(3, 4))
+# ---------------
+# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes at 0x7f416017ea70>
+# $$$$$$$$$$$$$$$
+# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes_two at 0x7f413b9c0670>
+# 아규먼트: (5,)
+# 50
+# 아규먼트: (3, 4)
+# (30, 40)
+```
+
+- 위 예제를 보면 데코레이터로 꾸민 함수가 실행될 때 생각한 순서와 다르게 진행되는것을 확인했습니다.
+- todo 왜그럴까요..?
 
 <br>
 
