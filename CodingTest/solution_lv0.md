@@ -632,5 +632,185 @@ def solution(numbers, direction):
     numbers.rotate(direction)
     return list(numbers)
 
+```
+
+### 문제 : 배열 회전시키기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120834
+
+```python
+#1
+def solution(age):
+    # 'a' = 97
+    answer = ''
+    for i in str(age):
+        answer += chr(int(i)+97)
+
+    return answer
+
+# chr는 숫자를 유니코드 문자로
+# 'A' = 65
+# 'a' = 97
+```
+
+### 문제 : 암호 해독
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120892
+
+```python
+#1
+def solution(cipher, code):
+    li = [cipher[i] for i in range(code-1, len(cipher), code)]
+    answer = ''.join(li)
+    return answer
+
+#2
+def solution(cipher, code):
+    return cipher[code-1::code]
+```
+
+### 문제 : 최대값 만들기(2)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120862
+
+```python
+#1
+def solution(numbers):
+    li = sorted(numbers, reverse=True)
+    if li[0]*li[1] >= li[-1]*li[-2]:
+        return li[0]*li[1]
+    return li[-1]*li[-2]
+
+#2 두 값 비교... max활용
+def solution(numbers):
+    li = sorted(numbers, reverse=True)
+    return max(li[-1]*li[-2], li[-1]*li[-2])
+```
+
+### 문제 : 369게임
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120891
+
+```python
+#1
+def solution(order):
+    answer = 0
+    for i in str(order):
+        if int(i) % 3 == 0 and int(i) != 0: answer +=1
+    return answer
+
+#2
+def solution(order):
+    answer = sum(map(lambda x: str(order).count(str(x)), [3, 6, 9]))
+    return answer
+
+```
+
+### 문제 : 합성수 찾기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120846
+
+```python
+#1
+def solution(n):
+    li = []
+    for i in range(1, n+1):
+        count = 0
+        for j in range(1, i+1):
+            if i % j == 0 : count += 1
+        if count >= 3:
+            li.append(i)
+
+    answer = len(li)
+    return answer
+
+#2
+def solution(n):
+    answer = 0
+    if n == 1 or n == 2 or n == 3:
+        return 0
+    for i in range(2, n+1):
+        for j in range(2, i):
+            if i % j == 0:
+                answer += 1
+                break
+    return answer
+
+```
+
+### 문제 : 모스부호(1)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120838
+
+```python
+#1
+def solution(letter):
+    morse = {
+    '.-':'a','-...':'b','-.-.':'c','-..':'d','.':'e','..-.':'f',
+    '--.':'g','....':'h','..':'i','.---':'j','-.-':'k','.-..':'l',
+    '--':'m','-.':'n','---':'o','.--.':'p','--.-':'q','.-.':'r',
+    '...':'s','-':'t','..-':'u','...-':'v','.--':'w','-..-':'x',
+    '-.--':'y','--..':'z'
+    }
+
+    answer = ''
+    return ''.join(map(lambda x: morse.get(x) ,letter.split(' ')))
+
+#2
+def solution(letter):
+
+    answer = ''
+    for i in letter.split(' '):
+        answer += morse.get(i)
+
+    return answer
+
+```
+
+### 문제 : 중복된 문자 제거- 12월 14일
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120838
+
+```python
+#1
+def solution(my_string):
+    answer = ''
+    for i in my_string:
+        if i not in answer:
+            answer += i
+    return answer
+
+#2
+## dict에 순서가 있고 key가 유일하다는 점을 활용한 풀이방법
+def solution(my_string):
+    return ''.join(dict.fromkeys(my_string))
+
+#3 살짝 억지긴 하지만 set 이용
+def solution(my_string):
+    s = set(my_string)
+    answer = ''
+    for i in my_string:
+        if i in s:
+            answer += i
+            s.remove(i)
+
+    return answer
+```
+
+### 문제 : 2차원으로 만들기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120842
+
+```python
+#1
+def solution(num_list, n):
+    answer = []
+    for i in range(0,len(num_list),n):
+        li = []
+        for j in range(n):
+            li.append(num_list[i+j])
+        answer.append(li)
+
+    return answer
 
 ```

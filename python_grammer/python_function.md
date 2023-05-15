@@ -555,10 +555,10 @@ hello(5)
 # __init__으로 함수객체를 받아오고, __call__ 매직메서드로 인자를 받아올 수 있습니다
 class DecoClass():
     def __init__(self, func):
-        print(f'함수로 만든 데코레이터. 전달받은 인자: {func}')
         self.func = func
 
     def __call__(self, arg):
+        print(f'함수로 만든 데코레이터. 전달받은 인자: {func}')
         print(f'아규먼트: {arg}')
         return self.func(arg)
 
@@ -580,10 +580,10 @@ hello(5)
 
 class DecoClass():
     def __init__(self, func):
-        print(f'클래스로 만든 데코레이터. init. 전달받은 인자: {func}')
         self.func = func
 
     def __call__(self, *arg):
+        print(f'클래스로 만든 데코레이터. init. 전달받은 인자: {self.func}')
         print(f'아규먼트: {arg}')
         return self.func(*arg)
 
@@ -599,10 +599,10 @@ def tentimes_two(arg1, arg2):
 print(tentimes(5))
 print(tentimes_two(3, 4))
 ## 출력
-# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes at 0x7f413b9c1c60>
-# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes_two at 0x7f413baf3a30>
+# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes at 0x7f413b9c0160>
 # 아규먼트: (5,)
 # 50
+# 클래스로 만든 데코레이터. init. 전달받은 인자: <function tentimes_two at 0x7f413b9c2290>
 # 아규먼트: (3, 4)
 # (30, 40)
 ```
@@ -620,9 +620,9 @@ class DecoClass():
         self.pre_string = pre_string
 
     def __call__(self, func):
-        print(self.pre_string)
-        print(f'클래스로 만든 데코레이터. call. 전달받은 인자: {func}')
         def wrapper(*arg):
+            print(self.pre_string)
+            print(f'클래스로 만든 데코레이터. call. 전달받은 인자: {func}')
             print(f'아규먼트: {arg}')
             return func(*arg)
         return wrapper
@@ -637,18 +637,19 @@ def tentimes_two(arg1, arg2):
 
 print(tentimes(5))
 print(tentimes_two(3, 4))
+## 출력
 # ---------------
-# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes at 0x7f416017ea70>
-# $$$$$$$$$$$$$$$
-# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes_two at 0x7f413b9c0670>
+# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes at 0x7f413b9c2290>
 # 아규먼트: (5,)
 # 50
+# $$$$$$$$$$$$$$$
+# 클래스로 만든 데코레이터. call. 전달받은 인자: <function tentimes_two at 0x7f413b9c3640>
 # 아규먼트: (3, 4)
 # (30, 40)
 ```
 
-- 위 예제를 보면 데코레이터로 꾸민 함수가 실행될 때 생각한 순서와 다르게 진행되는것을 확인했습니다.
-- todo 왜그럴까요..?
+> 주의할 점은 데코레이터 함수에서 가장 안쪽에 있는 함수 `wrapper`혹은 `__call__`에 함수 호출 시점에 실행할 내용을 구현해야 합니다.
+> 왜냐하면 그 밖에 구현한 코드는 데코레이터가 적용될 함수가 정의되는 순간에 실행이 되기 때문입니다.
 
 <br>
 
@@ -749,3 +750,7 @@ closure_x10.__closure__[0].cell_contents # 10
       return a + b
   # 함수 외부의 값을 변경하므로 순수함수가 아니다.
   ```
+
+# 참조
+
+- https://kukuta.tistory.com/337
