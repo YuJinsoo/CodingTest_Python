@@ -95,7 +95,7 @@ def solution(array, n):
 ```python
 # 1
 def solution(array, height):
-    return len(list(filter(lambda x : x> height, array)))
+    return len(list(filter(lambda x : x > height, array)))
 
 #2
 def solution(array, height):
@@ -106,6 +106,11 @@ def solution(array, height):
     array.append(height)
     array.sort(reverse=True)
     return array.index(height)
+
+#4 list comprehension
+def solution(array, height):
+    li = [i for i in array if i > height]
+    return len(li)
 ```
 
 ### 문제 : 양꼬치
@@ -622,7 +627,27 @@ def solution(numbers, direction):
 
     return answer
 
-#2
+#2 변수를 안썼기 때문에 #1보다 공간복잡도가 더 우위
+def solution(numbers, direction):
+    if direction == 'right':
+        tmp = numbers.pop()
+        numbers.insert(0, tmp)
+    else:
+        tmp = numbers.pop(0)
+        numbers.append(tmp)
+
+    return numbers
+
+#2-1 더 간소화
+def solution(numbers, direction):
+    if direction == 'right':
+        numbers.insert(0, numbers.pop()) ## 이렇게 해도 = 좌측에 있는 numbers에 pop적용된상태로됨
+    else:
+        numbers.append(numbers.pop(0))
+
+    return numbers
+
+#3 deque 사용. 회전초밥, 라디오방송순서 등
 from collections import deque
 
 def solution(numbers, direction):
@@ -704,6 +729,12 @@ def solution(order):
     answer = sum(map(lambda x: str(order).count(str(x)), [3, 6, 9]))
     return answer
 
+#3 정규표현식!
+import re
+
+def solution(order):
+    answer = len(re.findall('[369]', str(order)))
+    return answer
 ```
 
 ### 문제 : 합성수 찾기
@@ -813,4 +844,339 @@ def solution(num_list, n):
 
     return answer
 
+#2
+import numpy as np
+def solution(num_list, n):
+    li = np.array(num_list).reshape(-1,n)
+    return li.tolist()
+
+# 참고
+# np.array([1, 2, 3, 4, 5, 6, 7, 8]).reshape(4, 2) # 4행 2열
+```
+
+### 문제 : A로 B 만들기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120842
+
+```python
+#1
+def solution(before, after):
+    if len(before) != len(after):
+        answer = 0
+    sb = set(before)
+    sa = set(before)
+
+    if sb == sb.intersection(sa):
+        for i in sb:
+            if before.count(i) != after.count(i):
+                answer = 0
+                break;
+            answer = 1
+    return answer
+
+#2 1개씩 비교하면서 한쪽 리스트에서 제외, 없는순간 0
+def solution(before, after):
+    if len(before) != len(after):
+        return 0
+    before = list(before)
+    after = list(after)
+    for i in before:
+        if not i in after:
+            return 0
+        else:
+            after.remove(i)
+    return 1
+
+#3 제일 깔끔한듯?
+def solution(before, after):
+    before=sorted(before)
+    after=sorted(after)
+    if before==after:
+        return 1
+    else:
+        return 0
+
+#4
+def solution(before, after):
+    return 1 if sorted(list(before)) == sorted(list(after)) else 0
+```
+
+### 문제 : 팩토리얼 - 12월 15일
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120848
+
+```python
+#1
+def factorial(k):
+        if k == 0 or k == 1:
+            return 1
+        return k * factorial(k-1)
+
+def solution(n):
+    idx = 1
+    while factorial(idx) <= n:
+        idx += 1
+    answer = idx - 1
+    return answer
+
+#2
+def solution(n):
+    f = 1
+    i = 1
+    while f <= n:
+        i += 1
+        f *= i
+    return i - 1
+
+#3 math 의 factorial
+from math import factorial
+
+def solution(n):
+    i = 1
+    while factorial(i) <= n:
+        i += 1
+    return i - 1
+
+```
+
+### 문제 : 가까운 수
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120848
+
+```python
+#1
+def solution(array, n):
+    array.sort()
+    li = [abs(i-n) for i in array]
+    idx = li.index(min(li))
+    answer = array[idx]
+    return answer
+
+#2
+array = [3, 10, 25, 28, 15]
+n = 20
+
+# 정렬되는 값은 array의 요소들
+# 기준은 거리이기 때문에 abs(x-n)을 기준으로 정렬한다. >> 이거만 하면 [25, 15, ...]
+# 조건에 거리가 같다면 더 작은수가 앞으로 배치되어야 하기 때문에 두 번째 요소로 x-n 을 넣어준다.
+sorted(array, key=lambda x: (abs(x-n), x-n))
+```
+
+### 문제 : 한 번만 등장한 문자
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120896
+
+```python
+#1
+def solution(s):
+    li = []
+    for i in s:
+        if s.count(i) == 1:
+            li.append(i)
+
+    return ''.join(sorted(li))
+
+#2
+def solution(s):
+    return ''.join(sorted([i for i in s if s.count(i)==1]))
+```
+
+### 문제 : 이진수 더하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120885
+
+```python
+#1
+def solution(bin1, bin2):
+    a = int(bin1, 2) + int(bin2, 2)
+    return str(bin(a))[2:]
+
+# int(문자로표현된숫자, 진수) # 진수 = 2,8,16
+# bin(10진수), oct(10진수), hex(10진수)
+```
+
+### 문제 : 잘라서 배열로 저장하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120913
+
+```python
+#1
+def solution(my_str, n):
+    return [my_str[i:i+n] for i in range(0, len(my_str), n)]
+# 슬라이싱은 배열(혹은 문자열) 길이를 넘어가도 에러가 발생하지 않는다!
+
+#2 정규표현식
+import re
+def solution(my_str, n):
+    p = re.compile(f'.{{1,{n}}}')
+    return p.findall(my_str)
+## 정규표현식에서 {, }를 넣고싶으면 두 번씩 입력해야 한다 {{, }}
+```
+
+### 진료순서 정하기 - 12월 26일
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120835
+
+```python
+#1
+def solution(emergency):
+    answer = []
+    em_order = sorted(emergency, reverse=True) # 응급도 높은순서
+    return [em_order.index(i)+1 for i in emergency]
+
+#2
+def solution(emergency):
+    answer = []
+    em_order = sorted(emergency, reverse=True) # 응급도 높은순서
+    return list(map(lambda x: em_order.index(x)+1, emergency))
+```
+
+### 문제 : 공 던지기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120843
+
+```python
+#1
+def solution(numbers, k):
+    answer = numbers[2*(k-1)%len(numbers)]
+    return answer
+# 0,1,2,3 중 나와야 되므로 %길이 연산으로 해줌
+# 공차는 사람 첫 번째는 인덱스0 두번째는 인덱스 2 세 번째는 인덱스 4인데 다시 0으로 돌아감
+# 왜 점화식... ㅠ
+
+#2 배열 자체를 늘려서 계산
+def solution(numbers, k):
+    numbers = numbers * k ## 배열을 넉넉하게 k배 늘림
+    return numbers[(k-1) * 2]
+```
+
+### 문제 : 숨어있는 숫자의 덧셈(2)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120864
+
+```python
+#1
+import re
+def solution(my_string):
+    p = re.compile(r'([0-9]+)') ## r'\d+'
+    li = [int(i) for i in p.findall(my_string)]
+    return sum(li)
+
+## 한줄로
+# sum(map(int,[i for i in re.findall(r'[0-9]+', my_string)]))
+
+# 1.findall
+# 2.sub로 알파벳을 +로 바꾼 후 eval('1+1++++1') 가능하기때문에 ok
+# 3.모든 문자 기준으로 split을 해서 sum
+
+##
+s = "aAb1B2cC34oOp"
+for i in s:
+    if (i >= 'a' and i <= 'z') or (i >= 'A' and i <= 'Z'):
+        s = s.replace(i, '-')
+
+s.split('-')
+
+##
+import re
+
+s = "aAb1B2cC34oOp"
+re.split('[a-zA-Z]', s)
+
+## eval()은 안의 text를 python으로 실행시켜버리기 때문에 위험하다.
+## 악성코드를 실행시켜서 서버 정보를 자기 메일로 보낸다거나 하는 등....
+import re
+def solution(my_string):
+    my_string= re.sub(r'[a-zA-Z]+', r'+',my_string)
+    return eval(my_string) ## 뒤에 + 가 있어서 안됨...
+```
+
+### 문제 : 소인수분해
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120852
+
+```python
+# 1
+def solution(n):
+    origin = n
+    s = set()
+    for i in range(2, origin+1):
+        while n%i == 0:
+            s.add(i)
+            n = n/i
+
+        if n == 1:
+            break
+    answer = sorted(list(s))
+    return answer
+
+```
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+### 문제 : 옹알이
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120956
+
+```python
+#1 permutations
+from itertools import permutations
+
+def solution(babbling):
+    answer = 0
+    words = ["aya", "ye", "woo", "ma"]
+    two = [''.join(i) for i in permutations(words,2)]
+    three = [''.join(i) for i in permutations(words,3)]
+    four = [''.join(i) for i in permutations(words,4)]
+
+    berb = words + two + three + four
+    for i in babbling:
+        if i in berb:
+            answer += 1
+
+    return answer
+
+#위에거 깔끔하게 줄이면
+from itertools import permutations
+
+def solution(babbling):
+    answer = 0
+    words = ["aya", "ye", "woo", "ma"]
+    li = [] + words
+    for i in range(2, len(words)+1):
+        li += [''.join(k) for k in permutations(words, i)]
+
+    for i in babbling:
+        if i in li:
+            answer += 1
+
+    return answer
+
+#2 정규표현식
+import re
+
+def solution(babbling):
+    answer = 0
+    li = []
+    for i in babbling:
+        li.append(re.sub(r'aya|ye|woo|ma', r'', i))
+
+    return li.count('')
+
+#
+import re
+
+def solution(babbling):
+    answer = 0
+    li = []
+    p = re.compile(r'aya|ye|woo|ma')
+    for i in babbling:
+        li.append(p.sub(r'', i))
+
+    return li.count('')
 ```

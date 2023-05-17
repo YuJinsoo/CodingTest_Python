@@ -505,6 +505,21 @@ print(li_item_val_rev)
 # [('a', 7700), ('f', 5500), ('e', 4700), ('d', 3500), ('b', 2300), ('c', 1200)]
 ```
 
+- `sorted()` 활용하기
+- 정렬기준 key에 (우선조건, 다음조건) 등로 여러 조건을 넣을 수 있습니다
+
+```python
+# n에서 가장 거리가 먼 요소를 출력해보자
+array = [3, 10, 25, 28, 15]
+n = 20
+
+# 정렬되는 값은 array의 요소들
+# 기준은 거리이기 때문에 abs(x-n)을 기준으로 정렬한다. >> 이거만 하면 [25, 15, ...]
+# 조건에 거리가 같다면 더 작은수가 앞으로 배치되어야 하기 때문에 두 번째 요소로 x-n 을 넣어준다.
+print(sorted(array, key=lambda x: (abs(x-n), x-n)))
+print(sorted(array, key=lambda x: (abs(x-n), x-n))[0])
+```
+
 ## Built in Function : locals()
 
 - 현재 스코프(scope)의 지역변수들을 리턴해준다.
