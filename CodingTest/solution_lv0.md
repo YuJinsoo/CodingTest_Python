@@ -1110,6 +1110,17 @@ def solution(n):
     answer = sorted(list(s))
     return answer
 
+#2
+def solution(n):
+    d = 2
+    s = set()
+    while d <= n:
+        if n % d == 0:
+            s.add(d)
+            n = n / d
+        else:
+            d = d + 1
+    return sorted(list(s))
 ```
 
 <br>
@@ -1179,4 +1190,22 @@ def solution(babbling):
         li.append(p.sub(r'', i))
 
     return li.count('')
+
+## 강사님풀이?
+import re
+
+def solution(babbling):
+    count = 0
+    p = ["aya", "ye", "woo", "ma"]
+    for i in babbling:
+        print('------------')
+        print(i)
+        for pattern in p:
+            i = re.sub(pattern, ' ', i)
+            print(i)
+        if i.replace(' ', '') == '':
+            count += 1
+    return count
+
+solution(["aya", "yee", "u", "maa", "wyeoo"])
 ```
