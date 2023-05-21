@@ -582,6 +582,78 @@ print(only_fooslot, only_foo) # {'y', 'x', '__slots__'} {'__weakref__', '__dict_
 
 ```
 
+# 클래스의 상속(Inheritance)
+
+- 부모 클래스(Parent Class, Super Class)의 내용(속성과 메서드)를 물려받는 것을 상속(Inheritance)라고 합니다.
+- 부모클래스로부터 물려받은 클래스는 자식클래스(Child Class, Sub Class, Derived Class 등)으로 불립니다.
+
+> `class 클래스이름(부모클래스):`
+
+```python
+## 가장 단순한 형태의 상속
+class SuperClass():
+    pass
+
+class SubClass(SuperClass):
+    pass
+
+```
+
+- Python의 모든 것은 **클래스**로 구성되어 있습니다.
+- 기본 속성인 int, str 같은 것도 클래스입니다.
+- 그렇기 때문에 아무것도 상속하지 않은 클래스도 기본 구성인 `object`클래스를 상속하고 있습니다.
+
+```python
+class MyClass():
+    pass
+
+class MyClassObject(object):
+    pass
+
+mc = MyClass()
+mco = MyClassObject()
+o = object()
+
+# 기본적으로 object 클래스를 상속하기 때문에 두 클래스가 가진 속성과 메서드가 동일합니다.
+print(dir(mc) == dir(mco)) # True
+
+# 또한, mc와 mco는 object 클래스의 subclass입니다.
+print(isinstance(mc, object), isinstance(mcㅐ, object)) # True, True
+```
+
+## 메소드 오버라이딩(method overriding)
+
+- 단어 뜻과 같이 **덮어쓰다**라는 의미와 유사한 기능을 하는데 python은 메서드 오버라이드를 지원합니다.
+
+> 오버로딩(overloading)과 헷갈리는 경우가 있는데 Python에서는 오버로딩을 지원하지 않습니다.
+> 오버로딩은 **같은 함수이름**으로 파라메터를 다르게 하여 메서드의 시그니처로 구분해서 함수 호출을 지원하는 기능입니다.
+
+```python
+class City():
+    def __init__(self):
+        pass
+
+    def show(self):
+        print('City 클래스 show 입니다.')
+
+class Seoul(City):
+    def __init__(self):
+        self.name = 'Seoul'
+
+    def show(self):
+        print('Seoul 클래스 show 입니다.')
+```
+
+## 다중 상속
+
+- 다중 상속은 여러 클래스를 상속받는 것을 의미합니다.
+- C#과 JAVA는 다중상속을 제한했습니다.(다이아몬드 상속 시 충돌)
+- 하지만 Python은 다중상속을 지원합니다. (C++도 지원합니다)
+
+### mro 메서드
+
+- method ro
+
 ## 추상 클래스 (abstract class)
 
 - 추상 클래스(abstract class)란 메서드의 이름만 존재하는(메서드 구현은 없이) 클래스입니다.

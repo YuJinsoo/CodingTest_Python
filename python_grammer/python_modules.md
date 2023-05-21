@@ -701,3 +701,5 @@ print(f'{table_title}의 기간동안 거래총량은 {total_trading_volume:,} �
 # gc 모듈 : Garbage Collector 사용하기
 
 - https://wikidocs.net/13969
+
+# psutil 모듈 : CPU및 메모리 성능 확인 모듈
