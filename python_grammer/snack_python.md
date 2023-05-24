@@ -401,20 +401,166 @@ print(sorted(student_objects, key=attrgetter('grade', 'age')))
 
 ```python
 test = [10, 2, 1, 2, 9, 3, 0, 5, 5, 5, 6, 9, 3, 11, 22]
-우선순위그룹 = [0, 1, 11, 111]
+group = [0, 1, 11, 111]
 
-def 우선순위판별(값):
-    if 값 in 우선순위그룹:
-        return (False, 값)
-    return (True, 값)
+def func(value):
+    if value in 우선group순위그룹:
+        return (False, value)
+    return (True, value)
 
-print(sorted(test, key=우선순위판별))
+print(sorted(test, key=func))
 
 ## 적용안됨
 # False와 True만 넘어가기 때문에 정렬 기준이 없어져서 정렬 X
-print(sorted(test, key=lambda x: False if x in 우선순위그룹 else True))
+print(sorted(test, key=lambda x: False if x in group else True))
 
 ## 적용됨
 # False와 True와 함께 정렬할 값을 넘겨주면 정렬 가능
-print(sorted(test, key=lambda x: (False, x) if x in 우선순위그룹 else (True, x)))
+print(sorted(test, key=lambda x: (False, x) if x in group else (True, x)))
 ```
+
+- 위 원리는 sorted 정렬 시 False가 True보다 앞에 오는 원리를 이용한 것입니다.
+
+```python
+li = [True, False, False, False, True]
+
+print(sorted(li)) # [False, False, False, True, True]
+```
+
+## 타입 힌트(type annotation)
+
+- Python은 변수의 타입이 실행 시점에 결정되는 언어(동적 프로그래밍 언어)
+- C와 JAVA는 변수를 선언할 때 반드시 타입을 명시, 컴파일 시점에 변수의 타입이 결정(정적 프로그래밍 언어)
+- mypy 모듈을 사용하면 타입힌트에 오류가 있는지 확인할 수 있음
+
+```python
+# 파이썬이 동적 프로그래밍이기 때문에 자료형이 정해지지 않습니다
+# 이런 실수를 줄이기 위해 주석으로 표시해왔었습니다.
+number = 1 # type : int
+
+def greeting(name):
+    # tyep: (str) -> str
+    return 'Hello, ' + name
+```
+
+- Python 3.5 이상 부터는 더 나은 타입 힌트를 위해
+- 타입 어노테이션(type annotation)이라는 기능을 추가하였습니다.
+
+```python
+number: int = 1
+name: str = "홍길동"
+arr: list = ['a', 'b', 'c']
+
+def greeting(name: str) -> str:
+    return 'Hello, ' + name
+```
+
+- 타입 어노테이션을 사용해도 list나 tuple 내부의 요소의 자료형을 표현할수는 없었습니다.
+- typing 모듈을 사용하면 리스트, 튜블 안에 들어가는 자료형도 명시할 수 있습니다.
+
+```python
+# 하지만 이것도 자료형을 강제하지 않습니다.
+import typing
+
+arr: typing.List[int] = [1, 2, 3]
+alpha: typing.Tuple[str, str, str] = ('a', 'b', 'c')
+student: typing.Dict[str, int] = {'홍길동': 1, '춘향': 2}
+```
+
+> 가장 중요한 것은 자료형을 표현할 수 는 있지만, 표현된 자료형으로 강제하지 않습니다.
+
+```python
+# 에러가 발생하지 않습니다.
+num:int = '123'
+print(num)
+```
+
+- `mypy` 모듈 (pip install mypy)
+- 아래 내용을 실행하면 정상 동작합니다.
+- 하지만 파일로 생성해서 터미널에 서 `mypy test.py`를 실행하면
+  > test.py:1: error: Incompatible types in assignment (expression has type "str", variable has type "int") [assignment]
+  > Found 1 error in 1 file (checked 1 source file)
+
+```python
+# 실행하면 에러 발생하지 않고 정상 동작합니다.
+
+num: int = "1"
+print(num) #1
+```
+
+## sum() 함수를 활용한 개별 요소 합치기
+
+- `sum()`함수는 iterable한 객체의 요소들의 합을 구하는데 주로 사용합니다.
+- 하지만 빈 오브젝트를 전달하여 개별 요소들을 합칠 수 있습니다.
+
+  > 차원을 감소시키는 작업을 손쉽게 할 수 있습니다!!
+
+- list에서 활용해봅시다.
+- list객체와 함께 빈 리스트를 전달하면 빈 리스트에 전달된 리스트의 2차원 요소들이 빈 리스트에 추가되어 리턴됩니다.
+
+```python
+li = [['a', 'b', 'c'], [1, 2, 3], ['x', 'y', 'z']]
+print(sum(li, []))
+print(sum(li, ['start']))
+# ['a', 'b', 'c', 1, 2, 3, 'x', 'y', 'z']
+# ['start', 'a', 'b', 'c', 1, 2, 3, 'x', 'y', 'z']
+```
+
+- tuple에서 활용해봅시다.
+- list와 같은 용법으로 사용이 불가능합니다. 왜냐하면 tuple은 수정 불가능한 성질을 가지고 있기 때문입니다.
+
+```python
+t = (('a', 'b', 'c'), (1, 2, 3), ('x', 'y', 'z'))
+sum(t, ()) # ('a', 'b', 'c', 1, 2, 3, 'x', 'y', 'z')
+# sum(t, ('a'))
+#tuple은 변경 불가능하기 때문에 시작값 설정해주면 에러
+
+```
+
+- dictionary
+
+```python
+#dictionary는 key들을 더해버립니다.
+d = {1:'one', 2:'two'}
+print(sum(d, 0))    # 3
+print(sum(d, 5))    # 5
+
+
+# dictionary key 가string이면 요소 합치기로 sum 활용이 불가능합니다..
+d = {'one': 1, 'two':2 }
+# sum(d, 0) TypeError: unsupported operand type(s) for +: 'int' and 'str'
+# sum(d, '') TypeError: sum() can't sum strings [use ''.join(seq) instead]
+```
+
+- 고차원 배열을 저차원으로 수정하고 그것을 반복해서 총합을 구할 수 있습니다.
+
+```python
+data = [[0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8]]
+
+print(sum(data,[]))
+print(sum(sum(data,[])))
+# [0, 1, 2, 3, 4, 5, 6, 7, 8]
+# 36
+```
+
+- 사실 이 방식보다 `numpy` 모듈을 사용하면 깔끔하게 처리됩니다.
+
+```python
+import numpy as np
+
+data = [[0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8]]
+
+print(np.sum(data, axis = 0)) # 2차원 배열간에 같은 인덱스 번호 요소끼리 sum
+print(np.sum(data, axis = 1)) # 같은 리스트 끼리의 합
+# [ 9 12 15]
+# [ 3 12 21]
+
+```
+
+## generator를 활용한 특정 값 무한 반복자 만들기
+
+- generator는 `yield` 키워드를 쓰는 함수입니다.

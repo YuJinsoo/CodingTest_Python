@@ -1123,6 +1123,699 @@ def solution(n):
     return sorted(list(s))
 ```
 
+### 문제 : 구슬을 나누는 경우의 수
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120840
+
+```python
+#1 combinations 는 시간초과
+from itertools import combinations
+
+def solution(balls, share):
+    balls_list = [i for i in range(1, balls+1)]
+    cb = list(combinations(balls_list, share))
+
+    answer = len(cb)
+    return answer
+
+#2 직접풀기.
+def fac(n):
+    c = 1
+    for i in range(1, n+1):
+        c *= i
+
+    return c
+
+def solution(balls, share):
+    answer = fac(balls)/(fac(balls-share)*fac(share))
+    return answer
+
+#3 math 패키지 math.comb()
+import math
+
+def solution(balls, share):
+    return math.comb(balls, share)
+```
+
+### 문제 :
+
+-
+
+```python
+#1
+def solution(numbers):
+    answer = 0
+    d = {"zero": "0",
+         "one":"1",
+         "two": "2",
+         "three":"3",
+         "four":"4",
+         "five":"5",
+         "six":"6",
+         "seven":"7",
+         "eight":"8",
+         "nine":"9"}
+
+    print(d.keys())
+    for i in d.keys():
+        if i in numbers:
+            print(d[i])
+            numbers = numbers.replace(i, d[i])
+
+    return int(numbers)
+
+#2
+import re
+
+def solution(numbers):
+    s = ''
+    d = {
+        'zero' : '0',
+        'one' : '1',
+        'two' : '2',
+        'three' : '3',
+        'four' : '4',
+        'five' : '5',
+        'six' : '6',
+        'seven' : '7',
+        'eight' : '8',
+        'nine' : '9'
+    }
+    for i in re.findall(r'(zero|one|two|three|four|five|six|seven|eight|nine)', numbers):
+        s += d[i]
+    return int(s)
+
+#3
+def solution(numbers):
+    for num, eng in enumerate(["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]):
+        numbers = numbers.replace(eng, str(num))
+    return int(numbers)
+```
+
+### 문제 : 외계어 사전
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120869
+
+```python
+# list('hello') == list('hello')
+# set('hello') == set('hello')
+# 2개 모두 True
+
+# s1 = {1, 2, 3}
+# s2 = {3, 1, 2}
+# s1 == s2 #True
+
+#1
+def solution(spell, dic):
+    answer = 0
+    ss = set(spell)
+    li = []
+
+    for i in dic:
+        s = set(i)
+        if ss.intersection(s) == ss:
+            li.append(1)
+        else:
+            li.append(2)
+
+    answer = 1 if 1 in li else 2
+    return answer
+
+#2
+from itertools import permutations
+
+def solution(spell, dic):
+    li = list([''.join(i) for i in permutations(spell, len(spell))])
+    for i in li:
+        if i in dic:
+            return 1
+    return 2
+
+#3
+def solution(spell, dic):
+    for i in dic:
+        if set(spell) == set(i):
+            return 1
+    return 2
+```
+
+### 문제 : 문자열 계산하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120902
+
+```python
+#1
+def solution(my_string):
+    answer = eval(my_string)
+    return answer
+
+#2 '-' 를 '+-'로 바꾼 뒤 +로 스플릿하면 음수/양수 구분되면서 합만 구하면 됨!
+def solution(my_string):
+    return sum(int(i) for i in my_string.replace(' - ', ' + -').split(' + '))
+```
+
+### 문제 : 캐릭터의 좌표
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120861?language=python3
+
+```python
+#1
+def solution(keyinput, board):
+    x_range = (board[0]-1)/2
+    y_range = (board[1]-1)/2
+    answer = [0, 0]
+
+    while keyinput:
+        key_in = keyinput.pop(0)
+
+        if key_in == "left":
+            if answer[0] <= x_range * -1:
+                continue
+            answer[0] -= 1
+        elif key_in == "right":
+            if answer[0] >= x_range:
+                continue
+            answer[0] += 1
+        elif key_in == "down":
+            if answer[1] <= y_range * -1:
+                continue
+            answer[1] -= 1
+        elif key_in == "up":
+            if answer[1] >= y_range:
+                continue
+            answer[1] += 1
+
+    return answer
+
+#2 이건 경계에 있을 경우 최대값을 다시 넣어줌
+def solution(keyinput, board):
+    answer = []
+    x = 0
+    y = 0
+    for i in keyinput:
+        if i == 'right':
+            x +=1
+        elif i == 'left':
+            x -=1
+        elif i == 'up':
+            y += 1
+        elif i == 'down':
+            y -= 1
+        if abs(x) >= (board[0] // 2):
+            x = (x // abs(x)) * (board[0] // 2)
+        if abs(y) >= (board[1] // 2):
+            y = (y // abs(y)) * (board[1] // 2)
+    return [x, y]
+
+```
+
+### 문제 : 문자열 밀기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120921
+
+```python
+#1
+def solution(A, B):
+    if A == B:
+        return 0
+
+    for i in range(1,len(A)):
+        s = A[:-1]
+        A = A[-1] + s
+
+        if A == B:
+            return i
+
+    return -1
+
+
+#2
+from collections import deque
+
+def solution(A, B):
+    c = deque(A)
+
+    for i in range(len(A)):
+        if ''.join(c) == B :
+            return i
+        c.rotate(1)
+
+    return -1
+
+#3 ?
+def solution(A, B):
+    #if A == "":
+    #    return 0
+
+    AA = A+A
+    answer = AA.find(B)
+
+    if answer >0:
+        answer = len(A) - answer
+
+    return answer
+
+#4 ?
+def solution(A, B):
+    return (B*2).find(A)
+```
+
+### 문제 : 유한소수 판별하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120878
+
+```python
+#1
+def solution(a, b):
+
+    return 1 if a/b * 1000 % 1 == 0 else 2
+
+#2
+import math
+
+def solution(a, b):
+    gcd = math.gcd(a, b) # 분모, 분자의 최대공약수를 구해 b를 최대공약수로 나눔
+    b //= gcd
+
+    num = [] # 소인수 저장
+    i = 2
+    while i <= b: # 소인수 구하기
+        if b % i == 0:
+            b //= i
+            num.append(i)
+        else:
+            i += 1
+
+    if all(i in [2,5] for i in num): # 소인수가 2와 5만 존재하면 유한소수 그렇징 않으면 무한소수
+        return 1
+    return 2
+```
+
+### 문제 : 직사각형 넓이 구하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120860
+
+```python
+#1
+def solution(dots):
+    dots = sorted(dots)
+    y = abs(dots[0][0] - dots[2][0])
+    x = abs(dots[0][1] - dots[1][1])
+    return x*y
+
+#2
+def solution(dots):
+    return (max(dots)[0] - min(dots)[0])*(max(dots)[1] - min(dots)[1])
+
+#3
+def solution(dots):
+    [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = dots
+    return (max([x1, x2, x3, x4]) - min([x1, x2, x3, x4])) * (max([y1, y2, y3, y4]) - min([y1, y2, y3, y4]))
+```
+
+### 문제 : 삼각형의 완성조건(2)
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120868
+
+```python
+#### 왜그런지 모르겠음...
+#1
+def solution(sides):
+    a = max(sides) - min(sides)
+    b = max(sides) + min(sides)
+    return b-a-1
+
+#2
+def solution(sides):
+    return sum(sides) - max(sides) + min(sides) - 1
+```
+
+### 문제 : 컨트롤 제트 - 12월 28일
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120853
+
+```python
+#1
+import re
+def solution(s):
+    s = re.sub(r'-?[0-9]+ Z', '', s).strip()
+    li = s.split(' ')
+    while '' in li:
+        li.remove('')
+    if li == False:
+        return 0
+    return sum([int(i) for i in li])
+
+#2
+def solution(s):
+    li = s.split(' ')
+    answer = 0
+    for i in range(len(li)):
+        if li[i] == 'Z':
+            answer -= int(li[i-1])
+            continue
+        answer += int(li[i])
+
+    return answer
+
+#3 거꾸로 꺼내면서 풀이
+def solution(s):
+    result = []
+    for i in s.split(' '):
+        if i == 'Z':
+            result.pop()
+        else:
+            result.append(int(i))
+    return sum(result)
+```
+
+### 문제 : 등수 매기기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120882
+
+```python
+#1
+def solution(score):
+    li = list(map(sum,score))
+    sli = sorted(li, reverse=True)
+
+    answer = list(map(lambda x: sli.index(x)+1, li))
+    return answer
+
+#2
+def solution(score):
+    a = sorted([sum(i) for i in score], reverse = True)
+    return [a.index(sum(i))+1 for i in score]
+```
+
+### 문제 : 로그인 성공?
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120883
+
+```python
+#1
+def solution(id_pw, db):
+    answer ='fail'
+    for i, p in db:
+        if id_pw[0] == i:
+            if id_pw[1] == p:
+                answer = 'login'
+            else:
+                answer = 'wrong pw'
+
+    return answer
+
+#2 왈러스연산자
+def solution(id_pw, db):
+    if db_pw := dict(db).get(id_pw[0]):
+        return "login" if db_pw == id_pw[1] else "wrong pw"
+    return "fail"
+```
+
+### 문제 : 특이한 정렬
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120880
+
+```python
+#1
+## 정렬 기준을 여러번 줄 수 있음..
+def solution(numlist, n):
+    answer = sorted(numlist, key=lambda x: (abs(x-n), n-x))
+    return answer
+
+#2
+def solution(numlist, n):
+    d = [[i, abs(i-n)] for i in numlist]
+    return list(map(lambda x:x[0], sorted(d, key=lambda x:(x[1], -x[0]))))
+```
+
+### 문제 : 분수의 덧셈
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120808?language=python3
+
+```python
+#1
+def solution(numer1, denom1, numer2, denom2):
+    answer = [numer1*denom2 + numer2*denom1, denom1*denom2]
+    m = min(answer)
+    for i in range(2, m+1):
+        while answer[0]%i ==0 and answer[1]%i ==0:
+            answer[0] /= i
+            answer[1] /= i
+    return answer
+
+#2
+from fractions import Fraction
+
+def solution(denum1, num1, denum2, num2):
+    answer = Fraction(denum1, num1) + Fraction(denum2, num2)
+    return [answer.numerator, answer.denominator]
+```
+
+### 문제 : 치킨 쿠폰
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120884?language=python3
+
+```python
+#1
+def solution(chicken):
+    answer = 0
+    coupon = chicken
+    while coupon >= 10:
+        answer += coupon // 10
+        coupon = coupon // 10 + coupon%10
+    return answer
+
+#2
+def solution(chicken):
+    answer = 0
+    while chicken >= 10:
+        chicken, mod = divmod(chicken, 10)
+        answer += chicken
+        chicken += mod
+    return answer
+
+#3 와...0.1곱한건 원래치킨에서 추가수 0.01 곱한건 ...그다음 ㄷㄷㄷㄷ
+def solution(chicken):
+    return int(chicken*0.11111111111)
+```
+
+### 문제 : 저주의 숫자 3
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120871
+
+```python
+def solution(n):
+    number = 1
+    xnum = 1
+    #3의 배수면 1 더해주고
+    # 3이 들어가면 1 더해주고..
+
+    while number < n:
+        number += 1
+        xnum += 1
+        while xnum%3 ==0 or '3' in str(xnum):
+            xnum +=1
+
+    return xnum
+```
+
+### 문제 : 최빈값 구하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120812
+
+```python
+#1
+from collections import Counter
+
+def solution(array):
+    answer = 0
+    c = Counter(array)
+    li = list(c.values())
+    if li.count(max(li)) > 1:
+        return -1
+    v = max(li)
+
+    for i in array:
+        if array.count(i) == v:
+            return i
+
+#2
+from collections import Counter
+
+def solution(array):
+    if len(array) == 1:
+        return array[0]
+    x = Counter(array)
+    정렬 = sorted(x.items(), key=lambda v:v[1], reverse=True)
+    if 정렬[0][1] == 정렬[1][1]:
+        return -1
+    return 정렬[0][0]
+
+#3 ???
+def solution(array):
+    while len(array) != 0:
+        for i, a in enumerate(set(array)):
+            array.remove(a)
+        if i == 0: return a
+    return -1
+```
+
+### 문제 : 다항식 더하기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120863
+
+```python
+def solution(polynomial):
+    li = polynomial.split(' + ')
+    con = sum([int(i) for i in li if i.isdigit()])
+    x_li = [i for i in li if not i.isdigit()]
+    x = 0
+    for i in x_li:
+        if len(i) == 1:
+            x += 1
+        else:
+            x += int(i[:-1])
+
+    if con == 0:
+        if x == 0: return ""
+        if x == 1: return f"x"
+        if x > 1: return f"{x}x"
+    elif con != 0:
+        if x == 0: return f"{con}"
+        if x == 1: return f"x + {con}"
+
+    return f"{x}x + {con}"
+
+```
+
+### 문제 : 다음에 올 숫자
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120924
+
+```python
+#1 if 두개로 하면 안됨...
+def solution(common):
+    answer = 0
+    if common[1] - common[0] == common[2] - common[1]:
+        value = common[1] - common[0]
+        answer = common[-1] + value
+    else:
+        value = common[1] / common[0]
+        answer = common[-1] * value
+    return answer
+```
+
+### 문제 : OX퀴즈
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120907
+
+```python
+#1
+def solution(quiz):
+    answer = []
+
+    for i in quiz:
+        li = i.split(' = ')
+        if eval(li[0]) == int(li[1]):
+            answer.append('O')
+        else:
+            answer.append('X')
+    return answer
+
+#2 방정식을 아얘 풀어버리는 방식으로 풀이
+def valid(equation):
+    equation = equation.replace('=', '==')
+    return eval(equation)
+
+def solution(equations):
+    return ["O" if valid(equation) else "X" for equation in equations]
+```
+
+### 문제 : 연속되 수의 합
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120923
+
+```python
+#1
+def solution(num, total):
+    li = list(range(num))
+
+    while sum(li) != total:
+        if sum(li) > total:
+            li = list(map(lambda x: x-1, li))
+        else:
+            li = list(map(lambda x: x+1, li))
+    return li
+
+#2 무슨소린지 모르겠당
+def solution(num, total):
+    return [(total - (num * (num - 1) // 2)) // num + i for i in range(num)]
+```
+
+### 문제 : 겹치는 선분의 길이
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120876
+
+```python
+
+#1
+def solution(lines):
+
+    li1 = [i for i in range(sorted(lines[0])[0], sorted(lines[0])[1]+1)]
+    li2 = [i for i in range(sorted(lines[1])[0], sorted(lines[1])[1]+1)]
+    li3 = [i for i in range(sorted(lines[2])[0], sorted(lines[2])[1]+1)]
+
+    li = []
+    for i in lines:
+        li += i
+
+    low = min(li)
+    high = max(li)
+
+    len = 0
+    for i in range(low, high):
+        tmp = 0
+
+        if i in li1 and i+1 in li1:
+            tmp +=1
+        if i in li2 and i+1 in li2:
+            tmp +=1
+        if i in li3 and i+1 in li3:
+            tmp +=1
+
+        if tmp >= 2:
+            len +=1
+
+    return len
+```
+
+### 문제 : 평행
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120875
+
+```python
+
+from itertools import combinations
+
+def solution(dots):
+    ramp = []
+    for i, j in combinations(dots, 2):
+        m = (j[1] - i[1])
+        d = (j[0] - i[0])
+        ramp.append((m, d))
+
+    for i, j in combinations(ramp, 2):
+        if i[0]*j[1] == i[1]*j[0]:
+            return 1
+
+    return 0
+```
+
+### 문제 : 안전지대 - 1월 12일
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/120866
+
 <br>
 <br>
 <br>
