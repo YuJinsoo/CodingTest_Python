@@ -1,4 +1,4 @@
-# lv0 문법체크
+# 문법체크
 
 - 배열의 합, 평균
 - Buitin function: sum 함수, len 함수
