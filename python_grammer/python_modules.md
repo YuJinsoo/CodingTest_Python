@@ -52,6 +52,9 @@ print(ddict)    # defaultdict(<class 'list'>, {'A': [123, 78], 'B': [45, 9], 'C'
 
 ## collections의 Counter
 
+- Counter는 hashable items을 세기 위한 dict의 subclass를 반환합니다. - dict와 비슷하게 사용
+- dict의 subcalss이므로 dict의 메서드인 `keys()`, `values()`, `items()`, `get()`등이 가능합니다.
+
 ```python
 from collections import Counter
 
@@ -61,7 +64,7 @@ print(Counter('hello world! hey~'))
 # Counter({'l': 3, 'h': 2, 'e': 2, 'o': 2, ' ': 2, 'w': 1, 'r': 1, 'd': 1, '!': 1, 'y': 1, '~': 1})
 ```
 
-### get
+### Counter : get()
 
 - 사용된 요소의 개수를 반환합니다
 - 없는요소(key)일 경우 `None`을 리턴합니다
@@ -78,6 +81,8 @@ def solution(array, n):
 print(solution(array,4))  # 2
 print(solution(array,10)) # 0
 ```
+
+### key, values, update, get ...
 
 ## collections의 deque
 
@@ -100,8 +105,6 @@ dir(numbers)
 #  'reverse',
 #  'rotate'
 ```
-
-### key, values, update, get ...
 
 ## collections의 deque
 
@@ -168,6 +171,48 @@ print(nono)   # [('a', 'b', 'c'), ('a', 'c', 'b'), ('b', 'a', 'c'), ('b', 'c', '
 print(one)    # ['a', 'b', 'c']
 print(two)    # ['ab', 'ac', 'ba', 'bc', 'ca', 'cb']
 print(three)  # ['abc', 'acb', 'bac', 'bca', 'cab', 'cba']
+```
+
+## itertools의 combinations
+
+- 입력한 자료형으로부터 **순열(Combination)**을 생성하여 tuple이 요소인 iter를 반환한다.
+- 순서와 중복 없이 뽑는 경우의 수
+
+> from itertools import combinations
+> combinations(iterable, num)
+
+```python
+from itertools import combinations
+
+l = [[1, 4], [9, 2], [3, 8]]
+for i in combinations(l, 2): ## iterable에서 2개씩 중복, 순서없이 뽑음
+    print(i, end= ' ')
+# ([1, 4], [9, 2]) ([1, 4], [3, 8]) ([9, 2], [3, 8])
+
+type(combinations(l, 2)) # itertools.combinations
+```
+
+- iterable인 객체는 모두 가능하므로 str도 가능합니다.
+
+```python
+from itertools import combinations
+s = 'cat'
+for i in combinations(s, 2):
+    print(i, end=' ')
+
+# ('c', 'a') ('c', 't') ('a', 't')
+```
+
+- dictionary로 뽑기를 했을 경우, key값만 뽑습니다.
+
+```python
+from itertools import combinations
+d = {'one':1, 'two':2, 'three':3}
+for i in combinations(d, 2):
+    print(i, end=' ')
+
+# ('one', 'two') ('one', 'three') ('two', 'three')
+
 ```
 
 ## itertools의 product

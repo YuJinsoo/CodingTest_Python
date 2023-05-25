@@ -1795,33 +1795,31 @@ def solution(lines):
 - https://school.programmers.co.kr/learn/courses/30/lessons/120875
 
 ```python
-
+## 문제가 이상함.. 아무렇게나 2개를 뽑는게 아니라
+## 직선이 되는 두 쌍을 뽑으면 나머지 쌍에 직선을 긋고, 그 두 선분이 평행인지 확인하는 것...
+## 즉 1,2 점과 3,4  / 1, 3 과 2, 4 / 1, 4 와 2, 3  세 가지만 발생하게 됩니다.
+## 콤비네이션의 0, 1, 2 항목만 사용하면 나머지 선분은 자동으로 결정됩니다.
 from itertools import combinations
 
 def solution(dots):
     ramp = []
-    for i, j in combinations(dots, 2):
-        m = (j[1] - i[1])
-        d = (j[0] - i[0])
-        ramp.append((m, d))
+    for i,j in combinations(dots, 2): ## 0-5,1-4,2-3 이 쌍이됩니다.
+        tmp = sorted([i, j], key=lambda x: x[0])
+        ramp,append((tmp[1][0]-tmp[0][0], tmp[1][1]-tmp[1][1]))
 
-    for i, j in combinations(ramp, 2):
-        if i[0]*j[1] == i[1]*j[0]:
+    ## 두 선분이 평행한다면 a: b = x: y >> a*y == b*x
+    for i in range(3):
+        l1 = ramp[i]
+        l2 = ramp[len(tmp)-i-1]
+
+        if l1[0]*l2[1] == l1[1]*l2[0]:
             return 1
-
     return 0
 ```
 
 ### 문제 : 안전지대 - 1월 12일
 
 - https://school.programmers.co.kr/learn/courses/30/lessons/120866
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
 
 ### 문제 : 옹알이
 
