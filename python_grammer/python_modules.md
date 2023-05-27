@@ -255,6 +255,47 @@ print(pd3)
 # 'CAA', 'CAB', 'CAC', 'CBA', 'CBB', 'CBC', 'CCA', 'CCB', 'CCC']
 ```
 
+# Math 모듈
+
+- C 표준에서 정의된 수학 함수에 대한 액세스를 제공합니다
+
+> `from math import ~~` 혹은 `import math`
+
+- 필요한 함수만 import 해서 사용할 수 있습니다.
+
+## 유용한 Math 모듈의 함수 리뷰
+
+### math.ceil(), math.floor()
+
+- `ceil()`은 소수점의 올림, `floor()`는 소수점의 내림을 하여 정수를 반환하는 함수입니다.
+
+```python
+import math
+
+print(math.ceil(10.24)) #11
+print(math.floor(10.24))#10
+```
+
+### math.gcd(\*integers)
+
+- 아규먼트로 전달된 정수 인자들의 치대 공약수를 반환합니다.
+- 버전 3.5에 추가되었습니다.
+
+```python
+
+```
+
+### Math.comb(n,k)
+
+- 버전 3.8에 추가됨. 반복과 순서 없이 n개의 항목에서 k개의 항목을 선택하는 방법의 수를 반환합니다.
+- 인자 중 어느 하나라도 정수가 아니면 `Type Error`를 발생시킵니다. 음수이면 `Value Error`
+
+```python
+from math import comb
+
+comb(5, 3)
+```
+
 # functools 모듈
 
 # json 모듈
