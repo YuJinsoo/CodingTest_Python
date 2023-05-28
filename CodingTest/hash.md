@@ -3,6 +3,22 @@
 - key-value로 이뤄진 자료형으로 python에서는 dictionary를 사용하면 됩니다.
 - key를 통해 데이터를 바로 받을 수 있는 자료구조로 배열로 해쉬테이블 사이즈만큼 생성 후에 사용(공간과 시간을 맞바꿈)
 
+## 자료구조 hash table 이란?
+
+- 위에서 설명한 것과 같이 key-value 쌍으로 이뤄진 데이터입니다.
+- key값을 통해 value를 찾을 수 있는 자료구조입니다.
+- hash 함수를 통해 key에대한 value 값을 한 번에 찾을 수 있어 검색속도 및 수정속도가 매우 빠릅니다.
+
+- 해쉬충돌(Collison)에 대한 추가적인 내용이 있습니다.
+
+  1. Chaining 기법
+  2. Linear Probing 기법
+
+- 유명한 해쉬 함수로는 SHA-256, SHA-512 등이 있습니다.
+  <br> python의 `hash()`함수는 값이 달라질 수 있습니다.
+
+> SHA-256과 같은 함수는 python의 `hashlib` 모듈을 통해 사용할 수 있습니다. hashlib.sha256() 으로 객체를 생성하여 사용합니다.
+
 ## 해쉬 용어
 
 - 해쉬(Hash): 임의 값을 고정 길이로 변환하는 것
@@ -130,4 +146,118 @@ def solution(participant, completion):
 
     answer = participant.pop()
     return answer
+```
+
+## 문제3 : 전화번호 >> 다시풀어보기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/42577
+
+- https://kid-do-developer.tistory.com/133
+
+```python
+# list이긴 한데 효율높여서 풀면 풀림
+def solution(phone_book):
+    phone_book.sort()
+    for i in range(len(phone_book) -1):
+        if phone_book[i] == phone_book[i+1][:len(phone_book[i])]:
+            return False
+
+    return True
+
+# dictionary로 풀 수 있을까?
+## phone_book의 번호를 모두 자리수별로 쪼개서 key로 저장
+## 같은 번호가 나와도 한개만 저장됨.(key는 유일)
+## 123 24 있으면 key는 1 12 2 이렇게됨
+## 중복 번호는 없으므로 자기 자신을 넣지 않으면 간단하게 접두어인지 본인의 문자열인지 구분할 수 있습니다.
+## 거기에 phone_book에서 일치하는 key가 있으면 False인 원리
+## dictionary의 검색, 수정, 생성은 O(1)이라서 빠름
+def solution(phone_book):
+    d = dict()
+    for p in phone_book:
+        for i in range(1, len(p)):
+            d[p[:i]] = 0
+
+    for p in phone_book:
+        if p in d:
+            return False
+
+    return True
+
+## 역시나 list로 풀면 효율성 test 3, 4에서 실패
+def solution(phone_book):
+    #phone_book.sort() 정렬해도 실패
+    for i in phone_book:
+        for j in phone_book:
+            if i == j :
+                continue
+            if i.find(j) == 0:
+                return False
+
+    return True
+```
+
+- 해설...
+- 문자열 요소들을 sort하면 사전순으로 정렬이 되기 때문에 앞뒤의 요소끼리만 비교해주면 됩니다.
+
+```python
+li = ["1","12","111","11", "121", "122"]
+
+li.sort()
+li # ['1', '11', '111', '12', '121', '122']
+```
+
+## 문제 4: 의상
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/42578
+
+```python
+#1
+def solution(clothes):
+    answer = 1
+    d = dict()
+    for i in clothes:
+        if d.get(i[1], None) == None:
+            d[i[1]] = []
+        d[i[1]].append(i[0])
+
+    li = [len(d[i])+1 for i in d]
+
+    for i in li:
+        answer *= i
+    return answer-1
+
+# 언패킹 및 values() 까지 사용
+def solution(clothes):
+    clothes_type = {}
+
+    for _, t in clothes:
+        if t not in clothes_type:
+            clothes_type[t] = 2
+        else:
+            clothes_type[t] += 1
+
+    cnt = 1
+    for num in clothes_type.values():
+        cnt *= num
+
+    return cnt - 1
+
+## Counter 사용풀이
+## functools 의 reduce. 누적함수
+
+def solution(clothes):
+    from collections import Counter
+    from functools import reduce
+    cnt = Counter([kind for item, kind in clothes])
+    answer = reduce(lambda x, y: x*(y+1), cnt.values(), 1) - 1
+    return answer
+
+```
+
+## 문제 5 : 베스트앨범
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/42579
+
+```python
+
 ```

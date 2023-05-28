@@ -614,8 +614,92 @@ print(hasattr(d, '__add__'))    # False
 
 - 오브젝트에 name에 해당하는 변수를 생성해서 값을 할당 (이미 있다면 값을 수정)
 
-## Built in Functino : delattr()
+## Built in Function : delattr()
 
 > 함수양식 : delattr(object, name)
 
 - 오브젝트에 name에 해당하는 변수를 제거
+
+## bytes와 bytearray (클래스)
+
+- byte 단위의 자료를 다룰 때 사용할 수 있습니다.
+- 1바이트 단위의 값을 연속적으로 저장하는 시퀀스 자료형입니다.
+- byte 단위이므로 iterable 객체의 값이 255를 넘는 순간 에러가 발생합니다.
+
+- bytes 객체 생성하기
+
+```python
+# bytes 오브젝트 생성
+byte_obj = bytes()
+print(byte_obj) # b''
+
+byte_obj = "hello world!".encode()
+print(byte_obj) # b'hello world!'
+
+byte_obj = b"hello world!"
+print(byte_obj) # b'hello world!'
+
+byte_obj = bytes(5)
+print(byte_obj) # b'\x00\x00\x00\x00\x00'
+
+byte_obj = bytes('abced', encoding='UTF-8') # encoding은 대문자로 써줘야하나봄..
+print(byte_obj) # b'abced'
+
+byte_obj = bytes('인사', encoding='UTF-8')
+print(byte_obj) # b'\xec\x9d\xb8\xec\x82\xac'
+
+byte_obj = bytes([1, 2, 3])
+print(byte_obj) # b'\x01\x02\x03'
+
+byte_obj = bytes(range(4))
+print(byte_obj) # b'\x00\x01\x02\x03'
+
+# byte_obj = bytes([1000, 2000, 3000]) ## ValueError: bytes must be in range(0, 256)
+```
+
+- bytes 객체 해독? 하기
+- bytes 객체를 str문자열로 바꿔주는 `decode()` 메서드를 사용합니다.
+  > decode(인코딩이름 = 'ascii')
+
+```python
+res = b'abcde'.decode()
+print(type(res))
+print(res)
+# <class 'str'>
+# abcde
+res = b'abcde'.decode('utf-8')
+print(type(res))
+print(res)
+# <class 'str'>
+# abcde
+res = bytes([65, 66, 67]).decode()
+print(type(res))
+print(res)
+# <class 'str'>
+# ABC
+```
+
+- bytearray 객체 생성, 해독 및 수정하기
+
+```python
+# obj = bytearray('hello') # error
+
+obj = bytearray('hello', encoding='ascii')
+print(obj)
+obj = bytearray(b'hello')
+print(obj)
+
+obj[0] = ord('A') # array의 값 수정이 가능합니다
+print(obj)
+print(obj.decode()) # 해석하기
+
+obj.append(ord('!'))
+print(obj)
+obj.pop() # pop 함수를 list같은 iterable과 같이 사용할 수 있습니다.
+print(obj)
+obj.pop(0)
+print(obj)
+```
+
+> bytes와 bytearay의 차이점
+> bytes는 요소를 변경할 수 없지만 bytearray는 요소를 변경할 수 있습니다.

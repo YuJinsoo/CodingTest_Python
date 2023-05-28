@@ -298,6 +298,37 @@ comb(5, 3)
 
 # functools 모듈
 
+-functools 모듈은 고차 함수를 위한 것입니다: 다른 함수에 작용하거나 다른 함수를 반환하는 함수. 일반적으로, 모든 콜러블 객체는 이 모듈의 목적상 함수로 취급될 수 있습니다.
+
+## functools reduce()
+
+- iterable 요소를 누적해해주는 함수입니다.
+- 두 인자의 function을 왼쪽에서 오른쪽으로 iterable의 항목에 누적적으로 적용해서, 이터러블을 단일 값으로 줄입니다.
+
+> functools.reduct(func, iterable[, initializer])
+
+```python
+import functools
+
+functools.reduce(lambda x, y: x+y, [1, 2, 3, 4, 5])
+# ((((1+2)+3)+4)+5)
+# 15
+```
+
+- 예제
+
+```python
+import functools
+
+# ((((1+2)+3)+4)+5)
+functools.reduce(lambda x, y: x+y, [1, 2, 3, 4, 5]) # 15
+
+## 새 값은 y로 들어오고 기존값은 x
+functools.reduce(lambda x, y: y if x < y else x, [1, 2, 3, 4, 5])  #5
+
+functools.reduce(lambda x, y: x*(y+1), [1,2,3,4]) # 60
+```
+
 # json 모듈
 
 - JSON(JavaScript object Notation)은 텍스트를 사용하여 데이터를 저장하고 전송할 데이터 공유를 위한 개방형 표준 파일 형식입니다.

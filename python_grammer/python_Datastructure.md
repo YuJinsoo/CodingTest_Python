@@ -110,6 +110,13 @@ print(dict(zip(d.values(), d.keys())))
 
 - 예제
 
+```python
+li = ['one', 'two', 'three']
+
+d = {k : li.index(k) for k in li}
+d
+```
+
 ## Tuple
 
 ## Set
