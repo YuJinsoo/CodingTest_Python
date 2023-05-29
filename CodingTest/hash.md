@@ -1,5 +1,8 @@
 # 유형별 정리 hash (hash table)
 
+> 출제빈도 높음, 평균점수 보통
+> 빈도가 높고 보통 점수이므로 이쪽에서 잘하면 점수를 확보할 수 있을 것으로 생각합니다.
+
 - key-value로 이뤄진 자료형으로 python에서는 dictionary를 사용하면 됩니다.
 - key를 통해 데이터를 바로 받을 수 있는 자료구조로 배열로 해쉬테이블 사이즈만큼 생성 후에 사용(공간과 시간을 맞바꿈)
 
@@ -259,5 +262,122 @@ def solution(clothes):
 - https://school.programmers.co.kr/learn/courses/30/lessons/42579
 
 ```python
+#1 내 풀이
+def solution(genres, plays):
+    answer = []
+    idd = dict()
+    d = dict()
 
+    # idd : dict 에 장르이름 - 재생횟수 - id list로..
+    # 장르 순서 d
+    z = zip(genres, plays)
+    for i, (g, p) in enumerate(z):
+        if idd.get(g, None) == None:
+            idd[g] = dict()
+        if idd[g].get(p, None) == None:
+            idd[g][p] = []
+        idd[g][p].append(i)
+
+        if d.get(g, None) == None:
+            d[g] = []
+        d[g].append(p)
+        d[g].sort(reverse=True)
+
+    g_rank = sorted(d.items(), key =lambda x: sum(x[1]), reverse=True)
+
+    # id가 저장된 딕셔너리에서 순차로 검색
+    for g, li in g_rank:
+        for i in range(len(li)):
+            if i >= 2:
+                break
+
+            if li[i-1] == li[i]:
+                answer.append(idd[g][li[i]][-1])
+            else:
+                print(idd[g][li[i]])
+                answer.append(idd[g][li[i]][0])
+
+    return answer
+
+##2 개인적으로 제일 깔끔해보입니다.
+def solution(genres, plays):
+    answer = []
+
+    dic1 = {}
+    dic2 = {}
+
+    for i, (g, p) in enumerate(zip(genres, plays)):
+        if g not in dic1:
+            dic1[g] = [(i, p)]
+        else:
+            dic1[g].append((i, p))
+
+        if g not in dic2:
+            dic2[g] = p
+        else:
+            dic2[g] += p
+
+    for (k, v) in sorted(dic2.items(), key=lambda x:x[1], reverse=True):
+        for (i, p) in sorted(dic1[k], key=lambda x:x[1], reverse=True)[:2]:
+            answer.append(i)
+
+    return answer
+
+##3 클래스로 구현
+def solution(genres, plays):
+    answer = []
+    dic = {}
+    album_list = []
+    for i in range(len(genres)):
+        dic[genres[i]] = dic.get(genres[i], 0) + plays[i]
+        album_list.append(album(genres[i], plays[i], i))
+
+    dic = sorted(dic.items(), key=lambda dic:dic[1], reverse=True)
+    album_list = sorted(album_list, reverse=True)
+
+
+
+    while len(dic) > 0:
+        play_genre = dic.pop(0)
+        print(play_genre)
+        cnt = 0;
+        for ab in album_list:
+            if play_genre[0] == ab.genre:
+                answer.append(ab.track)
+                cnt += 1
+            if cnt == 2:
+                break
+
+    return answer
+
+class album:
+    def __init__(self, genre, play, track):
+        self.genre = genre
+        self.play = play
+        self.track = track
+
+    def __lt__(self, other):
+        return self.play < other.play
+    def __le__(self, other):
+        return self.play <= other.play
+    def __gt__(self, other):
+        return self.play > other.play
+    def __ge__(self, other):
+        return self.play >= other.play
+    def __eq__(self, other):
+        return self.play == other.play
+    def __ne__(self, other):
+        return self.play != other.play
+
+##4 간단..
+def solution(genres, plays):
+    answer = []
+    d = {e:[] for e in set(genres)}
+    for e in zip(genres, plays, range(len(plays))):
+        d[e[0]].append([e[1] , e[2]])
+    genreSort =sorted(list(d.keys()), key= lambda x: sum( map(lambda y: y[0],d[x])), reverse = True)
+    for g in genreSort:
+        temp = [e[1] for e in sorted(d[g],key= lambda x: (x[0], -x[1]), reverse = True)]
+        answer += temp[:min(len(temp),2)]
+    return answer
 ```

@@ -539,10 +539,8 @@ data = [[0, 1, 2],
         [3, 4, 5],
         [6, 7, 8]]
 
-print(sum(data,[]))
-print(sum(sum(data,[])))
-# [0, 1, 2, 3, 4, 5, 6, 7, 8]
-# 36
+print(sum(data,[])) # [0, 1, 2, 3, 4, 5, 6, 7, 8]
+print(sum(sum(data,[])))# 36
 ```
 
 - 사실 이 방식보다 `numpy` 모듈을 사용하면 깔끔하게 처리됩니다.
@@ -554,6 +552,7 @@ data = [[0, 1, 2],
         [3, 4, 5],
         [6, 7, 8]]
 
+print(np.sum(data)) # 36
 print(np.sum(data, axis = 0)) # 2차원 배열간에 같은 인덱스 번호 요소끼리 sum
 print(np.sum(data, axis = 1)) # 같은 리스트 끼리의 합
 # [ 9 12 15]
@@ -561,6 +560,273 @@ print(np.sum(data, axis = 1)) # 같은 리스트 끼리의 합
 
 ```
 
-## generator를 활용한 특정 값 무한 반복자 만들기
+## generator를 활용한 특정 값 무한 반복자 만들기. generator 활용
 
 - generator는 `yield` 키워드를 쓰는 함수입니다.
+- `yield`구문을 가진 함수는 `generator object`를 리턴합니다.
+- generator 는 `__iter__`와 `__next__`를 가져서 for 문에서 호출될 때마다 한 번씩 접근됩니다.
+
+```python
+def range_0_to_4():
+    yield 0
+    yield 1
+    yield 2
+    yield 3
+
+for i in range_1_to_4():
+    print(i, end=' ')
+
+# 0 1 2 3
+
+print(range_0_to_4()) # <generator object range_0_to_4 at 0x7f51b1814040>
+```
+
+- 다양한 호출 및 생성 방법
+- generator expression(제너레이터 표현식) 사용할 수 있고, generator object <genexpr>를 반환합니다.
+
+```python
+def range_0_to_4():
+    yield 0
+    yield 1
+    yield 2
+    yield 3
+
+g = range_0_to_4()
+print(g) # <generator object range_0_to_4 at 0x7f51b18b2f80>
+print(next(g)) #0
+print(next(g)) #1
+print(next(g)) #2
+print(next(g)) #3
+# print(next(g)) # error StopIteration
+
+# generator expression
+g2 = (i for i in range(0, 4))
+print(g2)   # <generator object <genexpr> at 0x7f51b18b2d50>
+for i in g2:
+    print(i, end = ' ')
+#0 1 2 3
+```
+
+- 무한 반복자를 생성해서 활용할 수 있습니다.
+- 정확한 활용 방법은 생각나지 않지만, 길이가 정해지지 않은 iterable에 대해 반복적으로 라벨링 해야 하는 경우
+
+```python
+def repeat(반복할내용):
+    if 반복할내용:
+        while True:
+            for i in 반복할내용:
+                yield i
+
+print(list(zip('11222453', repeat([1,2])))
+# [('1', 1), ('1', 2), ('2', 1), ('2', 2), ('2', 1), ('4', 2), ('5', 1), ('3', 2)]
+print(list(zip(range(5), repeat([1,2])))
+# [(0, 1), (1, 2), (2, 1), (3, 2), (4, 1)]
+print(list(zip(range(10), repeat('abc')))
+# [(0, 'a'), (1, 'b'), (2, 'c'), (3, 'a'), (4, 'b'), (5, 'c'), (6, 'a'), (7, 'b'), (8, 'c'), (9, 'a')]
+```
+
+## 딕셔너리 언패킹(dictionary unpacking)
+
+- 딕셔너리의 언패킹은 key값으로 진행됩니다.
+
+```python
+d = {'one': 100, 'two': 200}
+a, b = d
+## d의 key값
+print(a, b) # one two
+
+li = [{'one': 100, 'two': 200}, {'three': 300, 'four': 400}]
+
+for i, j in li:
+    print(i, j)
+# one two
+# three four
+```
+
+- asterisk(\*)을 이용해 value까지 unpacking 할 수 있습니다.
+- 사실 `keys()`나 `values()`같은 함수를 더 많이 사용할 것 같습니다.
+
+```python
+def unpack(a, b = None):
+    return a, b
+
+d = {'a' : 10, 'b': 20}
+
+#unpack함수와 d요소의 개수가 맞아야 가능합니다.
+#value 값
+print(unpack(**d)) # (10, 20) # tuple 리턴됨
+
+#key값
+print(unpack(*d)) # ('a', 'b') # tuple 리턴됨
+
+# 그냥 a에 d가 들어감.
+print(unpack(d)) # ({'a': 10, 'b': 20}, None)
+
+```
+
+### 스스로 추가 : list를 unpacking 하기
+
+- list도 asterisk(\*)를 이용해서 unpacking이 가능하다.
+- 한 리스트를 언패킹 할 때 애스터리스크 변수는 한 개만 가능합니다.
+
+```python
+# asterisk로 list unpakcing 하기
+li = [1, 2, 3, 4, 5]
+
+a, b, *c = li
+print(a, b, c) # 1 2 [3, 4, 5]
+
+*a, b, c = li
+print(a, b, c) # [1, 2, 3] 4 5
+
+a, *b, c = li
+print(a, b, c) # 1 [2, 3, 4] 5
+
+# SyntaxError: multiple starred expressions in assignment
+# *a, b, *c = li
+# print(a, b, c)
+```
+
+## 파이썬의 선과 PEP8
+
+- python 에 `import this`를 하면 파이썬이 지향하는 스타일을 설명하는 문구를 확인할 수 있습니다.
+
+```python
+import this
+
+'''
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+'''
+```
+
+### PEP8 요약
+
+- 스페이스 4번(탭X)
+- 라인 길이는 79자 이하(한글일 때에는 32자 정도로 생각하시면 됩니다.)
+- 파일 : 함수와 클래스 사이에는 2줄의 빈줄
+- 클래스 : 메서드 사이에는 1줄의 빈줄
+- 변수 대입에서 등호 양 옆에 스페이스 1개
+- 딕셔너리에 키와 콜론 사이에는 공백X, 값과 콜론은 스페이스 1개
+- 변수명은 스네이크 표기법을 권장
+- 클래스명은 카멜표기법 권장
+- 보호해야 하는 인스턴스의 애트리뷰트는 언더바 하나로 시작
+- 공개되지 말아야 하는 애트리뷰트는 언더바 두개로 시작
+- 조건문 안에 'len(컨테이너) == 0' 식으로 사용X 'if 컨테이너' 권장
+- 한 줄의 import 문에서는 하나의 모듈만 가져오기
+- 소스검사기 : 파이린트, 파이플레이크
+
+## 0.1+0.2는 0.3이 아니다.(부동소수점 정확도 문제 해결하기)
+
+- 부동소수점 표현 방식은 IEEE-754에 의해 정의됩니다. (https://ko.wikipedia.org/wiki/IEEE_754)
+- 표현 방식 때문에 정확한 소수점 표현이 불가능합니다.
+
+  - 소수점에 2를 곱해 1이 되면 1 아니면 0으로 처리하는데, 2를 계속 곱해도 소수점이 계속 생기는 경우 정확한 표현이 불가능하게 됩니다.
+  - 0.1 (0) > 0.2 (0) > 0.4 (0) > 0.8 (0) > 1.6 (1) > 1.2 (1) > 0.4 (0) > ... 반복
+
+- 언어에 관계 없이 컴퓨터가 2진수로 계산하기 때문에 발생하는 문제
+
+```python
+print(0.1 + 0.2)    # 0.30000000000000004
+print(0.1 * 3)      # 0.30000000000000004
+print(1.2 - 0.1)    # 1.0999999999999999
+print(0.1*0.1)      # 0.010000000000000002
+print(0.1 + 0.2 == 0.3) # False
+```
+
+- 해결하기 위해 `decimal` 모듈이나 `math`모듈을 사용하는 방법이 있습니다.
+
+- decimal
+
+```python
+import decimal
+
+# 조금더 근사한 무한소수점을 표현해줌..
+decimal.Decimal(0.1) # Decimal('0.1000000000000000055511151231257827021181583404541015625')
+
+# 10진 연산에서 좀더 정확한 연산을 위해 string 값 사용
+decimal.Decimal('0.1') # Decimal('0.1')
+decimal.Decimal('0.1') * 3 == 0.3 # False
+```
+
+- math : python 3.5 이상에서 사용 가능합니다.
+
+```python
+import math
+print(math.isclose(0.1 + 0.2, 0.3)) # True
+print(math.isclose(1.2 - 0.1, 1.1)) # True
+
+```
+
+## 배열 이진 분할 알고리즘으로 검색속도 개선하기
+
+- `bisect`라는 모듈을 사용하면 이진탐색을 합니다.
+- list는 없는 원소를 찾을 때 -1을 반환하는 find함수도 없고, index로 찾을 때에도 찾는 도중에 에러를 뱉음
+
+```python
+data = list(range(100_000_000))
+
+data.index(-100) ## 어느정도 연산이 진행 된다가 Value Error 발생
+# 맨 앞에서부터 검색을 하기 때문에 시간이 오래 걸립니다.
+data.index(99_999_999)
+```
+
+- list의 index함수로 원소의 위치를 찾을 때, 원소가 배열의 뒷쪽에 위치한다면 배열의 길이만큼 탐색 시간이 소요됩니다.
+- 위의 data를 그대로 사용합니다.
+
+```python
+%%time
+data.index(99999999)
+## 1.45 s ± 457 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+- 2진탐색 모듈을 사용해서 검색을 하면, 소요 시간이 매우 감소하는 것을 확인할 수 있습니다. (500배 가량 차이남)
+- 시간복잡도가 log로 줄어듭니다
+
+```python
+%%timeit
+from bisect import bisect_left #이진탐색
+bisect_left(data, 99999999) #로그복잡도
+# 2.23 µs ± 752 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+```
+
+- 없는 요소를 검색할 때에는 0을 리턴해줍니다
+
+```python
+from bisect import bisect_left
+
+bisect_left(data, -100) # 0
+## 없는 요소일 경우 0을 반환합니다.
+
+'''
+이진탐색 bisect의 이진탐색 함수
+bisect.bisect_left(Sorted_Collection, data)# 첫번째 만나는 data
+bisect.bisect_right(Sorted_Collection, data) # 우리가 원하는 요소의 다음 값
+bisect.bisect(Sorted_Collection, data) # 우리가 원하는 요소의 다음 값
+bisect.insort_left(Sorted_Collection, data)
+bisect.insort_right(Sorted_Collection, data)
+'''
+```
+
+> 단, bisect를 사용하기 위해서는 data 즉 검색할 객체는 정렬된 상태이어야 합니다.
+> 실제로는 Sorted_Collection에서 data가 들어갈 위치를 찾는 함수입니다.
+> `bisect_left`같은 함수로 위치를 찾고, `insort_left`로 데이터를 추가합니다.
