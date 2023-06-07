@@ -830,3 +830,45 @@ bisect.insort_right(Sorted_Collection, data)
 > 단, bisect를 사용하기 위해서는 data 즉 검색할 객체는 정렬된 상태이어야 합니다.
 > 실제로는 Sorted_Collection에서 data가 들어갈 위치를 찾는 함수입니다.
 > `bisect_left`같은 함수로 위치를 찾고, `insort_left`로 데이터를 추가합니다.
+
+## 클로저를 활용한 환율 변환기로 알아보는 free variable / ??
+
+- 어떤 영역에 속해있지 않은 변수를 `free variable`이라고 하는데, 클로저에서 쉽게 응용할 수 있습니다.
+- 지역 범위가 사라져서 바인딩 되지 않은 변수를 `free variable`이라고 합니다.
+- `free variable`을 클로저로 생성한 객체들이 공유하지 않습니다.
+
+```python
+def changer(country, ratio):
+    changed_ratio = [] ## free variables(지역 범위가 사라져서 범위에 바인딩 되지 않은 변수)
+    def calculator(won):
+        changed_ratio.append(country)
+        return f'입력값 : {country}, 반환값 : {format(ratio * won, ",")}원, {changed_ratio}'
+    return calculator
+
+dollor = changer('미국', 1300)
+print(dollor(100))
+#입력값 : 미국, 반환값 : 130,000원, ['미국']
+
+yen = changer('일본', 1100)
+print(yen(100))
+#입력값 : 일본, 반환값 : 110,000원, ['일본']
+```
+
+- 변수들을 확인해보는 코드
+
+```python
+# 여기서는 free variable인 changed_raio를 확인할 수 없습니다.
+dir(yen)
+```
+
+```python
+# 여기서는 내부함수 인자인 won이 있음을 확인할 수 있습니다.
+yen.__code__.co_varnames
+```
+
+```python
+# 여기서는 changed_ratio, country, ratio 을 확인할 수 있습니다.
+yen.__code__.co_freevars
+```
+
+## heapq는 얼마나 빠른가?
