@@ -177,6 +177,7 @@ print(today(8))
 
 - `dis`모듈을 사용하면 해당 코드의 바이트코드를 얻을 수 있습니다.
 - `dis`모듈을 통해 확인하면 list comprehension에는 append() 메서드가 없는 것을 확인할 수 있습니다.
+- `dis`모듈은 파이썬 바이트 코드를 역 어셈블하여 분석하도록 지원합니다.
 
 ```python
 # list comprehension
@@ -997,12 +998,22 @@ def list_append(i):
 
 ## setup.py 에 작성
 from distutils.core import setup
+#from setuptools import setup
 from Cython.Build import cythonize
 setup( ext_modules = cythonize("test.pyx"))
 ```
 
 > 아래 명령어로 c패키지 생성
 > python setup.py build_ext --inplace
+
+```python
+#FutureWarning: Cython directive 'language_level' not set, using 2 for now (Py2).
+# 위 명령어 수행시 에러가 발생한다면
+# pyx파일 상단에
+#cython: language_level=3
+#을 추가해준다.
+# 혹은 setup.py에 set에 설정해 주 수 있음.
+```
 
 ## pypy
 
@@ -1022,4 +1033,150 @@ setup( ext_modules = cythonize("test.pyx"))
 > 공식 홈페이지 :https://www.pypy.org/ 에서 설치해야 합니다.
 > 설치 후 경로 설정하고, 환경변수 설정도 해주어야 함(윈도우)
 
-##
+## tracemalloc 으로 메모리 누수 원인찾기!
+
+- 인공지능 모듈이나 빅데이터 시각화에서 메모리 추적을 할 필요가 있음
+- 예를 들어 데이터 시각화(matplotlib)에서 (시각화 그래프가 매우 늦게 그려지거나 이상하게 그려지는 등의 현상이 나타남) 메모리를 많이 사용하였다면 plt.close(fig) 필요
+- garbage collection이 있긴 하지만 수거되지 않는 메모리가 있음!
+- python 3.4부터 지원 (이전에는 gc moudle을 사용했는데 이건 어느 모듈마다 메모리 추적이 안됨)
+
+```python
+#testfunctions.py
+def data():
+    return [dict() for _ in range(10000)]
+
+def dataList():
+    return [data() for _ in range(1000)]
+```
+
+```python
+import tracemalloc
+import testfunctions
+
+tracemalloc.start()
+snapshot1 = tracemalloc.take_snapshot()
+
+testfunctions.dataList()
+
+snapshot2 = tracemalloc.take_snapshot()
+
+top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+
+print("[ Top 10 differences ]")
+for stat in top_stats[:10]:
+    print(stat)
+```
+
+```python
+#출력
+# [ Top 10 differences ]
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/_debug_adapter/pydevd_schema.py:13622: size=4872 B (+4872 B), count=29 (+29), average=168 B
+
+# /content/testfunctions.py:2: size=4808 B (+4808 B), count=71 (+71), average=68 B ##<<< testfunctions.py 모듈에서 쓴 메모리 크기
+
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/pydevd.py:1232: size=4632 B (+4632 B), count=1 (+1), average=4632 B
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/_debug_adapter/pydevd_schema.py:13674: size=3256 B (+3256 B), count=11 (+11), average=296 B
+# /usr/local/lib/python3.10/dist-packages/google/colab/_variable_inspector.py:28: size=2208 B (+2208 B), count=1 (+1), average=2208 B
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_process_net_command_json.py:171: size=1303 B (+1303 B), count=19 (+19), average=69 B
+# /usr/lib/python3.10/json/encoder.py:257: size=1120 B (+1120 B), count=16 (+16), average=70 B
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_net_command_factory_xml.py:191: size=1064 B (+1064 B), count=35 (+35), average=30 B
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_comm.py:204: size=1057 B (+1057 B), count=1 (+1), average=1057 B
+# /usr/local/lib/python3.10/dist-packages/debugpy/_vendored/pydevd/_pydevd_bundle/_debug_adapter/pydevd_schema.py:13511: size=832 B (+832 B), count=13 (+13), average=64 B
+```
+
+## Python의 동작 원리와 `__pycache__`, `__name__`
+
+- 참고문헌 :
+
+  - 러닝 파이썬
+  - https://indianpythonista.wordpress.com/2018/01/04/how-python-runs/
+  - https://velog.io/@doondoony/How-Python-works
+
+- 소스코드 -> 컴파일 -> 바이트코드(.pyc 파일 생성) -> PVM(Python Virtual Machine, 모듈을 가지고 올 경우 이 단계에서 가지고 옴) -> 소스코드 실행
+- Python 3.2 version 이후로는 소스 파일들이 위치한 디렉터리에 **pycache** 라는 이름의 하위 디렉터리 안에 자신의 .pyc 파일 생성
+- CPython 말고도 Jython, IronPython, Stackless, PyPy 등이 존재. 예를 들어 Jython 같은 경우 파일은 .py로 저장하지만 바이트코드를 JVM으로 실행
+- pyc파일을 계속 생성하면 간혹 협업에 문제가 생긴다던지(https://codingexplore.tistory.com/11) 성능상에 이슈가 발생할 수 있습니다. -B 플래그를 사용해서 억제하거나 주기적으로 삭제하는 것이 방법이 될 수 있습니다.
+
+> pyc(pycache) 파일 때문에 충돌이 나는 경우가 있기 때문에 모두 삭제한 후에 push 하고 gitignore 적용해야 합니다.
+> 리눅스 명령어인거같은데 `find . | grep -E("__pycache__|\.pyc|\.pyo$)" | xargs rm -rf` 으로 삭제 가능
+
+- pycahe!
+
+```python
+#test.py
+def 출력():
+    l = [i for i in range(10000)]
+    print(__name__)
+    return
+```
+
+```python
+import test
+
+test.출력() ## __name__을 출력했지만 모듈이름 test가 출력됨
+
+print(__name__) ## "__main__" 이 출력됨
+
+if __name__ == "__main__":
+    #실행할 코드
+    # 해당 파일을 실행하는 주체가 이 파일이면 실행함.
+    # 모듈로 임포트된 상황에서는 실행하지 않습니다.
+    pass
+```
+
+## 메모리 누수 방지를 위한 contextlib 의 closing
+
+- 참고문헌 :
+  - https://docs.python.org/ko/3/library/contextlib.html
+  - https://wikidocs.net/16079
+  - https://sjquant.tistory.com/12
+
+```python
+from contextlib import closing
+from urllib.request import urlopen
+
+## page를 강제로 닫아 줄 필요가 없습니다.
+#python 홈페이지의 페이지를 가져오는 기능
+with closing(urlopen('http://www.python.org')) as page:
+    for line in page:
+        print(line)
+```
+
+```python
+# contextmanager의 구성
+# 끝날 때 강제로 close()라는 함수를 호출하게 합니다.
+from contextlib import contextmanager
+
+@contextmanager
+def closing(thing):
+    try:
+        yield thing
+    finally:
+        thing.close()
+```
+
+```python
+class startCloseClass():
+
+    def start(self):
+        print("인스턴스 실행")
+
+    def close(self):
+        print("인스턴스 종료")
+
+
+ins = startCloseClass()
+ins.start()
+ins.close()
+```
+
+```python
+from contextlib import closing
+
+with closing(startCloseClass()) as ins:
+    ins.start()
+
+# close()함수를 호출하지 않았지만, with 구문을 나올 때 ins의 close()메서드를 호출합니다.
+```
+
+## slots를 이용한 class의 효율 높이기!
