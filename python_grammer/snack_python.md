@@ -871,4 +871,155 @@ yen.__code__.co_varnames
 yen.__code__.co_freevars
 ```
 
-## heapq는 얼마나 빠른가?
+## heapq는 얼마나 빠른가? - TODO
+
+- 일단 heap이 뭔지 좀 공부하고 다시 해야 할듯 합니다.
+
+## Document String(doc string)으로 정확하고 빠르게 개발합시다. (PEP 257)
+
+- PEP 257 전문 (https://www.python.org/dev/peps/pep-0257/)
+- 객체를(클래스, 함수, 메서드, 모듈) 설명하는 한 문장을 가장 앞에 배치
+- 큰 따옴표
+- 예외 발생에 대한 상황과 설명
+
+```python
+# docstring 유형
+# """ """ : 일반 docstring
+# r""" """ : 백슬래쉬 표현
+# u""" """ : 유니코드 표현
+```
+
+- 한 줄 docstring일 경우 정말로 확실한경우에 사용
+
+```python
+## PEP 257 예제
+def kos_root():
+    """Return the pathname of the KOS root directory."""
+    global _kos_root
+    if _kos_root: return _kos_root
+
+print(kos_root.__doc__) # Return the pathname of the KOS root directory.
+```
+
+- 한줄과 여러줄 출력 차이
+- docstring이 작성되었다면 해당 객체 입력 후 `shift + tab`을 누르면 docstring을 볼 수 있습니다.
+
+```python
+def 제곱(수):
+    """입력된 값을 제곱하는 함수"""
+    return 수**2
+
+class SearchTree:
+    """
+    서비스의 검색속도 개선을 위한 검색 트리
+    """
+    pass
+
+## 출력
+#입력된 값을 제곱하는 함수
+#\n    서비스의 검색속도 개선을 위한 검색 트리\n
+```
+
+- 다른 파일/모듈의 doctring 확인하기
+
+```python
+# hello.py
+def helloworld():
+    """hello world 출력하는 함수"""
+    print('hello world')
+
+# 본문
+from hello import helloworld
+
+help(helloworld)
+
+##
+# Help on function hellowrold in module hello:
+# helloworld()
+#    hello world 출력하는 함수
+```
+
+## 프로파일링을 통한 코드 최적화 - TODO
+
+- 이 챕터에서 다룰 내용 : 프로파일(https://docs.python.org/ko/3/library/profile.html)
+- snakeviz 사용한 보고서 생성(https://jiffyclub.github.io/snakeviz/)
+
+---
+
+> 코드 최적화 방식
+> 처리 속도 측정 후 가장 속도 개선이 필요한 부분부터 개선해나가는 것이 좋습니다. 통상 아주 짧은 반복문 등은 개선할 여지가 더이상 없을 가능성이 크니까요.
+> 반복문을 사용하지 않고 문제를 해결할 수 있는 방법이 있는지 찾습니다.(zip, map, filter 등을 사용)
+> 파이썬의 내장함수를 사용합니다.
+> 파이썬의 내장함수보다 빠른 라이브러리가 있는지 찾습니다.
+> 전역 변수를 사용하면 느려집니다. 지역변수를 사용하세요. global 사용을 권장하지 않습니다.
+> 가비지 컬렉션이 있지만, 사용이 끝난 변수가 원시 객체일 때에는 메모리 영역을 캐시로 유지하는 경우가 있으니 크기가 큰 데이터는 del 키워드를 사용하여 삭제하거나 함수 안에서 사용하여 함수가 끝날 때 삭제되도록 유도합니다.
+> numpy나 pandas에서 in-place로 원본을 직접 수정하거나 사본생성을 하는 flatten같은 것은 사본 생성을 안하는 ravel로 대체합니다.
+
+```python
+import random
+import cProfile
+
+def 문자열거꾸로_재귀함수(s):
+    if len(s) == 1:
+        return s
+    else:
+        return 문자열거꾸로_재귀함수(s[1:]) + s[0]
+
+def 문자열거꾸로_슬라이싱(s):
+    return s[::-1]
+
+def 문자열거꾸로_반복문(s):
+    answer = ''
+    for i in s:
+        answer = i + answer
+    return answer
+
+
+def test_set():
+    s = ''.join([chr(random.randint(97, 122)) for _ in range(2000)])
+    문자열거꾸로_재귀함수(s)
+    문자열거꾸로_슬라이싱(s)
+    문자열거꾸로_반복문(s)
+
+## 테스트할 함수를 cProfile의 run 함수의 인자에 문자열로 전달
+# tottime (total time)을 통해 가장 오래 걸리는 부분을 확인할 수 있고, 그 부분부터 수정해나가면 됩니다.
+cProfile.run("test_set()")
+```
+
+## Cython 으로 C언어의 속도를! - TODO
+
+- 실습 예제가 안됨.. 다른걸로 해보자...
+
+```python
+## test.pyx에 함수 정의
+def list_append(i):
+    return [i for i in range(1, i+1)]
+
+## setup.py 에 작성
+from distutils.core import setup
+from Cython.Build import cythonize
+setup( ext_modules = cythonize("test.pyx"))
+```
+
+> 아래 명령어로 c패키지 생성
+> python setup.py build_ext --inplace
+
+## pypy
+
+- PyPI(파이피아이)와 pypy(파이파이)는 발음에 주의해주세요.
+- pypy는 별도의 인터프린터 이므로 개별 설치 해야함
+- 속도 면에서 매우 우월하며 jupyter notebook에서 python3가 아닌 pypy로만 코딩할 수 있습니다.(모든 모듈을 지원하진 않습니다.)
+- 넘파이도 많은 부분이 파이파이로 실행됩니다.
+- cpython보다 속도가 우월합니다.(인터넷 벤치마크 참고해주세요.)
+- 실행추적 JIT(Just In Time) 컴파일을 제공하기 때문입니다.
+- 연산이 많이 사용되는 프로젝트(OpenGL 등)에 사용하세요.
+- 코드 블록으로만 사용도 가능합니다.
+
+> pypy설치 in jupyter notebook
+> !apt-get install pypy
+
+> pc에 설치하고자 한다면
+> 공식 홈페이지 :https://www.pypy.org/ 에서 설치해야 합니다.
+> 설치 후 경로 설정하고, 환경변수 설정도 해주어야 함(윈도우)
+
+##

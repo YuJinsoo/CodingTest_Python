@@ -96,3 +96,61 @@ def solution(n):
 
 # set 에 | 는 union 함수 즉 합집합. |= 는 합집합 한걸 다시 넣는것.
 ```
+
+## 문제 : 카펫
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/42842
+
+```python
+#1
+def solution(brown, yellow):
+    answer = []
+    c = brown + yellow
+
+    li = [[c/i, i] for i in range(3, c//2) if c%i == 0]
+
+    for w, h in li:
+        if (w-2) * (h-2) == yellow:
+            answer = [w, h]
+            break
+    return answer
+```
+
+## 문제 : 피로도
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/87946
+
+```python
+#1 나만 무식하게 푼거같다..ㅠㅠ
+from itertools import permutations
+
+def solution(k, dungeons):
+    answer = -1
+
+    p = list(permutations(dungeons, len(dungeons)))
+    li = []
+
+    for o in p:
+        kk = k
+        count = 0
+        for i in range(len(o)):
+            if kk < o[i][0]:
+                li.append(count)
+            else:
+                count += 1
+                kk -= o[i][1]
+
+            if i == len(o)-1:
+                li.append(count)
+
+    answer = max(li)
+    return answer
+```
+
+## 문제 : 전력망을 둘로 나누기
+
+- https://school.programmers.co.kr/learn/courses/30/lessons/86971
+
+```python
+
+```
