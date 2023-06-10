@@ -152,5 +152,96 @@ def solution(k, dungeons):
 - https://school.programmers.co.kr/learn/courses/30/lessons/86971
 
 ```python
+#1
+# wire를 제거한뒤 한쪽 연결된 노드 개수를 세는 방식으로 풀이함. (stack)
+# 지나간 wire를 삭제할때 순회 순서를 뒤에서부터 해야 건너뛰는 것이 없이 모두 다 확인할 수 있음
+# 이거때문에 많이 해맸음...
+import copy
+
+def solution(n, wires):
+    ans = []
+
+    for i in range(len(wires)):
+        tmp = copy.deepcopy(wires)
+        tmp.pop(i)
+        v = findnode(tmp)
+        print(v)
+        ans.append(abs(n-(len(v)*2)))
+
+    print(ans)
+    return min(ans)
+
+def findnode(wires):
+    stack = []
+    visited = set()
+
+    n = wires.pop()
+    stack.append(n[0])
+    stack.append(n[1])
+
+    while (stack):
+        cur = stack.pop()
+
+        for i in range(len(wires)-1, -1 , -1):
+            if cur in wires[i]:
+                stack.append(wires[i][wires[i].index(cur) - 1])
+                wires.pop(i)
+
+        visited.add(cur)
+
+    return visited
+
+
+##2 깔끔하다... 교집합 연산 & 이용해서 교집합 있으면 update하는 방식으로 연결된 노드를 찾음!
+def solution(n, wires):
+    ans = n
+    for sub in (wires[i+1:] + wires[:i] for i in range(len(wires))):
+        s = set(sub[0])
+        [s.update(v) for _ in sub for v in sub if set(v) & s]
+        ans = min(ans, abs(2 * len(s) - n))
+    return ans
+```
+
+## 문제 : 모음사전
+
+```python
+#1
+## 시간초과한거랑 뭐가다르지...?
+from itertools import product
+
+def solution(word):
+    answer = 0
+    letter = "AEIOU"
+    p=[]
+    for i in range(5):
+        p += [''.join(x) for x in product(letter, repeat=i+1)]
+
+    p.sort()
+    return p.index(word) + 1
+
+## 시간초과
+from itertools import product
+
+def solution(word):
+    answer = 0
+    letter = "AEIOU"
+    p = letter
+    for i in range(2, 6):
+        p += [''.join(x) for x in product(letter, repeat=i)]
+
+    p.sort()
+    return p.index(word) + 1
+
+#등비수열 풀이..(내거아님)
+def solution(word):
+    answer = 0
+    for i, n in enumerate(word):
+        answer += (5 ** (5 - i) - 1) / (5 - 1) * "AEIOU".index(n) + 1
+    return answer
+
+##2
+from itertools import product
+
+solution = lambda word: sorted(["".join(c) for i in range(5) for c in product("AEIOU", repeat=i+1)]).index(word) + 1
 
 ```
