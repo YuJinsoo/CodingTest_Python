@@ -93,9 +93,50 @@ print(mug.kinds, tumbler.kinds, Cup.kinds)
 print(id(mug.kinds), id(tumbler.kinds), id(Cup.kinds))
 ```
 
+- 클래스 멤버, 인스턴스 멤버의 또다른 예제
+- 변수 호출 시 변수를 찾는 스코프의 순서때문에 이런 일이 발생합니다.
+- 현재영역, 그 위 영역, 그 위 영역...
+
+```python
+class Car():
+    car_count = 0
+
+    def __init__(self, name):
+        Car.car_count += 1
+        self.name = name
+
+car1 = Car('k3')
+car2 = Car('k5')
+car3 = Car('k8')
+
+## car_count는 클래스 변수이므로 인스턴스에서 호출했을 때 클래스 영역을 탐색해서 반환함
+print(car1.name) # k3
+print(car1.car_count) # 3
+print(Car.car_count) # 3
+```
+
+```python
+class Car():
+    car_count = 0
+
+    def __init__(self, name):
+        Car.car_count += 1
+        self.name = name
+        self.car_count = 100
+
+car1 = Car('k3')
+car2 = Car('k5')
+car3 = Car('k8')
+
+## car_count는 클래스/인스턴스 변수에 둘다 있어서 인스턴스에서 호출했을 때 인스턴스 변수 car_count를 반환함
+print(car1.name) # k3
+print(car1.car_count) # 100
+print(Car.car_count) # 3
+```
+
 ### 인스턴스 멤버 확인하기 - `__dict__`어트리뷰트
 
-- 파이썬은 인스턴스 필드를 위해 따로 특별한 자료구조가 있는 것이 하니라 dictionary 형태로 저장합니다.
+- 파이썬은 인스턴스 필드를 위해 따로 특별한 자료구조가 있는 것이 하니라 **dictionary** 형태로 저장합니다.
 - 그리고 인스턴스 필드에 선언된 멤버를 특정 어트리뷰트에 저장합니다.
 - `__dict__` 어트리뷰트로 인스턴스 멤버를 확인할 수 있습니다.
 - 오로지 인스턴스 멤버만 `__dict__`로 확인 가능합니다.
@@ -171,6 +212,35 @@ print(c1.__dict__)  ##dict 어트리뷰트에 숨겨진 인스턴스 멤버의 �
 print(c1._MyClass__HideInsMem)  # 999 # 수정된 이름으로 접근가능
 c1._MyClass__HideInsMem = 1000
 print(c1._MyClass__HideInsMem)  # 1000 # 수정된 이름으로 접근해서 수정 가능
+```
+
+### `__dict__`와 `__dir__`의 차이
+
+- `__dict__`는 클래스나 인스턴스로 호출했을 때 객체가 가진 어트리뷰트(변수)와 변수에 할당된 값을 **dictionary** 타입으로 반환하여 보여줍니다.
+
+- `__dir__`은 `dir()`메서드로 호출할 수 있는데 해당 객체로 호출 가능한 함수와 변수들을 **list**형식으로 반환하여 보여줍니다.
+
+```python
+class Foo():
+    classMem = 0
+
+    def __init__(self):
+        self.InstanceMem = 100
+
+## 클래스에 __dict__ 와 dir() 사용
+print(Foo.__dict__)
+# {'__module__': '__main__', 'classMem': 0, '__init__': <function Foo.__init__ at 0x7f23d576caf0>, '__dict__': <attribute '__dict__' of 'Foo' objects>, '__weakref__': <attribute '__weakref__' of 'Foo' objects>, '__doc__': None}
+
+print(dir(Foo))
+# ['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 'classMem']
+
+## 인스턴스에 __dict__와 dir() 사용
+obj = Foo()
+print(obj.__dict__)
+# {'InstanceMem': 100}
+print(dir(obj))
+# ['InstanceMem', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 'classMem']
+
 ```
 
 ## 메서드 method
@@ -531,7 +601,7 @@ class FooSlot():
         self.x = 0
         self.y = 0
 
-## 클래스 멤버(스태틱멤버)의 멤버 생성을 제한하지 않습니다.
+## __slots__는 클래스 멤버(스태틱멤버)의 멤버 생성을 제한하지 않습니다.
 FooSlot.a = 'a'
 print(FooSlot.a)
 print(FooSlot.__dict__.get('a')) # 클래스의 __dict__는 사라지지 않습니다.

@@ -1,4 +1,4 @@
-# 유형별정리 : 완전탐색 (search)
+# 유형별정리 : 완전탐색 (Brute-force)
 
 ## 문제 : 최소직사각형
 
@@ -219,18 +219,33 @@ def solution(word):
     p.sort()
     return p.index(word) + 1
 
+
 ## 시간초과
+## 계속 복사가 되기 때문에 시간이 오래 걸렸나 봅니다... 아래거는 통과
 from itertools import product
 
 def solution(word):
     answer = 0
-    letter = "AEIOU"
-    p = letter
+    letter = ["A", "E", "I", "O", "U"]
+    p = letter ## 이러면 p가 letter를 복사해서 p를 바꾸면 둘다 바꿔버리기 때문에 오래걸림..?
     for i in range(2, 6):
         p += [''.join(x) for x in product(letter, repeat=i)]
 
     p.sort()
     return p.index(word) + 1
+
+## list로 통과됨. deepcopy를 해줘야함
+from itertools import product
+import copy
+def solution(word):
+    answer = 0
+    letter = ["A", "E", "I", "O", "U"]
+    p = copy.deepcopy(letter)
+    for i in range(2, 6):
+        p += [''.join(x) for x in product(letter, repeat=i)]
+    p.sort()
+    return p.index(word) + 1
+
 
 #등비수열 풀이..(내거아님)
 def solution(word):

@@ -1093,7 +1093,7 @@ for stat in top_stats[:10]:
   - https://velog.io/@doondoony/How-Python-works
 
 - 소스코드 -> 컴파일 -> 바이트코드(.pyc 파일 생성) -> PVM(Python Virtual Machine, 모듈을 가지고 올 경우 이 단계에서 가지고 옴) -> 소스코드 실행
-- Python 3.2 version 이후로는 소스 파일들이 위치한 디렉터리에 **pycache** 라는 이름의 하위 디렉터리 안에 자신의 .pyc 파일 생성
+- Python 3.2 version 이후로는 소스 파일들이 위치한 디렉터리에 `__pycache__` 라는 이름의 하위 디렉터리 안에 자신의 .pyc 파일 생성
 - CPython 말고도 Jython, IronPython, Stackless, PyPy 등이 존재. 예를 들어 Jython 같은 경우 파일은 .py로 저장하지만 바이트코드를 JVM으로 실행
 - pyc파일을 계속 생성하면 간혹 협업에 문제가 생긴다던지(https://codingexplore.tistory.com/11) 성능상에 이슈가 발생할 수 있습니다. -B 플래그를 사용해서 억제하거나 주기적으로 삭제하는 것이 방법이 될 수 있습니다.
 
@@ -1180,3 +1180,193 @@ with closing(startCloseClass()) as ins:
 ```
 
 ## slots를 이용한 class의 효율 높이기!
+
+- 클래스에 slots을 설정할 경우 `__dict__`를 생성하지 않음으로 메모리 개선
+- dict와 유사하거나 좀 더 축소화된 자료형을 만들어서 사용될 때 자주 사용됨
+- dictionary는 메모리 효율이 좋지 않기 때문..(대신 시간효율이 좋은 자료형)
+
+### python_grammar 폴더의 class.md 에 정리된 내용 있음
+
+### 테스트 항목
+
+```python
+테스트_기본_리스트 = [list() for i in range(10000)]
+테스트_작성한_리스트 = [LinkedList() for i in range(10000)]
+테스트_slot_반영_리스트 = [LinkedList() for i in range(10000)]
+```
+
+- 일반 LikedList와 `__slots__` 정의한 LinkedList
+
+```python
+## LikedList와
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class LinkedList:
+    def __init__(self):
+        init = Node('init')
+        self.head = init
+        self.tail = init
+
+        self.현재노드 = None
+        self.데이터수 = 0
+
+    def __str__(self):
+
+        현재노드 = self.head
+        현재노드 = 현재노드.next
+        s = ''
+
+        for i in range(self.데이터수):
+            s += f'{현재노드.data}, '
+            현재노드 = 현재노드.next
+
+        return f'[{s[:-2]}]'
+
+    def append(self, data):
+        새로운노드 = Node(data)
+        self.tail.next = 새로운노드
+        self.tail = 새로운노드
+        self.데이터수 += 1
+
+## slots 선언된 LikedList
+class Node_slot:
+    __slots__ = ['data', 'next']
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class LinkedList_slot:
+    __slots__ = ['head', 'tail', '현재노드', '데이터수']
+
+    def __init__(self):
+        init = Node('init')
+        self.head = init
+        self.tail = init
+
+        self.현재노드 = None
+        self.데이터수 = 0
+
+    def __str__(self):
+
+        현재노드 = self.head
+        현재노드 = 현재노드.next
+        s = ''
+
+        for i in range(self.데이터수):
+            s += f'{현재노드.data}, '
+            현재노드 = 현재노드.next
+
+        return f'[{s[:-2]}]'
+
+    def append(self, data):
+        새로운노드 = Node(data)
+        self.tail.next = 새로운노드
+        self.tail = 새로운노드
+        self.데이터수 += 1
+
+```
+
+1. 기본 리스트의 효율
+
+```python
+%%timeit
+
+basic_list = [list() for i in range(1_000_000)]
+## 177 ms ± 29.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+2. 클래스로 만든 Linked List의 효율
+
+```python
+%%timeit
+
+Linked_class = [LinkedList() for i in range(1_000_000)]
+## The slowest run took 4.24 times longer than the fastest. This could mean that an intermediate result is being cached.
+## 1.47 s ± 873 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+3. slots 정의한 Linked List의 효율
+
+```python
+%%timeit
+
+Linked_slots = [LinkedList_slot() for i in range(1_000_000)]
+## 676 ms ± 259 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+##Linked_slots.__dict__ 가 없습니다.
+```
+
+> 속도는 basic list > slots LinkedList > LikedList
+> 확실히 클래스를 만든다면, slots로 변수를 제한해 주는 것(`__dict__`를 생성하지 않는 것)이 효율적으로 유리합니다.
+
+## tqdm 을 이용한 진행바 만들기 & yaml (야믈) 파일 다운로드
+
+- 프로그래스 바를 그려주는 `tqdm` 모듈
+- `tqdm`모듈의 `tqdm()`메서드를 for문으로 순회하여 진행률을 확인할 수 있습니다.
+
+```python
+from tqdm import tqdm
+import time
+
+s = ""
+for c in tqdm(['h', 'e', 'l', 'l', 'o']):
+    s += c
+    time.sleep(1) ## 시간을 두어야 천천히 올라가는거 보이니깐!
+
+print(s)
+```
+
+- tqdm 함수에 iterable, 표현할 단어, 표현할 초소단위를 설정할 수 있습니다.
+
+```python
+s  = 0
+# 0/10 에서 10/10, 표현될 단어 "진행율", 1/10 *2 단위만큼 지날 때마다 표현됨
+for i in tqdm(range(1, 11), desc="진행율", mininterval=2):
+    s += i
+    time.sleep(1) ## 시간을 두어야 천천히 올라가는거 보이니깐!
+
+print(s)
+#진행율: 100%|██████████| 10/10 [00:10<00:00,  1.00s/it]55
+```
+
+- yaml(야믈)파읽 읽는 패키지 `yaml` 사용방법
+- 코랩에서 yaml.load(text)는 에러날 수 있기 때문에 아래 주석으로 단 방법으로 에러를 해결하면 됩니다.
+
+```python
+## 야믈파일 읽기
+import yaml
+
+with open('test.yaml', 'r') as f:
+    text = f.read()
+
+# TypeError: load() missing 1 required positional argument: 'Loader'
+# import yaml 후 yaml.load()를 사용하면 해당 에러를 만날 수 있다.
+#### 방안
+# 1. 버전 변경
+# 버전을 강제로 변경해준다.
+# !pip install pyyaml==5.4.1
+
+# 2. 다른 함수 사용
+# 버전을 변경하기 싫다면, load() 대신 full_load()를 사용한다.
+####
+
+# data = yaml.load(text)
+data = yaml.full_load(text)
+print(data)
+## 파이썬에 맞게 변경이 됨!
+# {'name': {'first': 'hojun', 'last': 'lee'}, 'company': {'name': 'weniv', '법인': True, '직원': ['하나', '둘', '셋']}}
+
+data['company']['직원'][0]
+
+## test.yaml
+# name:
+#     first: hojun
+#     last: lee
+# company:
+#     name: weniv
+#     법인: true
+#     직원: [하나, 둘, 셋]
+```
