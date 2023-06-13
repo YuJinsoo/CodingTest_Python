@@ -416,10 +416,29 @@ def cal_avg(li):
     return sum(li) / len(li)
 
 print(cal_avg(['1', 2, 3, '4']))    # 2.5
+```
+
+- 데코레이터 내부 함수에 가변인자와 키워드 인자를 설정할 수 있습니다.
+- kwargs는 딕셔너리 형으로 전달할 수 있습니다.
+
+```python
+def debug(function):
+    def wrapper(*args, **kwargs):
+        print(f'{function.__name__} 시작')
+        function(*args)
+        print(f'{function.__name__} 끝')
+    return wrapper
+
+@debug
+def say_hi(*arg):
+    print(arg)
+    print('hi')
+
+say_hi(1, 3, [2,4])
 
 ```
 
-- 하나의 함수에 여러 개의 데코레이터 사용이 가능하다
+- 하나의 함수에 여러 개의 데코레이터 사용이 가능하다 (중첩 데코레이터)
 
 ```python
 # 데코레이터 여러개 테스트해보기
@@ -449,7 +468,7 @@ func1()
 
 - 여러개를 쓸 때는 어떻게 객체가 이동하는 것인지 확인
 - 출력을 확인해보면 decorator2의 wrapper가 decorator1의 func로 전달된다.
-- 함수 실행 순서는 hello > decoretor2 > decorator1 이 된다.
+- 함수 실행 순서는 **hello > decoretor2 > decorator1** 이 된다.
 
 ```python
 def decorator1(func):
@@ -485,19 +504,19 @@ print(id(hello))
 # 140661872846464
 ```
 
-- 데코레이터 자체에 아규먼트를 전달하고 싶을 때에는 한번 더 함수로 감싸주면 된다.
+- 데코레이터 자체에 아규먼트를 전달하고 싶을 때에는 한번 더 함수로 감싸주면 된다. (동적 데코레이터)
 
 ```python
 # 데코레이터에 argument를 넣는 방법
 # 한번 더 감싸줘야 함. 여러개 전달 가능
 def deco1(name, age):
     print(name, age)
-    def function_getter(func):
+    def decorator(func):
         def wrapper():
             print('decorator1')
             func()
         return wrapper
-    return function_getter
+    return decorator
 
 # 데코레이터를 여러 개 지정
 @deco1('hello world!', 10)
@@ -649,7 +668,7 @@ print(tentimes_two(3, 4))
 ```
 
 > 주의할 점은 데코레이터 함수에서 가장 안쪽에 있는 함수 `wrapper`혹은 `__call__`에 함수 호출 시점에 실행할 내용을 구현해야 합니다.
-> 왜냐하면 그 밖에 구현한 코드는 데코레이터가 적용될 함수가 정의되는 순간에 실행이 되기 때문입니다.
+> 왜냐하면 그 밖에 구현한 코드는 데코레이터가 적용할 함수가 정의되는 순간에 실행이 되기 때문입니다.
 
 <br>
 
@@ -787,3 +806,11 @@ closure_x10.__closure__[0].cell_contents # 10
 # 참조
 
 - https://kukuta.tistory.com/337
+
+---
+
+# 에러처리
+
+## try/catch
+
+## assert

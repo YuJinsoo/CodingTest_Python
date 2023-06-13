@@ -102,11 +102,11 @@ print(dict(zip(d.values(), d.keys())))
 
 ```
 
-### Dicrionary Comprehension
+### Dictionary Comprehension
 
 - 리스트를 간단하게 한 줄로 생성할 수 있는 파이썬 문법
 
-  > 기본 형식: <br>`python [(변수를 활용한 값) for (사용할 변수 이름) in (순회할 수 있은 객체) ] `
+  > 기본 형식: <br>`python {key : value for (사용할 변수 이름) in (순회할 수 있은 객체)}`
 
 - 예제
 
@@ -117,6 +117,104 @@ d = {k : li.index(k) for k in li}
 d
 ```
 
+### Dictionary : get()
+
+- dictionary 자료형에서 key로 value를 불러올 때 `[key]`연산자를 사용하던가 아니면 `get(key)`메서드를 사용합니다.
+
+- `get()`메서드는 없는 key를 불러도 에러를 발생시키지 않고 None을 리턴합니다.
+
+- `get()`의 두 번째 인자로 없는 key값일 경우 리턴할 default값 설정이 가능합니다.
+
+```python
+d = {'one': 1, 'two': 2, 'three': 3}
+
+print(d['one'])
+print(d.get('one'))
+
+# d['four'] # error
+print(d.get('four')) #None
+print(d.get('four', "없는 key 입니다.")) # 없는 key 입니다.
+```
+
+### Dictionary 를 이용한 switch 문
+
+- python 에 `match` 구문이 추가되었지만, 추가되기 전에 사용되던 스타일
+
+```python
+def switch(day):
+    return {
+        1 : '월요일',
+        2 : '화요일',
+        3 : '수요일',
+        4 : '목요일',
+        5 : '금요일',
+        6 : '토요일',
+        7 : '일요일',
+    }.get(day, '요일을 찾지 못했습니다.')
+
+switch(7) # 일요일
+```
+
+- 추가된 match 구문
+
+```python
+# 3.10 버전에 switch 도입됨
+# match case (https://codechacha.com/ko/python-switch-case/)
+def number_to_string(agrument):
+    match agrument:
+        case 0:
+            return "zero"
+        case 1:
+            return "one"
+        case 2:
+            return "two"
+        case default:
+            return "nothing"
+```
+
+### Dictionary : keys(), values(), items()
+
+- 각 메서드는 dictionary가 가진 key, value, key-value쌍 을 list로 반환합니다.
+
+### Dictionary : fromkeys(iterable, value)
+
+- 가끔 사용하는 메서드
+- iterable 의 원소들을 key, value를 기본값으로 하는 dictionary를 반환합니다.
+
+```python
+d1 = dict.fromkeys('leehojun')
+print(d1)
+# {'l': None, 'e': None, 'h': None, 'o': None, 'j': None, 'u': None, 'n': None}
+
+d2 = dict.fromkeys('leehojun', 100)
+print(d2)
+# {'l': 100, 'e': 100, 'h': 100, 'o': 100, 'j': 100, 'u': 100, 'n': 100}
+```
+
+- value에 iterable을 주어서 zip처럼 활용 가능합니다.
+
+```python
+keys = ('name','age','grade')
+values = ('leehojun','10','수')
+d = dict.fromkeys(keys, values)
+print(d)
+# {'name': ('leehojun', '10', '수'),
+#  'age': ('leehojun', '10', '수'),
+#  'grade': ('leehojun', '10', '수')}
+```
+
 ## Tuple
 
+- 생성된 이후로 원소를 수정할 수 없는 자료형
+
 ## Set
+
+- 중복을 허락하지 않는 자료형
+
+---
+
+## stack
+
+## deque
+
+## heapq

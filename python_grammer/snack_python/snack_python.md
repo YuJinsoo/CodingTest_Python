@@ -1370,3 +1370,328 @@ data['company']['직원'][0]
 #     법인: true
 #     직원: [하나, 둘, 셋]
 ```
+
+## coroutine 코루틴
+
+- **코루틴(coroutine)**은 제너레이터의 또다른 형태입니다.
+- 일반적으로 제너레이터는 함수를 실행하면서 `yield`키워드를 통해 값을 하나씩 순서대로 반환하는 이터레이터 역할을 합니다.
+- 하지만 **코루틴**은 반대로 값을 외부에서 하나씩 받아서 함수를 실행합니다.
+
+```python
+def get_three_num():
+    print('시작')
+    given = yield
+    print(given)
+    given = yield
+    print(given)
+    given = yield
+    print(given)
+    print('끝')
+
+test = get_three_num()
+print(type(test)) # <class 'generator'>
+
+# 위 코드 실행뒤 이 코드를 실행하면
+next(test)
+next(test)
+next(test)
+next(test)
+
+# 시작
+# None
+# None
+# None
+# 끝
+# StopIteration
+## 전달된 값이 없어서 given = None이고, None이 출력됨
+```
+
+```python
+test2 = get_three_num()
+# next(test2) ## next를 하던, send(None) 을 해야 coroutine이 시작됩니다.
+test2.send(None)
+test2.send(10)
+test2.send(100)
+test2.send(1000)
+
+# 시작
+# 10
+# 100
+# 1000
+# 끝
+# StopIteration
+## 코루틴 함수 객체에 send() 메서드로 coroutine 함수에 값을 전달해 줄 수있습니다.
+```
+
+- 코루틴 안에서 변수 선언한 예제
+
+```python
+def get_three_number():
+    given = 0
+    print('시작')
+    given = yield given
+    print(f'받은 값 {given}')
+    given += 1
+    given = yield given
+    print(f'받은 값 {given}')
+    given += 1
+    given = yield given
+    print(f'받은 값 {given}')
+    given += 1
+    yield given
+
+
+g = get_three_number()
+g.send(None) # 시작
+g.send(10)
+g.send(100)
+g.send(1000)
+
+# 시작
+# 받은 값 10
+# 받은 값 100
+# 받은 값 1000
+# 1001
+## 맨 마지막에는 yield given 때문에 1001이 출력됨
+```
+
+## 비동기 프로그래밍 asyncio
+
+### 비동기란?
+
+- 일반적으로 우리가 작성하는 함수들은 "동기적"(synchronous)으로 동작합니다. 동기적이란 해당 함수가 끝날 때까지 다른 일을 하지 않는 것을 뜻합니다. 오로지 컴퓨팅 자원들은 그 함수를 신행하는데 사용됩니다.
+
+- 해당 함수가 컴퓨팅 자원 전체를 필요로 한다면 이해가 되지만, 해당 함수가 컴퓨팅 자원의 일부만 사용한다고 하면, 나머지 컴퓨팅 자원들은 놀게 됩니다. 즉, 낭비가 된다는 뜻입니다.
+
+```python
+import time
+
+def foo():
+    res =0
+    for i in range(1,10):
+        res +=i
+        print(res)
+        time.sleep(1)
+    return res
+
+start = time.time()
+
+foo()
+foo()
+
+end = time.time()
+
+over_time = end - start
+print(f'걸린 시간 : {over_time:.5f} 초')
+# 각 단계에서 합의 값 출력이후
+# 걸린 시간 : 18.01916 초
+## 두 개의 foo() 함수를 동시에 병렬적으로 하고 싶다... 고 생각할수있습니다.
+## 왜냐하면 함수 수행 중 1초동안 쉬는 구간이 있기 때문...
+```
+
+- asyncio 모듈
+- colab에서는 동작하지 않습니다..
+
+```python
+## asyncioTest폴더의 test1.py
+import time
+import asyncio
+
+async def foo():
+    res = 0
+
+    for i in range(1, 10):
+        res += i
+        print(res)
+        await asyncio.sleep(1)
+
+    return res
+
+start = time.time()
+
+## 관리할 루프를 생성함
+loop = asyncio.get_event_loop()
+
+## 처리할 코루틴이 여러개일 때 gather가 필요합니다.
+loop.run_until_complete(asyncio.gather(foo(), foo()))
+
+## loop가 끝나면 항상 close() 해줘야합니다.
+loop.close()
+end = time.time()
+over_time = end - start
+print(f'걸린 시간 : {over_time:.5f} 초')
+
+# 1
+# 1
+# 3
+# 3
+# 6
+# 6
+# 10
+# 10
+# 15
+# 15
+# 21
+# 21
+# 28
+# 28
+# 36
+# 36
+# 45
+# 45
+# 걸린 시간 : 9.10047 초
+```
+
+- 3.7버 전부터는 event loop를 사용하지 않아도 됩니다.
+
+```python
+## asyncioTest폴더의 test2.py
+import time
+import asyncio
+
+async def foo():
+    res = 0
+
+    for i in range(1, 10):
+        res += i
+        print(res)
+        await asyncio.sleep(1)
+
+    return res
+
+start = time.time()
+asyncio.run(asyncio.wait([foo(), foo()]))
+end = time.time()
+over_time = end - start
+print(f'걸린 시간 : {over_time:.5f} 초')
+
+## loop를 사용한 것과 같은 결과
+```
+
+## 쓰레드(Thread)와 코루틴(Coroutine)을 비교해서 읽어볼만한 글 + 병렬처리 키워드
+
+1. Fluent Python 전문가를 위한 파이썬, 루시아누 하말류, 한빛미디어 (이 책을 추천합니다.)
+
+18장에 asyncio를 이용한 동시성 챕터가 있습니다.
+여기에서 스레드와 코루틴을 비교하는 챕터(18.1)가 있는데요.
+이와 관련된 포스팅이 있어 링크를 공유해드립니다.
+
+링크 : https://nachwon.github.io/asyncio-and-threading/
+
+파이썬 GIL과 Thread : https://ssungkang.tistory.com/entry/python-GIL-Global-interpreter-Lock%EC%9D%80-%EB%AC%B4%EC%97%87%EC%9D%BC%EA%B9%8C
+
+결론만 얘기해 드리자면
+코루틴의 경우 인터럽트로부터 보호되기 때문에 락을 잠그지 않아도 됩니다.
+
+2. 찾아보면 좋을 성능 관련 키워드 -
+
+   - 병렬처리 : Python OpenML모듈
+
+   - cdef - def을 Cython에서 cdef으로 사용하면 성능을 좀 더 극대화 할 수 있습니다.
+
+   링크 : https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html
+
+   - Cython에 병렬처리
+
+   링크 : https://cython.readthedocs.io/en/latest/src/userguide/parallelism.html
+
+## 데코레이터
+
+### 일급 함수
+
+- 파이썬의 함수는 일급 객체로 취급됩니다. 다음 특징을 가질 때 일급 객체라고 부릅니다.
+
+1. 변수에 할당할 수 있다.
+2. 함수의 인자로 전달될 수 있다.
+3. 함수의 return 값이 될 수 있다.
+
+- 파이썬은 위 세 가지 모두 만족하므로, 파이썬 함수는 **일급 객체**입니다.
+
+### 고위 함수
+
+- 함수를 인자로 받거나 또는 함수를 리턴하는 함수를 **고위 함수(higer-order function)**이라고 합니다.
+
+### 인자를 가진 함수의 데코레이터
+
+- python_function.md에 정리해놨음
+
+### 리턴값이 있는 데코레이터
+
+- python_function.md에 정리해놨음
+
+### 중첩 데코레이터
+
+- python_function.md에 정리해놨음
+
+### 동적 데코레이터
+
+- python_function.md에 정리해놨음
+
+```python
+def add(function):
+    def new_function(*args, **kwargs):
+        result = function(*args, **kwargs)
+        return result + 100 ## 요 100을 동적으로 하고 싶음
+    return new_function
+
+@add
+def plus(a, b):
+    return a+b
+
+result = plus(10,20)
+print(f'result : {result}') # result : 130
+```
+
+- 일반적인 데코레이터를 한번 더 감싸서 데코레이터에 값을 전달할 수 있습니다.
+
+```python
+def add(n):
+    def decorator(function): ## 여기부터 일반적인 데코레이터함수
+        def new_function(*args, **kwargs):
+            result = function(*args, **kwargs)
+            return result + n
+        return new_function
+    return decorator
+
+@add(1000)
+def plus(a, b):
+    return a+b
+
+result = plus(10,20)
+print(f'result : {result}') # result : 1030
+```
+
+### 클래스형 데코레이터
+
+```python
+class Debug:
+    def __init__(self, function):
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        print(f'{self.function.__name__} 함수시작')
+        self.function()
+        print(f'{self.function.__name__} 함수종료')
+
+@Debug
+def say_hello():
+    print('안녕하세요')
+
+say_hello()
+
+# say_hello 함수시작
+# 안녕하세요
+# say_hello 함수종료
+```
+
+## 구글 코딩 컨벤션..
+
+## 책 추천
+
+- 컴퓨터 사이언스 부트캠프 with 파이썬, 양태환 지음, 길벗(2018)
+- 파이썬 코딩의 기술, 브렛 슬라킨 지음, 길벗(2020년에 개정 2판이 출시되었습니다.)
+- 파이썬 핵심 개발자들과의 인터뷰, 마이크 드리스콜 지음, 터닝포인트(2019)
+- 슬기로운 파이썬 트릭, 댄 베이더 지음, 인사이트(2019)
+- 파이썬 클린 코드, 마리아노 아나야 지음, 터닝포인트(2019)
+- 전문가를 위한 파이썬, 루시아누 하말류 지음, 한빛미디어(2016)
+- 엔지니어를 위한 파이썬, 니카쿠기 켄지, 제이펍(2017)
