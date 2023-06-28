@@ -208,6 +208,7 @@ def solution(begin, target, words):
 
 ```python
 # test case 1 만 실패.. ㅠㅠ 다시풀기
+## 두 목적지 반복하는 케이스도 추가했는데 성공
 import copy
 
 def solution(tickets):
@@ -253,7 +254,71 @@ def solution(tickets):
 #         cur = nowticket[1]
         
     return answer
+
+## 몰라서 다른사람거로 함..
+import copy
+def solution(tickets):
+    flag_found = False
+    answer = None
+    def dfs(visit, remained_tickets):
+        nonlocal flag_found
+        nonlocal answer
+        if flag_found == True:
+            return
+
+        if len(visit) == len(tickets)+1:
+            answer = visit
+            flag_found = True
+            return
+
+        # 다음 티켓 후보 리스트 확보
+        candidates = []
+        if len(remained_tickets) > 0:
+            i = 0
+            while i < len(remained_tickets):
+                if remained_tickets[i][0] == visit[-1]:
+                    candidates.append(remained_tickets[i])
+                i = i+1
+
+        # 후보 티켓 리스트 정렬
+        candidates = sorted(candidates, key=lambda x: x[1])
+        # 정렬된 순으로 loop
+        for i in range(len(candidates)):
+            visit_cp = copy.deepcopy(visit)
+            visit_cp.append(candidates[i][1])
+            remained_tickets_cp = copy.deepcopy(remained_tickets)
+            del remained_tickets_cp[remained_tickets_cp.index(candidates[i])]
+            dfs(visit_cp, remained_tickets_cp)
+
+    dfs(["ICN"], tickets)
+
+    return answer
+
+## 다른사람 defaultdict로 푼거..
+from collections import defaultdict
+def solution(tickets):
+    r = defaultdict(list)
+    for i,j in tickets:
+        r[i].append(j)
+    for i in r.keys():
+        r[i].sort()
+
+    s = ["ICN"]
+    p = []
+    while s:
+        q = s[-1]
+        if r[q] != []:
+            s.append(r[q].pop(0))
+        else:
+            p.append(s.pop())
+    return p[::-1]
 ```
+
+
+
+
+
+
 
 
 ## 스킬체크
