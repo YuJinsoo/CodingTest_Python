@@ -57,7 +57,7 @@ def solution(progresses, speeds):
         
         if len(days)==0:
             answer.append(count)
-        
+
     return answer
 
 #2 try가 너무 인상적....
@@ -80,4 +80,104 @@ def solution(progresses, speeds):
             retList.append(count)
 
     return retList
+```
+
+## 문제: 올바른 괄호
+- https://school.programmers.co.kr/learn/courses/30/lessons/12909
+``` python
+#1
+def solution(s):
+    answer = True
+    
+    left = s.find('(')
+    right = s.find(')')
+    
+    if left == -1:
+        return False
+    
+    while s:
+        if left > right:
+            answer = False
+            break
+        
+        left = s.find('(', left+1)
+        right = s.find(')', right+1)
+        
+        if left == -1 and right != -1:
+            answer = False
+            break
+        elif left != -1 and right == -1:
+            answer = False
+            break
+        
+        if left == -1 and right == -1:
+            answer = True
+            break
+    
+    return answer
+
+#2 stack으로 풀기
+def solution(s):
+    answer = True
+    
+    stack = []
+    if s[0] == ')':
+        return False
+    try:
+        for b in s:
+            if b == '(':
+                stack.append(b)
+            else:
+                stack.pop()
+        
+    except IndexError:
+        return False
+    
+    if len(stack) != 0:
+        answer = False
+    
+    return answer
+```
+
+## 문제 : 프로세스
+- https://school.programmers.co.kr/learn/courses/30/lessons/42587
+
+```python
+#1 내풀이 deque
+from collections import deque
+
+def solution(priorities, location):
+    li = [[i, p] for i, p in enumerate(priorities)]    
+    d = deque(li)
+    
+    count = 1
+    answer = 0
+    while d:
+        m = max(d, key=lambda x:x[1])
+        
+        curp = d.popleft()
+        if curp[1] == m[1]:
+            if curp[0] == location :
+                answer = count
+                break
+            else:
+                count += 1
+                continue
+        else:
+            d.append(curp)
+    
+    return answer
+
+#2 any를 사용한 풀이
+def solution(priorities, location):
+    queue =  [(i,p) for i,p in enumerate(priorities)]
+    answer = 0
+    while True:
+        cur = queue.pop(0)
+        if any(cur[1] < q[1] for q in queue):
+            queue.append(cur)
+        else:
+            answer += 1
+            if cur[0] == location:
+                return answer
 ```
