@@ -1011,7 +1011,11 @@ sys.modules
   4. 각각의 .egg 파일 (있을 경우)
   5. `sys.path`에 디렉토리를 동적으로 추가한 경우. 예를 들어, 스크립트에서 다른 디렉토리에 있는 모듈을 임포트하려는 경우, `sys.path.append('/path/to/directory')`를 사용하여 해당 디렉토리를 `sys.path`에 추가할 수 있습니다. 그러면 Python은 그 디렉토리를 검색하여 모듈을 찾을 수 있습니다.
   6. `site-packages` 는 `.pth` 파일을 참고합니다.
-  
+
+> .egg 파일이란?
+> Python Egg라고도 하는 EGG 파일은 이전 배포 형식의 Python 배포입니다. 확장자가 .egg인 ZIP 압축 아카이브이며 배포에 대한 메타 정보와 함께 Python 응용 프로그램의 소스 파일을 포함합니다. EGG 파일은 Windows 실행 EXE 파일의 대안이지만 플랫폼 간입니다.
+> .egg 확장자를 .zip으로 바꾸면 Corel WinZIP, Microsoft Explorer 또는 RARLAB WinRAR와 같은 표준 압축 해제 유틸리티로 열 수 있습니다.
+> Python에서 제공하는 distutils 패키지를 사용하여 생성할 수 있습니다. EGG 파일을 만들고 열 수 있는 또 다른 도구는 SetupTools입니다. EGG 파일은 easy_install을 사용하여 패키지로 설치할 수 있습니다.
 
 3. Python이 모듈을 찾았다면, 모듈의 코드를 읽고 실행합니다. 모듈의 이름이 sys.modules에 추가되고, 이 이름으로 모듈을 참조할 수 있습니다.
 
