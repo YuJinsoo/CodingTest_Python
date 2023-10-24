@@ -1,6 +1,6 @@
 # Chapter1 : 파이썬답게 생각하기
 
-## 사용중인 파이썬의 버전을 알아두라
+## 1-1. 사용중인 파이썬의 버전을 알아두라
 
 - 콘솔에 `python --version`
 - 혹은 `python3 --version`
@@ -12,7 +12,7 @@ print(sys.version)
 ```
 - 2020 부터는 python2가 정식 지원되지 않음.
 
-## PEP8 스타일 가이드를 따르라
+## 1-2. PEP8 스타일 가이드를 따르라
 
 - Python Enhancement Proposal 8
 - 코드를 어떤 형식으로 작성할 지 알려주는 스타일 가이드
@@ -57,8 +57,132 @@ print(sys.version)
 - Pylint : 파이썬 소스코드를 분석하는 정적 분석기.
 -
 
+## 1-3. bytes와 str의 차이를 알아두라
+> 파이썬 문자열 데이터의 시퀀스를 표현하는 방법은 `bytes`와 `str`입니다.
+`bytes`타입의 인스턴스에는 부호가 없는 8 바이트 데이터가 그대로 들어갑니다.
+`str`타입의 인스턴스에는 유니코드 코드포인트가 들어있습니다.
 
-## bytes와 str의 차이를 알아두라
+```python
+## 문자열을 encode하면 ascii 값과 같은 binary 값을 가짐
+## 그리고 bytes는 시퀀스이기 때문에 해당 값을 조회하기위해서는 인덱스로 확인해야 함
+char = 'a'
+binary_char = char.encode()
+print(char)                 # a
+print(binary_char)          # b'a'
+print(binary_char[0])       # 97
+print(bin(binary_char[0]))  # 0b1100001
+print(hex(binary_char[0]))  # 0x61
+
+# bytes 타입은 ascii문자만 지원하기 때문에 아래는 에러 발생
+a = b'안녕'
+SyntaxError: bytes can only contain ASCII literal characters.
+```
+
+```python
+a = b'h\x65llo'
+print(list(a))  # [104, 101, 108, 108, 111]
+print(a)        # b'hello'
+
+a = 'a\u0300 propos'
+print(list(a))  # ['a', '̀', ' ', 'p', 'r', 'o', 'p', 'o', 's']
+print(a)        # à propos
+```
+- 중요한 사실은 str에는 직접 대응하는 이진 인코딩이 없고, bytes에는 직접 대응하는 텍스트 인코딩이 없습니다.
+- 그래서 아래와 같이 각 인스턴스의 메서드를 호출해야 변환할 수 있습니다.
+    > 유니코드 데이터 >> str의 encode() >> 이진 데이터<br/>
+    > 이진 데이터 >> bytes의 decode() >> 유니코드 데이터
+
+- 유니코드 데이터를 인코딩하거나 디코딩 하는 부분을 인터페이스 가장 먼 경계 지점에 위치시켜야 합니다. 이런 방식을 `유니코드 샌드위치`라고 부릅니다.
+
+- 인코딩: 사람이 인지하는 정보를 규칙에 따라 컴퓨터가 이해하는 언어로 바꾸는것 
+    - 코드화, 암호화, 부호화
+    - 문자 / 사진&오디오&비디오
+    - 문자인코딩: ASCII, UTF-8/16/32, Base64, Hex 등등..
+- 디코딩: 이진 데이터를 사람이 인지하는 정보로 변환하는 것
+    - 복호화, 역코드화
+    - 저장공간 효율화, 보안 등의 이유로 하기도 함
+
+```python
+# 항상 str를 반환
+def to_str(bytes_or_str):
+    if isinstance(bytes_or_str, bytes):
+        value = bytes_or_str.decode('utf-8')
+    else:
+        value = bytes_or_str
+    return value
+
+print(repr(to_str(b'foo')))             #'foo'
+print(repr(to_str('bar')))              #'bar'
+print(repr(to_str(b'\xed\x95\x9c')))    #'한'
+
+# 항상 bytes를 반환
+def to_bytes(bytes_or_str):
+    if isinstance(bytes_or_str, str):
+        value = bytes_or_str.encode('utf-8')
+    else:
+        value = bytes_or_str
+    return value
+
+print(repr(to_bytes(b'foo')))#b'foo'
+print(repr(to_bytes('bar'))) #b'bar'
+print(repr(to_bytes('한글'))) #b'\xed\x95\x9c\xea\xb8\x80'
+```
+### 첫 번째 문제점
+> bytes와 str이 똑같이 작동하는 것처럼 보이지만 각가의 인스턴스는 서로 호환되지 않습니다. 전달 중인 문자 시퀀스가 어떤 타입인지를 항상 잘 알고 있어야 합니다.
+
+- `+`연산자로 str끼리, bytes끼리 더할 수 있습니다. ( `>`, `<`, `==` 연산도 가능)
+- 하지만 서로 다른 타입끼리는 더할 수 없습니다.
+```python
+print(b'one' + b'two')  # b'onetwo'
+print('one' + 'two')    # 'onetwo'
+print('one' + b'two')   # 불가능
+```
+
+- `str`의 포맷팅에 bytes인스턴스를 넘길 수 있지만 단순 `repr()`함수의 호출이기 때문에 원하던 것이랑 다르게 표기될 것 입니다.
+```python
+print('red %s' % b'blue') # red b'blue'
+```
+
+### 두 번째 문제점
+> (내장 함수인 open을 호출해 얻은)파일 핸들과 관련한 연산들이 디폴트로 유니코드 문자열을 요구하고, 이진 바이트 문자열을 요구하지 않는다는 점입니다.
+
+- 파일을 열 때 파일에 기록된 데이터에 맞는 형식으로 열어야 하고, 아니라면 인코딩 파라메터를 확실히 주어야 정확한 데이터를 확인할 수 있습니다.
+- 시스템 디폴트 인코딩이 어떻게 다른지 이해하기 위해 시스템 인코딩을 항상 검사해야 합니다.
+- `python 3 -c 'import locale; print(locale.getpreferredencoding())'`
+- 지금 내 컴은 cp949
+
+```python
+# 파일 쓸 때
+with open('data.bin', 'w') as f:
+    f.write(b'\xf1\xf2\xf3\xf4\xf5') ## 에러
+
+with open('data.bin', 'wb') as f:
+    f.write(b'\xf1\xf2\xf3\xf4\xf5') ## 실행됨
+
+# 저장된것 열때
+with open('data.bin', 'r') as f:
+    data = f.read() ## 에러
+
+with open('data.bin', 'rb') as f:
+    data = f.read() ## 실행됨
+    print(data) # '\xf1\xf2\xf3\xf4\xf5 '
+
+# encoding을 명시하면 명시한 인코딩 표현으로 보여줌
+with open('data.bin', 'r', encoding='cp1252') as f:
+    data = f.read() ## 실행됨
+    print(data) # ñòóôõ
+```
+
+### 기억해야 할 point!
+- bytes에는 8비트 값의 시퀀스가 들어 있고, str에는 유니코드 코드 포인트의 시퀀스가 들어 있다.
+    - 코드 포인트: 문자 하나에 매핑해 둔 정수
+    - 이 코드 포인트를 모아놓은 집합을 부호화된 문자 집합
+- 처리할 입력이 원하는 문자 시퀀스(8비트, UTF-8로 인코딩된 문자열, 유니코드 코드 포인트들)인지 확실히 하려면 도우미 함수를 사용해라( 예제 `to_str()`, `to_bytes()`)
+- bytes와 str 인스턴스는 (>, ==, +, %)와 같은 연산자에 섞어 쓸 수 있다.
+- 이진 데이터 파일에서 읽거나 쓰고 싶으면 항상 이진 모드('rb', 'wb')로 파일을 열어라
+- 유니코드 데이터를 파일에서 읽거나 쓰고 싶을 때는 시스템 디폴트 인코딩에 주의해야 합니다. 파일 open 함수에 encoding 파라미터를 명시적으로 전달해서 해소할 수 있습니다.
+
+
 ## C스타일 형식 문자열을 str.format과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라
 
 ## 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
