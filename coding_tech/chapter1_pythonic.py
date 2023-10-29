@@ -66,25 +66,76 @@
 # print(hex(binary_char[0]))  # 0x61
 
 # 1-4
-a = 0b10111011
-b = 0xc5f
-print('이진수: %d, 십육진수: %d' % (a,b))
+# a = 0b10111011
+# b = 0xc5f
+# print('이진수: %d, 십육진수: %d' % (a,b))
 
 
-key = 'my_car'
+# key = 'my_car'
+# value = 1.234
+# formatted = '%-10s = %.2f' % (key, value)
+# print(formatted) #
+
+# pantry = [
+#     ('아보카도', 1.25),
+#     ('바나나', 2.50),
+#     ('사과', 15.00),
+#     ]
+
+# for i, (item, count) in enumerate(pantry):
+#     print('#%d: %-10s = %.2f' % (i, item, count))
+
+# # 위 값을 다르게 수정하고 싶을 때
+# for i, (item, count) in enumerate(pantry):
+#     print('#%d: %-10s = %d' % (i+1, item.title(), round(count)))
+
+a = 1234.5678
+formatted = format(a, ',.2f')
+print(formatted)
+# 1,234.57
+
+b = 'my문자열'
+formatted = format(b, '^20s')
+print('*', formatted, '*')
+# *        my문자열         *
+
+key = 'my_var'
 value = 1.234
-formatted = '%-10s = %.2f' % (key, value)
-print(formatted) #
+formatted = '{} = {}'.format(key, value)
+print(formatted) # my_var = 1.234
 
-pantry = [
-    ('아보카도', 1.25),
-    ('바나나', 2.50),
-    ('사과', 15.00),
-    ]
+formatted = '{:<10} = {:.2f}'.format(key, value)
+print(formatted) # my_var     = 1.23
 
-for i, (item, count) in enumerate(pantry):
-    print('#%d: %-10s = %.2f' % (i, item, count))
 
-# 위 값을 다르게 수정하고 싶을 때
-for i, (item, count) in enumerate(pantry):
-    print('#%d: %-10s = %d' % (i+1, item.title(), round(count)))
+print('{} replaces {{}}'.format(1.23))
+print('%.2f%%' % 12.5)
+
+key = 'my_var'
+value = 1.234
+formatted= '{1} = {0}'.format(key, value)
+print(formatted) # 1.234 = my_var
+
+formatted = '{1} = {1} = {1}'.format(key, value)
+print(formatted) # 1.234 = 1.234 = 1.234
+
+key = 'my_var'
+value = 1.234
+formatted = f'{key} = {value}'
+print(formatted) # my_var = 1.234
+
+formatted = f'{key!r:<10} = {value:.2f}'
+print(formatted) # 'my_var'   = 1.23
+
+f_string = f'{key:<10} = {value:.2f}'
+c_type = '%-10s = %.2f' % (key, value)
+str_format = '{:<10} = {:.2f}'.format(key, value)
+str_kw = '{key:<10} = {value:.2f}'.format(key=key, value=value)
+c_dict = '%(key)-10s = %(value).2f' % {'key':key, 'value':value}
+
+assert c_type == c_dict == f_string
+assert str_format == str_kw == f_string
+
+places = 3
+number = 1.234567
+print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 1.235

@@ -190,6 +190,7 @@ with open('data.bin', 'r', encoding='cp1252') as f:
 - 미리 정의된 텍스트 템플릿을 **형식 문자열** 이라고 부르고, 템플릿에 끼워 넣을 값들은 연산자의 오른쪽에 단일 값이나 tuple로 지정합니다.
 
 ### % 형식화 연산자 사용
+- C 함수 스타일의 문자열 포매팅
 - 형식 지정자(%d, %s, %x, %f 등) 지정이 필요합니다.
 - 소수점 위치, 패딩, 채워넣기, 좌우 정렬 등 제공
 
@@ -198,6 +199,11 @@ a = 0b10111011
 b = 0xc5f
 print('이진수: %d, 십육진수: %d' % (a,b))
 # 이진수: 187, 십육진수: 3167
+```
+
+- % 표현 시 %%로 이스케이프 합니다.
+```python
+print('%.2f%%' % 12.5) # 12.50%
 ```
 
 > 문제점 1. 
@@ -235,7 +241,6 @@ for i, (item, count) in enumerate(pantry):
 #3: 사과         = 15
 ```
 
-
 > 문제점 3. 
 > - 같은 값을 여러번 사용하고 싶을 때 같은 값을 반복한 튜플이 필요
 ```python
@@ -257,11 +262,92 @@ result = template % {'name': name }
 > - 형식화에 딕셔너리를 사용할 경우 문장이 번잡스러워짐
 
 ### 내장함수 format과 str.format
+- C 스타일과 다른 **고급 문자열 형식화**
+- format 내장 함수를 통해 모든 파이썬 값에 사용할 수 있습니다.
 
+```python
+a = 1234.5678
+formatted = format(a, ',.2f') # ,는 숫자 자리수 구분자 옵션
+print(formatted)
+# 1,234.57
 
+b = 'my문자열'
+formatted = format(b, '^20s') # ^는 가운데 정렬, 20자리 s 문자열
+print('*', formatted, '*')
+# *        my문자열         *
+```
 
+- str 타입에 `format` 메서드를 이용해 여러 값에 대해 한꺼번에 이 기능 적용이 가능합니다.
+- 위치 지정자`{}`를 사용합니다.
+- 위치 지정자에는 콜론 뒤에 형식 지정자를 넣을 수 있습니다. help('FORMATTING')
+```python
+key = 'my_var'
+value = 1.234
+formatted = '{} = {}'.format(key, value) # 순서대로 입력됨
+print(formatted) # my_var = 1.234
+
+formatted = '{:<10} = {:.2f}'.format(key, value) # 형식 지정자
+print(formatted) # my_var     = 1.23
+```
+
+- 중괄호 표현 시 중괄호를 두 번씩 써서 이스케이프 합니다.
+```python
+print('{} replaces {{}}'.format(1.23)) # 1.23 replaces {}
+```
+- 위치 지정자에 인덱스 전달 가능합니다. (C 스타일 문자열 문제점 1번 해결 가능)
+- 또한 같은 위치 인덱스를 여러번 사용할 수 있습니다.(문제점 3번 해결 가능)
+```python
+key = 'my_var'
+value = 1.234
+formatted= '{1} = {0}'.format(key, value)
+print(formatted) # 1.234 = my_var
+
+formatted = '{1} = {1} = {1}'.format(key, value)
+print(formatted) # 1.234 = 1.234 = 1.234
+```
+
+- 2번문제점과 4번 문제점은 해결 못하기 때문에 f-string을 사용하기를 권합니다.
+
+### 인터폴레이션 방식
+- f-string 방식
+- python 3.6부터 지원
+- 위치지정자에 python 식을 포함할 수 있으므로 매우 강력합니다.
+
+```python
+key = 'my_var'
+value = 1.234
+formatted = f'{key} = {value}'
+print(formatted) # my_var = 1.234
+
+formatted = f'{key!r:<10} = {value:.2f}'
+print(formatted) # 'my_var'   = 1.23
+```
+
+- C 스타일 문자열이나 str.format을 사용하는 것 보다 짧습니다. (가독성)
+```python
+f_string = f'{key:<10} = {value:.2f}'
+c_type = '%-10s = %.2f' % (key, value)
+str_format = '{:<10} = {:.2f}'.format(key, value)
+str_kw = '{key:<10} = {value:.2f}'.format(key=key, value=value)
+c_dict = '%(key)-10s = %(value).2f' % {'key':key, 'value':value}
+
+assert c_type == c_dict == f_string
+assert str_format == str_kw == f_string
+```
+
+- 파이썬 식을 형식 지정자 옵션에 넣을 수 있다.
+- 아래 예제는 자리수를 하드코딩하지 않고 변수로 지정하는 예제입니다.
+```python
+places = 3
+number = 1.234567
+print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 1.235
+```
+
+> f-string 문자열을 사용하면 다양한 케이스에서 단순하게 해결이 가능하지만, python 버전 3.6 을 잘 확이하고 사용해야 합니다.
 
 ## 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
+
+
 ## 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
 
 ## range보다는 enumerate를 사용해라
