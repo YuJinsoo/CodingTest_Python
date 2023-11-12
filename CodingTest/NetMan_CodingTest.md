@@ -42,6 +42,9 @@ def solution(numbers):
 
     def dfs(val, level):
         nonlocal answer
+        ## 혹시 5자리라는게....
+        # if answer >= 99999:
+        #     return
         if level == len(numbers):
             if val == target:
                 answer += 1
@@ -60,6 +63,8 @@ def solution(numbers):
 
 ```python
 ## ---2 
+## 순열로 더하는 숫자의 경우를 모두 생성한 위 map(sum,~) 을 이용해서 연산
+## 이후에 0 개수를 count
 from itertools import product
 def solution(numbers):
     signed = [(x, -x) for x in numbers]
@@ -141,7 +146,10 @@ def solution(N, bus_stop):
 def solution(foods):
     answer = 0
     sum_list = [sum(foods[:i]) for i in range(1, len(foods)+1)]
+    # sum_list = [sum(foods[:i]) for i in range(1, len(foods))]
+    # 인덱싱 실패인가?
 
+    # p1은 0~
     for p1 in range(1, len(foods)-1):
         for p2 in range(p1, len(foods)):
             if sum_list[p1-1] == (sum_list[p2-1] - sum_list[p1-1]) and sum_list[p1-1] == (sum_list[-1] - sum_list[p2-1]):
