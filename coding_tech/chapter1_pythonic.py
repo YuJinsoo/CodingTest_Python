@@ -89,53 +89,71 @@
 # for i, (item, count) in enumerate(pantry):
 #     print('#%d: %-10s = %d' % (i+1, item.title(), round(count)))
 
-a = 1234.5678
-formatted = format(a, ',.2f')
-print(formatted)
-# 1,234.57
+# a = 1234.5678
+# formatted = format(a, ',.2f')
+# print(formatted)
+# # 1,234.57
 
-b = 'my문자열'
-formatted = format(b, '^20s')
-print('*', formatted, '*')
-# *        my문자열         *
+# b = 'my문자열'
+# formatted = format(b, '^20s')
+# print('*', formatted, '*')
+# # *        my문자열         *
 
-key = 'my_var'
-value = 1.234
-formatted = '{} = {}'.format(key, value)
-print(formatted) # my_var = 1.234
+# key = 'my_var'
+# value = 1.234
+# formatted = '{} = {}'.format(key, value)
+# print(formatted) # my_var = 1.234
 
-formatted = '{:<10} = {:.2f}'.format(key, value)
-print(formatted) # my_var     = 1.23
+# formatted = '{:<10} = {:.2f}'.format(key, value)
+# print(formatted) # my_var     = 1.23
 
 
-print('{} replaces {{}}'.format(1.23))
-print('%.2f%%' % 12.5)
+# print('{} replaces {{}}'.format(1.23))
+# print('%.2f%%' % 12.5)
 
-key = 'my_var'
-value = 1.234
-formatted= '{1} = {0}'.format(key, value)
-print(formatted) # 1.234 = my_var
+# key = 'my_var'
+# value = 1.234
+# formatted= '{1} = {0}'.format(key, value)
+# print(formatted) # 1.234 = my_var
 
-formatted = '{1} = {1} = {1}'.format(key, value)
-print(formatted) # 1.234 = 1.234 = 1.234
+# formatted = '{1} = {1} = {1}'.format(key, value)
+# print(formatted) # 1.234 = 1.234 = 1.234
 
-key = 'my_var'
-value = 1.234
-formatted = f'{key} = {value}'
-print(formatted) # my_var = 1.234
+# key = 'my_var'
+# value = 1.234
+# formatted = f'{key} = {value}'
+# print(formatted) # my_var = 1.234
 
-formatted = f'{key!r:<10} = {value:.2f}'
-print(formatted) # 'my_var'   = 1.23
+# formatted = f'{key!r:<10} = {value:.2f}'
+# print(formatted) # 'my_var'   = 1.23
 
-f_string = f'{key:<10} = {value:.2f}'
-c_type = '%-10s = %.2f' % (key, value)
-str_format = '{:<10} = {:.2f}'.format(key, value)
-str_kw = '{key:<10} = {value:.2f}'.format(key=key, value=value)
-c_dict = '%(key)-10s = %(value).2f' % {'key':key, 'value':value}
+# f_string = f'{key:<10} = {value:.2f}'
+# c_type = '%-10s = %.2f' % (key, value)
+# str_format = '{:<10} = {:.2f}'.format(key, value)
+# str_kw = '{key:<10} = {value:.2f}'.format(key=key, value=value)
+# c_dict = '%(key)-10s = %(value).2f' % {'key':key, 'value':value}
 
-assert c_type == c_dict == f_string
-assert str_format == str_kw == f_string
+# assert c_type == c_dict == f_string
+# assert str_format == str_kw == f_string
 
-places = 3
-number = 1.234567
-print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 1.235
+# places = 3
+# number = 1.234567
+# print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 1.235
+
+# 1-5
+
+from urllib.parse import parse_qs
+
+my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+print(repr(my_values)) # {'빨강': ['5'], '파랑': ['0'], '초록': ['']}
+
+red = my_values.get('빨강', [''])[0] or 0
+green = my_values.get('초록', [''])[0] or 0
+opacity = my_values.get('투명도', [''])[0] or 0
+print(f"빨강:{red!r}")
+print(f"초록:{green!r}")
+print(f"투명도:{opacity!r}")
+# 빨강:'5'
+# 초록:0
+# 투명도:0
+

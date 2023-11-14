@@ -345,12 +345,29 @@ print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 
 
 > f-string 문자열을 사용하면 다양한 케이스에서 단순하게 해결이 가능하지만, python 버전 3.6 을 잘 확이하고 사용해야 합니다.
 
-## 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
+## Better Way 5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
 
 
-## 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
+```python
+from urllib.parse import parse_qs
 
-## range보다는 enumerate를 사용해라
-## 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라
-## for나 while 루프 뒤에 else 블록을 사용하지 말아라
-## 대입식을 사용해 반복을 피해라
+my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+print(repr(my_values)) # {'빨강': ['5'], '파랑': ['0'], '초록': ['']}
+
+red = my_values.get('빨강', [''])[0] or 0
+green = my_values.get('초록', [''])[0] or 0
+opacity = my_values.get('투명도', [''])[0] or 0
+print(f"빨강:{red!r}")      # 빨강:'5'
+print(f"초록:{green!r}")    # 초록:0
+print(f"투명도:{opacity!r}")# 투명도:0
+```
+-  
+-  초록의 경우 `''` 이 원소로 있는 list이므로 None이 아니기 때문에 `True`이고, `green = True or 0` 구문에서 0이 green에 할당됩니다.
+
+
+## Better Way 6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
+
+## Better Way 7: range보다는 enumerate를 사용해라
+## Better Way 8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라
+## Better Way 9: for나 while 루프 뒤에 else 블록을 사용하지 말아라
+## Better Way 10: 대입식을 사용해 반복을 피해라
