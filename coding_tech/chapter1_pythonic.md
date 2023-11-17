@@ -347,6 +347,11 @@ print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 
 
 ## Better Way 5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
 
+- 파이썬은 문법이 간결하므로 상당한 로직이 들어가는 경우도 간단하게 처리할 수 있습니다. (하지만 가독성은 다소 떨어질 수 있습니다.)
+- 아래 예제는 쿼리 파라미터를 파싱하는 예제입니다.
+  - 딕셔너리는 첫번째 인자의 `key`가 없으면 두번째 인자를 리턴합니다. Key가 없을 때 KeyError을 발생시키기 보다 `get`메서드를 사용하세요. >> 16
+  -  초록의 경우 `''` 이 원소로 있는 list이므로 None이 아니기 때문에 `True`이고, `green = True or 0` 구문에서 0이 green에 할당됩니다.
+  - `or` 좌측 연산이 True일 경우 우측 값이 선택되는 것을 활용한 것입니다.
 
 ```python
 from urllib.parse import parse_qs
@@ -354,6 +359,8 @@ from urllib.parse import parse_qs
 my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
 print(repr(my_values)) # {'빨강': ['5'], '파랑': ['0'], '초록': ['']}
 
+## 파라메터가 없거나 비어있는 경우 0을 디폴트 값으로 하는 방법...
+## 추가 함수를 사용하기보다 다음과 같이 if식을 사용
 red = my_values.get('빨강', [''])[0] or 0
 green = my_values.get('초록', [''])[0] or 0
 opacity = my_values.get('투명도', [''])[0] or 0
@@ -361,9 +368,49 @@ print(f"빨강:{red!r}")      # 빨강:'5'
 print(f"초록:{green!r}")    # 초록:0
 print(f"투명도:{opacity!r}")# 투명도:0
 ```
--  
--  초록의 경우 `''` 이 원소로 있는 list이므로 None이 아니기 때문에 `True`이고, `green = True or 0` 구문에서 0이 green에 할당됩니다.
 
+- 위 식은 읽기 어렵고 원하는 기능을 모두 제공하지 못합니다.
+- 모든 파라미터를 정수로 변환해서 즉시 수식에 활용하고 싶습니다.
+- 위의 경우`if expression` 대신 if/else 조건식(삼항 조건식)을 사용하면 명확하게 표현할 수 있습니다.
+
+```python
+# if/else 조건식 (삼항 조건식) 으로 표현
+my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+red_str = my_values.get("빨강", [''])
+red = int(red_str[0]) if red_str[0] else 0
+```
+
+- 하지만 위의 예제도 완전히 분리한 if/else 문 보다 명확하지 않습니다. 오히려 더 복잡해 보입니다.
+```python
+# if else 구문으로 표현
+my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+green_str = my_values.get('초록',[''])
+if green_str[0]:
+    green = int(green_str[0])
+else:
+    green = 0
+```
+
+- 이 로직을 **반복적으로 사용하고자 한다면(단 두세 번만 사용하더라도) 도우미 함수를 작성**하는 것을 권장합니다.(DRY 원칙을 지키자!)
+
+```python
+# 도우미 함수 작성하고 호출
+def get_first_value(values, key, default=0):
+    found = values.get(key, [''])
+    if found[0]:
+        return int(found[0])
+    return default
+
+my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+green = get_first_value(my_values, '초록')
+print(green)
+```
+
+> ### 기억해야 할 내용<br>
+> 1. 파이썬 문법을 사용하면 아주 복잡하고 읽기 어려운 한 줄짜리 식을 쉽게 작성 가능합니다.<br>
+> 2. 복잡한 식을 도우미 함수로 개발. 특히 같은 로직을 반복해 사용할 때는 도우미 함수를 꼭 사용합니다.<br>
+> 3. `boolean`연산자 `or`나 `and`를 식에 사용하는 것보다 `if/else`식을 쓰는 것이 가독성이 좋습니다.<br>
+> ### 파이썬의 DRY(Don't Repeat Yourself) 원칙을 지키자!<br>
 
 ## Better Way 6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
 
