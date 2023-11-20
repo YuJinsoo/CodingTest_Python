@@ -343,6 +343,7 @@ number = 1.234567
 print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 1.235
 ```
 
+### 기억해야 할 point!
 > f-string 문자열을 사용하면 다양한 케이스에서 단순하게 해결이 가능하지만, python 버전 3.6 을 잘 확이하고 사용해야 합니다.
 
 ## Better Way 5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
@@ -406,13 +407,111 @@ green = get_first_value(my_values, '초록')
 print(green)
 ```
 
-> ### 기억해야 할 내용<br>
+### 기억해야 할 내용<br>
 > 1. 파이썬 문법을 사용하면 아주 복잡하고 읽기 어려운 한 줄짜리 식을 쉽게 작성 가능합니다.<br>
 > 2. 복잡한 식을 도우미 함수로 개발. 특히 같은 로직을 반복해 사용할 때는 도우미 함수를 꼭 사용합니다.<br>
 > 3. `boolean`연산자 `or`나 `and`를 식에 사용하는 것보다 `if/else`식을 쓰는 것이 가독성이 좋습니다.<br>
 > ### 파이썬의 DRY(Don't Repeat Yourself) 원칙을 지키자!<br>
 
 ## Better Way 6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
+
+- Python에는 한 문장에 여러 변수를 대입할 수 있는 **언패킹** 구분을 지원합니다.
+- 자료구조의 구조를 알고 있다면 인덱스 대신 언패킹을 통해 값에 접근할 수 있습니다.
+
+```python
+item = ("호박엿", "식혜")
+first, second = item
+print(first, second) # 호박엿, 식혜
+```
+<br>
+
+
+- 언패킹이 인덱스보다 시각적으로 편하고 코드가 명확해집니다.
+- `dictionary`의 `items()`는 key, value를 `tuple`로 묶은 것을 `list`로 반환합니다.
+```python
+favorite_snaks = {
+    '짭쪼름 과자': ('프레젤', 100),
+    '달콤 과자': ('쿠키', 180),
+    '채소': ('당근', 20),
+}
+print(favorite_snaks.items()) ##  items는 key, value 쌍을 tuple로 묶어 list로 반환해줍니다.
+(type1, (name1, cals1)),(type2, (name2, cals2)),(type3, (name3, cals3)) = favorite_snaks.items()
+
+print(f'제일 좋아하는 {type1}는 {name1}, {cals1}칼로리입니다.')
+print(f'제일 좋아하는 {type2}는 {name2}, {cals2}칼로리입니다.')
+print(f'제일 좋아하는 {type3}는 {name3}, {cals3}칼로리입니다.')
+
+# 제일 좋아하는 짭쪼름 과자는 프레젤, 100칼로리입니다.
+# 제일 좋아하는 달콤 과자는 쿠키, 180칼로리입니다.    
+# 제일 좋아하는 채소는 당근, 20칼로리입니다.
+```
+<br>
+
+- 언패킹을 사용하면 한 줄로 값을 맞바꿀 수 있습니다. (한 줄로 스왑 가능)
+- 원리를 알아보자면
+- 우항 `a[i-1], a[i]` 이 임시 `tuple`에 저장되고 이후에 해당 튜블 값이 좌항 `a[i], a[i-1]`에 언패킹 되어 할당됩니다. 이후 임시 tuple 객체는 사라집니다.
+
+```python
+## 임시변수를 
+def bubble_sort(a):
+    for _ in range(len(a)):
+        for i in range(1, len(a)):
+            if a[i] > a[i-1]:
+                temp = a[i]
+                a[i] = a[i-1]
+                a[i-1] = temp
+
+names = ['프레첼', '당근', '쑥갓', '베이컨']
+bubble_sort(names)
+print(names) # ['프레첼', '쑥갓', '베이컨', '당근']
+
+## 위 함수를
+def bubble_sort2(a):
+    for _ in range(len(a)):
+        for i in range(1, len(a)):
+            if a[i] > a[i-1]:
+                a[i], a[i-1] = a[i-1], a[i] ## unpacking 활용하여 스왑!
+
+names = ['프레첼', '당근', '쑥갓', '베이컨']
+bubble_sort2(names)
+print(names)# ['프레첼', '쑥갓', '베이컨', '당근']
+```
+<br>
+
+- 언패킹의 또다른 활용!
+- 리스트의 원소를 인덱스 없이 언패킹할 수 있습니다.
+```python
+## 인덱스를 활용한 방법
+snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+for i in range(len(snacks)):
+    item = snacks[i]
+    name = item[0]
+    calories = item[1]
+    print(f'{i+1}: {name}은 {calories} 칼로리입니다.')
+# 1: 베이컨은 350 칼로리입니다.
+# 2: 도넛은 240 칼로리입니다.
+# 3: 머핀은 190 칼로리입니다.
+
+## 언패킹으로 확인하기 - 코드가 짧고 이해하기 쉽다!
+snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+for rank, (name, calories) in enumerate(snacks):
+    print(f'{rank+1}: {name}은 {calories} 칼로리입니다.')
+# 1: 베이컨은 350 칼로리입니다.
+# 2: 도넛은 240 칼로리입니다.
+# 3: 머핀은 190 칼로리입니다.
+```
+<br>
+
+- 추가적으로 list구조, 함수인자, 키워드 인자, 다중반환 값 등에 대한 언패킹 기능도 가능합니다.
+- 이 내용은 추후 betterway 13, 22, 23, 19 에서 다룹니다.
+
+
+### 기억해야 할 point!
+> 1. 한 문장 안에서 여러 값을 대입할 수 있는 언패킹 문법 제공<br>
+> 2. 파이썬에서 언패킹은 일반적이므로 모든 이터러블에 적용 가능. 이터러블이 여러 계층이더라도 가능 <br>
+> 3. 인덱스를 사용하는 것 대신 언패킹을 사용해 시각적인 불편함을 줄이고 코드를 명확하게 할 수 있습니다.
+
+
 
 ## Better Way 7: range보다는 enumerate를 사용해라
 ## Better Way 8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라

@@ -142,18 +142,76 @@
 
 # 1-5
 
-from urllib.parse import parse_qs
+# from urllib.parse import parse_qs
 
-my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
-print(repr(my_values)) # {'빨강': ['5'], '파랑': ['0'], '초록': ['']}
+# my_values = parse_qs('빨강=5&파랑=0&초록=', keep_blank_values=True)
+# print(repr(my_values)) # {'빨강': ['5'], '파랑': ['0'], '초록': ['']}
 
-red = my_values.get('빨강', [''])[0] or 0
-green = my_values.get('초록', [''])[0] or 0
-opacity = my_values.get('투명도', [''])[0] or 0
-print(f"빨강:{red!r}")
-print(f"초록:{green!r}")
-print(f"투명도:{opacity!r}")
-# 빨강:'5'
-# 초록:0
-# 투명도:0
+# red = my_values.get('빨강', [''])[0] or 0
+# green = my_values.get('초록', [''])[0] or 0
+# opacity = my_values.get('투명도', [''])[0] or 0
+# print(f"빨강:{red!r}")
+# print(f"초록:{green!r}")
+# print(f"투명도:{opacity!r}")
+# # 빨강:'5'
+# # 초록:0
+# # 투명도:0
 
+# 1-6
+# favorite_snaks = {
+#     '짭쪼름 과자': ('프레젤', 100),
+#     '달콤 과자': ('쿠키', 180),
+#     '채소': ('당근', 20),
+# }
+# print(favorite_snaks.items()) ##  items는 key, value 쌍을 tuple로 묶어 list로 반환해줍니다.
+# (type1, (name1, cals1)),(type2, (name2, cals2)),(type3, (name3, cals3)) = favorite_snaks.items()
+
+# print(f'제일 좋아하는 {type1}는 {name1}, {cals1}칼로리입니다.')
+# print(f'제일 좋아하는 {type2}는 {name2}, {cals2}칼로리입니다.')
+# print(f'제일 좋아하는 {type3}는 {name3}, {cals3}칼로리입니다.')
+
+# # 제일 좋아하는 짭쪼름 과자는 프레젤, 100칼로리입니다.
+# # 제일 좋아하는 달콤 과자는 쿠키, 180칼로리입니다.    
+# # 제일 좋아하는 채소는 당근, 20칼로리입니다.
+
+# def bubble_sort(a):
+#     for _ in range(len(a)):
+#         for i in range(1, len(a)):
+#             if a[i] > a[i-1]:
+#                 temp = a[i]
+#                 a[i] = a[i-1]
+#                 a[i-1] = temp
+
+# names = ['프레첼', '당근', '쑥갓', '베이컨']
+# bubble_sort(names)
+# print(names) # ['프레첼', '쑥갓', '베이컨', '당근']
+
+# ## 위 함수를
+# def bubble_sort2(a):
+#     for _ in range(len(a)):
+#         for i in range(1, len(a)):
+#             if a[i] > a[i-1]:
+#                 a[i], a[i-1] = a[i-1], a[i]
+
+# names = ['프레첼', '당근', '쑥갓', '베이컨']
+# bubble_sort2(names)
+# print(names)# ['프레첼', '쑥갓', '베이컨', '당근']
+
+## 인덱스를 활용한 방법
+snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+for i in range(len(snacks)):
+    item = snacks[i]
+    name = item[0]
+    calories = item[1]
+    print(f'{i+1}: {name}은 {calories} 칼로리입니다.')
+# 1: 베이컨은 350 칼로리입니다.
+# 2: 도넛은 240 칼로리입니다.
+# 3: 머핀은 190 칼로리입니다.
+
+## 언패킹으로 확인하기
+snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+for rank, (name, calories) in enumerate(snacks):
+    print(f'{rank+1}: {name}은 {calories} 칼로리입니다.')
+# 1: 베이컨은 350 칼로리입니다.
+# 2: 도넛은 240 칼로리입니다.
+# 3: 머핀은 190 칼로리입니다.
