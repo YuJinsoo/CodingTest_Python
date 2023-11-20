@@ -1,6 +1,19 @@
+# 목록
+1. [BetterWay1: 사용중인 파이썬의 버전을 알아두라](#betterway-1-사용중인-파이썬의-버전을-알아두라)
+2. [BetterWay2: pep8 스타일 가이드를 따르라](#betterway-2-pep8-스타일-가이드를-따르라)
+3. [BetterWay3: bytes와 str의 차이를 알아두라](#betterway-3-bytes와-str의-차이를-알아두라)
+4. [BetterWay4: c스타일 형식 문자열을 strformat과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라](#betterway-4--c스타일-형식-문자열을-strformat과-쓰기보다는-f-문자열-을-통한-인터폴레이션을-사용해라)
+5. [BetterWay5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라](#betterway-5-복잡한-식을-쓰는-대신-도우미-함수를-작성해라)
+6. [BetterWay6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라](#betterway-6-인덱스를-사용하는-대신-대입을-사용해-데이터를-언패킹해라)
+7. [BetterWay7: range보다는 enumerate를 사용하라](#betterway-7-range보다는-enumerate를-사용해라)
+8. [BetterWay8: ]()
+9. [BetterWay9: ]()
+10. [BetterWay10: ]()
+
+
 # Chapter1 : 파이썬답게 생각하기
 
-## 1-1. 사용중인 파이썬의 버전을 알아두라
+## BetterWay 1. 사용중인 파이썬의 버전을 알아두라
 
 - 콘솔에 `python --version`
 - 혹은 `python3 --version`
@@ -12,7 +25,7 @@ print(sys.version)
 ```
 - 2020 부터는 python2가 정식 지원되지 않음.
 
-## 1-2. PEP8 스타일 가이드를 따르라
+## BetterWay 2. PEP8 스타일 가이드를 따르라
 
 - Python Enhancement Proposal 8
 - 코드를 어떤 형식으로 작성할 지 알려주는 스타일 가이드
@@ -57,7 +70,7 @@ print(sys.version)
 - Pylint : 파이썬 소스코드를 분석하는 정적 분석기.
 -
 
-## 1-3. bytes와 str의 차이를 알아두라
+## BetterWay 3. bytes와 str의 차이를 알아두라
 > 파이썬 문자열 데이터의 시퀀스를 표현하는 방법은 `bytes`와 `str`입니다.
 `bytes`타입의 인스턴스에는 부호가 없는 8 바이트 데이터가 그대로 들어갑니다.
 `str`타입의 인스턴스에는 유니코드 코드포인트가 들어있습니다.
@@ -183,7 +196,7 @@ with open('data.bin', 'r', encoding='cp1252') as f:
 - 유니코드 데이터를 파일에서 읽거나 쓰고 싶을 때는 시스템 디폴트 인코딩에 주의해야 합니다. 파일 open 함수에 encoding 파라미터를 명시적으로 전달해서 해소할 수 있습니다.
 
 
-## Batter Way 4 : C스타일 형식 문자열을 str.format과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라
+## BetterWay 4 : C스타일 형식 문자열을 str.format과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라
 
 - Better Way 27, Better way 80 에서 활용됩니다.
 
@@ -346,7 +359,7 @@ print(f'내가 고른 숫자는 {number:.{places}f}') # 내가 고른 숫자는 
 ### 기억해야 할 point!
 > f-string 문자열을 사용하면 다양한 케이스에서 단순하게 해결이 가능하지만, python 버전 3.6 을 잘 확이하고 사용해야 합니다.
 
-## Better Way 5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
+## BetterWay 5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라
 
 - 파이썬은 문법이 간결하므로 상당한 로직이 들어가는 경우도 간단하게 처리할 수 있습니다. (하지만 가독성은 다소 떨어질 수 있습니다.)
 - 아래 예제는 쿼리 파라미터를 파싱하는 예제입니다.
@@ -411,9 +424,12 @@ print(green)
 > 1. 파이썬 문법을 사용하면 아주 복잡하고 읽기 어려운 한 줄짜리 식을 쉽게 작성 가능합니다.<br>
 > 2. 복잡한 식을 도우미 함수로 개발. 특히 같은 로직을 반복해 사용할 때는 도우미 함수를 꼭 사용합니다.<br>
 > 3. `boolean`연산자 `or`나 `and`를 식에 사용하는 것보다 `if/else`식을 쓰는 것이 가독성이 좋습니다.<br>
-> ### 파이썬의 DRY(Don't Repeat Yourself) 원칙을 지키자!<br>
+> **파이썬의 DRY(Don't Repeat Yourself) 원칙을 지키자!** 
 
-## Better Way 6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
+<br>
+
+
+## BetterWay 6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라
 
 - Python에는 한 문장에 여러 변수를 대입할 수 있는 **언패킹** 구분을 지원합니다.
 - 자료구조의 구조를 알고 있다면 인덱스 대신 언패킹을 통해 값에 접근할 수 있습니다.
@@ -512,8 +528,8 @@ for rank, (name, calories) in enumerate(snacks):
 > 3. 인덱스를 사용하는 것 대신 언패킹을 사용해 시각적인 불편함을 줄이고 코드를 명확하게 할 수 있습니다.
 
 
+## BetterWay 7: range보다는 enumerate를 사용해라
 
-## Better Way 7: range보다는 enumerate를 사용해라
-## Better Way 8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라
-## Better Way 9: for나 while 루프 뒤에 else 블록을 사용하지 말아라
-## Better Way 10: 대입식을 사용해 반복을 피해라
+## BetterWay 8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라
+## BetterWay 9: for나 while 루프 뒤에 else 블록을 사용하지 말아라
+## BetterWay 10: 대입식을 사용해 반복을 피해라
