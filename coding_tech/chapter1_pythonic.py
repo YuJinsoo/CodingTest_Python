@@ -197,21 +197,54 @@
 # bubble_sort2(names)
 # print(names)# ['프레첼', '쑥갓', '베이컨', '당근']
 
-## 인덱스를 활용한 방법
-snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
-for i in range(len(snacks)):
-    item = snacks[i]
-    name = item[0]
-    calories = item[1]
-    print(f'{i+1}: {name}은 {calories} 칼로리입니다.')
-# 1: 베이컨은 350 칼로리입니다.
-# 2: 도넛은 240 칼로리입니다.
-# 3: 머핀은 190 칼로리입니다.
+# ## 인덱스를 활용한 방법
+# snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+# for i in range(len(snacks)):
+#     item = snacks[i]
+#     name = item[0]
+#     calories = item[1]
+#     print(f'{i+1}: {name}은 {calories} 칼로리입니다.')
+# # 1: 베이컨은 350 칼로리입니다.
+# # 2: 도넛은 240 칼로리입니다.
+# # 3: 머핀은 190 칼로리입니다.
 
-## 언패킹으로 확인하기
-snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
-for rank, (name, calories) in enumerate(snacks):
-    print(f'{rank+1}: {name}은 {calories} 칼로리입니다.')
-# 1: 베이컨은 350 칼로리입니다.
-# 2: 도넛은 240 칼로리입니다.
-# 3: 머핀은 190 칼로리입니다.
+# ## 언패킹으로 확인하기
+# snacks =  [('베이컨', 350), ('도넛', 240), ('머핀', 190)]
+# for rank, (name, calories) in enumerate(snacks):
+#     print(f'{rank+1}: {name}은 {calories} 칼로리입니다.')
+# # 1: 베이컨은 350 칼로리입니다.
+# # 2: 도넛은 240 칼로리입니다.
+# # 3: 머핀은 190 칼로리입니다.
+
+# 7
+
+# from random import randint
+# random_bits = 0
+# for i in range(32):
+#     if randint(0,1):
+#         random_bits |=1 << i
+
+# print(bin(random_bits)) # 0b10100000000011101101110110010110
+
+# flavor_list = ['바닐라', '초코', '피칸', '딸기']
+# for flavor in flavor_list:
+#     print(f'{flavor} 맛있어요.')
+# # 바닐라 맛있어요.
+# # 초코 맛있어요.
+# # 피칸 맛있어요.
+# # 딸기 맛있어요.
+
+# flavor_list = ['바닐라', '초코', '피칸', '딸기']
+# for i in range(len(flavor_list)):
+#     print(f'{i}: {flavor_list[i]} 맛있어요.')
+
+# # 0: 바닐라 맛있어요.
+# # 1: 초코 맛있어요.
+# # 2: 피칸 맛있어요.
+# # 3: 딸기 맛있어요.
+
+# flavor_list = ['바닐라', '초코', '피칸', '딸기']
+# it = enumerate(flavor_list)
+# print(next(it)) # (0, '바닐라')
+# print(next(it)) # (1, '초코')
+
