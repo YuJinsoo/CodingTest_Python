@@ -595,13 +595,116 @@ for index, value in flavor_list:
 ```
 
 ### 기억해야 할 Point
-> `enumerator`를 사용하면 이터레이터에 대해 루프를 돌면서 이터레이터에서 가져오는 원소의 인덱스까지 얻어 코드를 간결하게 작성할 수 있습니다.<br>
-> `range`에 대해 루프를 돌면서 시퀀스의 원소를 인덱스로 가져오기 보다는 `enumerator`를 사용합니다.
-> `enumerator`의 두 번째 파라미터로 어디부터 원소를 가져오기 시작할 지 지정할 수 있습니다.(default는 0)
-> enumerator는 generator이므로 길이가 길어질수록 시퀀스 순회보다 성능이 좋습니다.
+> - `enumerator`를 사용하면 이터레이터에 대해 루프를 돌면서 이터레이터에서 가져오는 원소의 인덱스까지 얻어 코드를 간결하게 작성할 수 있습니다.<br>
+> - `range`에 대해 루프를 돌면서 시퀀스의 원소를 인덱스로 가져오기 보다는 `enumerator`를 사용합니다.<br>
+> - `enumerator`의 두 번째 파라미터로 어디부터 원소를 가져오기 시작할 지 지정할 수 있습니다.(default는 0)<br>
+> - enumerator는 generator이므로 길이가 길어질수록 시퀀스 순회보다 성능이 좋습니다.
 
 <br>
 
 ## BetterWay 8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라
+
+- list에 담긴 객채와 관련된 정보를 담은 list를 생성하거나 다루는 경우가 자주 발생합니다. 
+- 이때 list comprehension을 사용하면 소스 list에 대해 쉽게 관련된 list를 생성할 수 있습니다.
+
+```python
+names = ['Cecilica', '남궁민수', '헤헤헤']
+name_length = [len(n) for n in names]
+print(name_length) # [8, 4, 3]
+```
+<br>
+
+- 생성된 두 리스트를 동시에 참조해야 하는 경우에는 리스트의 길이만큼 순회를 돌려 동시에 참조할 수 있습니다.
+- 하지만 이 방법은 시각적으로 깔끔하고 알아보기 쉬운 코드가 아닙니다.
+    - list 객체의 원소를 찾는 과정이 코드를 어렵게 만듭니다.
+    - 배열 인덱스 연산이 2번 발생합니다.
+- 이는 `enumerate`를 사용하더라도 인덱스 참조 연산이 발생합니다.
+
+```python
+names = ['Cecilica', '남궁민수', '헤헤헤']
+name_length = [len(n) for n in names]
+
+longest_name = None
+max_count = 0
+
+for i in range(len(names)):
+    count = name_length[i]
+    if count > max_count:
+        longest_name = names[i]
+        max_count = name_length[i]
+print(longest_name) # Cecilica
+
+## enumerate 적용
+for i, name in enumerate(names):
+    count = name_length[i]
+    if count > max_count:
+        longest_name = name
+        max_count = name_length[i]
+print(longest_name) # Cecilica
+```
+<br>
+
+- 파이썬에서는 이런 코드를 더 깔끔하게 만들 수 있도록 `zip`이라는 내장함수를 제공합니다.
+- `zip`은 둘 이상의 디터레이터를 지연 계산 제너레이터를 사용해 묶어줍니다.
+- 리스트의 원소에 접근하는 인덱스 연산보다 깔끔합니다.
+
+```python
+names = ['Cecilica', '남궁민수', '헤헤헤']
+name_length = [len(n) for n in names]
+
+longest_name = None
+max_length = 0
+
+for name, length in zip(names, name_length):
+    if length > max_length:
+        longest_name = name
+        max_length = length
+
+print(longest_name, max_length) # Cecilica 8
+```
+<br>
+
+- `zip`은 자신이 감싼 이터레이터 우너소를 하나씩 소비합니다. **시퀀스의 길이만큼의 메모리를 소모해서 프로그램이 중단되는 위험 없이 아주 긴 입력도 처리할 수 있습니다.**
+- 길이가 다른 두 시퀀스를 `zip`으로 묶었을 때에는 짧은 길이를 기준으로만 연산을 진행합니다.
+    > `zip`은 자신이 감싼 이터레이터 중 어느 하나가 끝날 때까지 튜플을 내놓는 방식으로 동작하기 떄문입니다.
+- 두 이터레이터의 길이가 다를 때 긴 이터레이터의 뒷부분 정보를 모두 활용하고 싶은 경우에는 `itertools`에 있는 `zip_longest`를 대신 사용합니다.
+- 이 때에는 짧은 쪽 언패킹 부분에 모두 `None`이 출력됩니다.
+
+```python
+# 길이가 다를 때 zip 동작
+names = ['Cecilica', '남궁민수', '헤헤헤']
+name_length = [len(n) for n in names]
+names.append('Rosalind')
+
+for name, length in zip(names, name_length):
+    print(name, length)
+    
+# Cecilica 8
+# 남궁민수 4
+# 헤헤헤 3
+
+# zip_longest적용
+from itertools import zip_longest
+names = ['Cecilica', '남궁민수', '헤헤헤']
+name_length = [len(n) for n in names]
+names.append('Rosalind')
+
+for name, length in zip_longest(names, name_length):
+    print(name, length)
+    
+# Cecilica 8
+# 남궁민수 4
+# 헤헤헤 3
+# Rosalind None
+```
+<br>
+
+### 기억해야 할 Point
+> - `zip` 내장 함수를 사용해 여러 이터레이터를 나란히 이터레이션 할 수 있습니다.<br>
+> - `zip`은 지연된 제너레이터이므로 무한히 긴 입력에서도 메모리 문제 없이 사용할 수 있습니다.<br>
+> - 입력 이터레이터의 길이가 다를 경우 길이가 긴 쪽의 나머지 원소는 무시됩니다.<br>
+> - 긴 길이의 이터레이터에 맞추고 싶다면 `itertools.zip_longest`를 사용합니다.
+<br>
+
 ## BetterWay 9: for나 while 루프 뒤에 else 블록을 사용하지 말아라
 ## BetterWay 10: 대입식을 사용해 반복을 피해라
