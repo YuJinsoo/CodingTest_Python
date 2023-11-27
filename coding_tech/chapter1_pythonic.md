@@ -6,7 +6,7 @@
 5. [BetterWay5: 복잡한 식을 쓰는 대신 도우미 함수를 작성해라](#betterway-5-복잡한-식을-쓰는-대신-도우미-함수를-작성해라)
 6. [BetterWay6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라](#betterway-6-인덱스를-사용하는-대신-대입을-사용해-데이터를-언패킹해라)
 7. [BetterWay7: range보다는 enumerate를 사용하라](#betterway-7-range보다는-enumerate를-사용해라)
-8. [BetterWay8: ]()
+8. [BetterWay8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라](#betterway-8-여러-이터레이터에-대해-나란히-루프를-수행하려면-zip을-사용해라)
 9. [BetterWay9: ]()
 10. [BetterWay10: ]()
 
@@ -707,4 +707,41 @@ for name, length in zip_longest(names, name_length):
 <br>
 
 ## BetterWay 9: for나 while 루프 뒤에 else 블록을 사용하지 말아라
+
+- 다른 언어에서는 지원하지 않지만, python에서는 반복문(루프)뒤에 `else` 블록을 지원합니다.
+- 반복문 이후에 오는 `else` 구문은 `break`를 만나지 않고 정상적으로 모든 순회를 만쳐야 실행합니다.
+- 처음부터 종료 조건인 `[]`를 for문이나 while의 조건에 넣어도 `else` 구문이 실행됩니다.
+
+```python
+for i in range(3):
+    print('Loop', i)
+else:
+    print('else block')
+
+# Loop 0
+# Loop 1
+# Loop 2
+# else block
+
+for i in range(3):
+    print('Loop', i)
+    if i == 1:
+        break
+else:
+    print('else block')
+    
+# Loop 0
+# Loop 1
+```
+
+- 하지만 반복문 다음의 `else`의 경우 어떤 구문에서 실행되는지 의미가 모호하고 명확하지 않아 가독성이 떨어집니다.
+    - try/except/finally/else 구문의 경우 try 구문이 정상적이지 않을 때 나머지 구문들을 동작하는 방식이지만 반복문의 else는 정반대로 동작하기 때문입니다.
+- 그렇기 때문에 반복문의 `else`구문을 절대 사용하지 않는 것을 추천합니다.
+
+### 기억해야 할 Point
+> - python은 `for`이나 `while`뒤에 `else`블록을 허용하는 문법을 지원합니다.<br>
+> - 루프 뒤의 `else`블록은 `break`를 만나지 않은 경우에만 실행됩니다.<br>
+> - 동작이 직관적이지 않고 혼동을 야기하므로 사용하지 않습니다.<br>
+<br>
+
 ## BetterWay 10: 대입식을 사용해 반복을 피해라

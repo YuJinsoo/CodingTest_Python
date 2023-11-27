@@ -267,41 +267,61 @@
 
 # print(longest_name) # Cecilica
 
-names = ['Cecilica', '남궁민수', '헤헤헤']
-name_length = [len(n) for n in names]
+# names = ['Cecilica', '남궁민수', '헤헤헤']
+# name_length = [len(n) for n in names]
 
-longest_name = None
-max_length = 0
+# longest_name = None
+# max_length = 0
 
-for name, length in zip(names, name_length):
-    if length > max_length:
-        longest_name = name
-        max_length = length
+# for name, length in zip(names, name_length):
+#     if length > max_length:
+#         longest_name = name
+#         max_length = length
 
-print(longest_name, max_length) # Cecilica 8
+# print(longest_name, max_length) # Cecilica 8
 
-# 길이가 다를 때 zip 동작
-names = ['Cecilica', '남궁민수', '헤헤헤']
-name_length = [len(n) for n in names]
-names.append('Rosalind')
+# # 길이가 다를 때 zip 동작
+# names = ['Cecilica', '남궁민수', '헤헤헤']
+# name_length = [len(n) for n in names]
+# names.append('Rosalind')
 
-for name, length in zip(names, name_length):
-    print(name, length)
+# for name, length in zip(names, name_length):
+#     print(name, length)
     
-# Cecilica 8
-# 남궁민수 4
-# 헤헤헤 3
+# # Cecilica 8
+# # 남궁민수 4
+# # 헤헤헤 3
 
-# zip_longest적용
-from itertools import zip_longest
-names = ['Cecilica', '남궁민수', '헤헤헤']
-name_length = [len(n) for n in names]
-names.append('Rosalind')
+# # zip_longest적용
+# from itertools import zip_longest
+# names = ['Cecilica', '남궁민수', '헤헤헤']
+# name_length = [len(n) for n in names]
+# names.append('Rosalind')
 
-for name, length in zip_longest(names, name_length):
-    print(name, length)
+# for name, length in zip_longest(names, name_length):
+#     print(name, length)
     
-# Cecilica 8
-# 남궁민수 4
-# 헤헤헤 3
-# Rosalind None
+# # Cecilica 8
+# # 남궁민수 4
+# # 헤헤헤 3
+# # Rosalind None
+
+for i in range(3):
+    print('Loop', i)
+else:
+    print('else block')
+
+# Loop 0
+# Loop 1
+# Loop 2
+# else block
+
+for i in range(3):
+    print('Loop', i)
+    if i == 1:
+        break
+else:
+    print('else block')
+    
+# Loop 0
+# Loop 1
