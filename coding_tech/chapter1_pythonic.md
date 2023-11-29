@@ -745,3 +745,190 @@ else:
 <br>
 
 ## BetterWay 10: 대입식을 사용해 반복을 피해라
+- 대입식, assignment expression, 왈러스 연산자, :=
+- 고질적인 코드 중복을 줄이기 위해 **python 3.8**에 도입된 개념입니다.
+- 변수에 값을 할당함과 동시에 그 값에 대해 조건문 등에서 판단이 가능한 연산자입니다.
+<br>
+
+- 아래 예제는 왈러스 연산자 미적용/적용 예시입니다.
+- 왈러스 연산자를 적용해보니
+  - 코드가 한 줄 짧아집니다.
+  - `count` 변수가 `if`문의 첫 번째 블록에서만 의미가 있다는 점이 명확합니다.
+- **대입 후 평가** 동작이 왈러스 연산자의 핵심
+
+```python
+## 레몬 제고를 확인해서 있으면 레모네이드를 만드는 기능
+
+fruit = {'사과':10, '바나나':8, '레몬':5}
+
+def make_lemonade(count):
+    pass
+
+def out_of_stock():
+    pass
+
+# 일반적인 기능.
+## count를 할당 한 다음에 if 문에서 count에 대해 판별을 해주어햐 함.
+count = fruit.get('레몬', 0)
+if count:
+    make_lemonade(count)
+else:
+    out_of_stock()
+
+# 왈러스 연산자 적용
+if count := fruit.get('레몬', 0):
+    make_lemonade(count)
+else:
+    out_of_stock()
+```
+<br>
+
+- 대입식 부분을 괄호로 묶어 다른 값과의 비교도 가능합니다.
+```python
+if (count := fruit.get('레몬', 0)) >= 4 :
+    make_lemonade(count)
+else:
+    out_of_stock()
+```
+<br>
+
+- 영역 밖의 변수에 값을 대입하고 다음 함수의 인자로 들어가는 경우 코드를 줄일 수 있습니다.
+- 하지만 이 부분은 개인적인 의견으로 가독성에 큰 차이가 발생하지는 않는 개선법인 것 같습니다.
+
+```python
+# 바나나 스무디를 만드는 기능 예제
+fruit = {'사과':10, '바나나':8, '레몬':5}
+def slice_bananas(count):
+    pass
+
+def out_of_stock():
+    pass
+
+class OutOfBananas(Exception):
+    pass
+
+def make_smoothies(count):
+    pass
+
+# 일반식
+pieces = 0
+count = fruit.get('바나나', 0)
+if count >= 2:
+    pieces = slice_bananas(count)
+
+try:
+    smoothies = make_smoothies(pieces)
+except OutOfBananas:
+    out_of_stock()
+    
+# 아래처럼 표현 가능하지만, 코드 흐름이 이상
+count = fruit.get('바나나', 0)
+if count >= 2:
+    pieces = slice_bananas(count)
+else:
+    pieces = 0
+
+try:
+    smoothies = make_smoothies(pieces)
+except OutOfBananas:
+    out_of_stock()
+
+# 왈러스식으로 코드 간편화
+pieces = 0
+if (count := fruit.get('바나나', 0)) >= 2:
+    pieces = slice_bananas(count)
+
+try:
+    smoothies = make_smoothies(pieces)
+except OutOfBananas:
+    out_of_stock()
+
+```
+<br>
+
+- 원래 python에서는 switch-case문이 없었으나 `match-case`문이 도입되어 이 부분은 개선된 부분이입니다. (파이썬 버전 3.10에 도입되었습니다.)
+- 아래처럼 긴 count를 연속적으로 확인해야 하는 부분에서 왈러스 연산자를 적용해서 줄을 줄이고, 인덴트를 같은 레벨로 유지해서 가독성이 좋습니다.
+
+```python
+fruit = {'사과':10, '바나나':8, '레몬':5}
+def make_lemonade(count):
+    pass
+
+def slice_bananas(count):
+    pass
+
+def out_of_stock():
+    pass
+
+class OutOfBananas(Exception):
+    pass
+
+def make_smoothies(count):
+    pass
+
+def make_cider(count):
+    pass
+# 바나나는 스무디, 사과는 사이다, 레몬은 레모네이드를 만드는 기능
+##  왈러스 없는 식
+count = fruit.get('바나나', 0)
+if count >=2:
+    pieces = slice_bananas(count)
+    to_enjoy = make_smoothies(pieces)
+else:
+    count = fruit.get('사과', 0)
+    if count >= 4:
+        to_enjoy = make_cider(count)
+    else:
+        count = fruit.get('레몬', 0)
+        if count:
+            to_enjoy = make_lemonade(count)
+        else:
+            to_enjoy = '아무것도없음'
+
+## 왈러스
+if (count := fruit.get('바나나', 0)) >= 2:
+    pieces = slice_bananas(count)
+    to_enjoy = make_smoothies(pieces)
+elif (count := fruit.get('사과', 0)) >= 4:
+    to_enjoy = make_cider(count)
+elif count := fruit.get('레몬', 0):
+    to_enjoy = make_lemonade(count)
+else:
+    to_enjoy = '아무것도 없음'
+```
+<br>
+
+- python에 없는 `do/while`기능도 지원이 가능합니다.
+
+```python
+def pick_fruit():
+    pass
+
+def make_juice(a, b):
+    pass
+
+# 일반식 do while이 안됨.
+bottles = []
+while True:
+    fruit = pick_fruit()
+    if not fruit:
+        break
+    
+    for fruit, count in fruit.items():
+        batch = make_juice(fruit, count)
+        bottles.extend(batch)
+        
+## 왈러스
+bottles = []
+while fruit := pick_fruit():
+    for fruit, count in fruit.items():
+        batch = make_juice(fruit, count)
+        bottles.extend(batch)
+```
+<br>
+
+### 기억해야 할 Point
+> - 대입식에서는 왈러스 연산자(:=)를 사용해 하나의 식 안에서 변수 이름에 값을 대입하면서 이 값을 평가할 수 있고 중복을 줄일 수 있습니다.<br>
+> - 대입식이 더 큰 식의 일부분으로 쓰일 때는 괄호로 둘러싸야 합니다.<br>
+> - 대입식을 활용하면 파이썬에 없는`do/while` 기능을 흉내낼 수 있습니다.<br>
+<br>

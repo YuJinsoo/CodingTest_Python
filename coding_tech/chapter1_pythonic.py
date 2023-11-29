@@ -306,22 +306,155 @@
 # # 헤헤헤 3
 # # Rosalind None
 
-for i in range(3):
-    print('Loop', i)
-else:
-    print('else block')
+# for i in range(3):
+#     print('Loop', i)
+# else:
+#     print('else block')
 
-# Loop 0
-# Loop 1
-# Loop 2
-# else block
+# # Loop 0
+# # Loop 1
+# # Loop 2
+# # else block
 
-for i in range(3):
-    print('Loop', i)
-    if i == 1:
-        break
-else:
-    print('else block')
+# for i in range(3):
+#     print('Loop', i)
+#     if i == 1:
+#         break
+# else:
+#     print('else block')
     
-# Loop 0
-# Loop 1
+# # Loop 0
+# # Loop 1
+
+
+## 10
+
+# ## 레몬 제고를 확인해서 있으면 레모네이드를 만드는 기능
+# fruit = {'사과':10, '바나나':8, '레몬':5}
+
+# def make_lemonade(count):
+#     pass
+
+# def out_of_stock():
+#     pass
+
+# count = fruit.get('레몬', 0)
+# if count:
+#     make_lemonade(count)
+# else:
+#     out_of_stock()
+
+# fruit = {'사과':10, '바나나':8, '레몬':5}
+# def slice_bananas(count):
+#     pass
+
+# def out_of_stock():
+#     pass
+
+# class OutOfBananas(Exception):
+#     pass
+
+# def make_smoothies(count):
+#     pass
+
+# # 일반식
+# pieces = 0
+# count = fruit.get('바나나', 0)
+# if count >= 2:
+#     pieces = slice_bananas(count)
+
+# try:
+#     smoothies = make_smoothies(pieces)
+# except OutOfBananas:
+#     out_of_stock()
+    
+# # 아래처럼 표현 가능하지만, 코드 흐름이 이상
+# count = fruit.get('바나나', 0)
+# if count >= 2:
+#     pieces = slice_bananas(count)
+# else:
+#     pieces = 0
+
+# try:
+#     smoothies = make_smoothies(pieces)
+# except OutOfBananas:
+#     out_of_stock()
+
+# # 왈러스식으로 코드 간편화
+# pieces = 0
+# if (count := fruit.get('바나나', 0)) >= 2:
+#     pieces = slice_bananas(count)
+# try:
+#     smoothies = make_smoothies(pieces)
+# except OutOfBananas:
+#     out_of_stock()
+    
+# fruit = {'사과':10, '바나나':8, '레몬':5}
+# def make_lemonade(count):
+#     pass
+
+# def slice_bananas(count):
+#     pass
+
+# def out_of_stock():
+#     pass
+
+# class OutOfBananas(Exception):
+#     pass
+
+# def make_smoothies(count):
+#     pass
+
+# def make_cider(count):
+#     pass
+# # 바나나는 스무디, 사과는 사이다, 레몬은 레모네이드를 만드는 기능
+# ##  왈러스 없는 식
+# count = fruit.get('바나나', 0)
+# if count >=2:
+#     pieces = slice_bananas(count)
+#     to_enjoy = make_smoothies(pieces)
+# else:
+#     count = fruit.get('사과', 0)
+#     if count >= 4:
+#         to_enjoy = make_cider(count)
+#     else:
+#         count = fruit.get('레몬', 0)
+#         if count:
+#             to_enjoy = make_lemonade(count)
+#         else:
+#             to_enjoy = '아무것도없음'
+
+# ## 왈러스
+# if (count := fruit.get('바나나', 0)) >= 2:
+#     pieces = slice_bananas(count)
+#     to_enjoy = make_smoothies(pieces)
+# elif (count := fruit.get('사과', 0)) >= 4:
+#     to_enjoy = make_cider(count)
+# elif count := fruit.get('레몬', 0):
+#     to_enjoy = make_lemonade(count)
+# else:
+#     to_enjoy = '아무것도 없음'
+
+def pick_fruit():
+    pass
+
+def make_juice(a, b):
+    pass
+
+# 일반식 do while이 안됨.
+bottles = []
+while True:
+    fruit = pick_fruit()
+    if not fruit:
+        break
+    
+    for fruit, count in fruit.items():
+        batch = make_juice(fruit, count)
+        bottles.extend(batch)
+        
+## 왈러스
+bottles = []
+while fruit := pick_fruit():
+    for fruit, count in fruit.items():
+        batch = make_juice(fruit, count)
+        bottles.extend(batch)
