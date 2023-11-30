@@ -7,8 +7,8 @@
 6. [BetterWay6: 인덱스를 사용하는 대신 대입을 사용해 데이터를 언패킹해라](#betterway-6-인덱스를-사용하는-대신-대입을-사용해-데이터를-언패킹해라)
 7. [BetterWay7: range보다는 enumerate를 사용하라](#betterway-7-range보다는-enumerate를-사용해라)
 8. [BetterWay8: 여러 이터레이터에 대해 나란히 루프를 수행하려면 zip을 사용해라](#betterway-8-여러-이터레이터에-대해-나란히-루프를-수행하려면-zip을-사용해라)
-9. [BetterWay9: ]()
-10. [BetterWay10: ]()
+9. [BetterWay9: for나 while 루프 뒤에 else 블록을 사용하지 말아라](#betterway-9-for나-while-루프-뒤에-else-블록을-사용하지-말아라)
+10. [BetterWay10: 대입식을 사용해 반복을 피해라](#betterway-10-대입식을-사용해-반복을-피해라)
 
 
 # Chapter1 : 파이썬답게 생각하기
