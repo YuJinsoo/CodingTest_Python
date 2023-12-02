@@ -39,19 +39,48 @@
 # # 슬라이싱 할당 이전: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 # # 슬라이싱 할당 이후: ['a', 'b', 99, 22, 14, 'h']
 
-a = ['a','b','c','d','e','f','g','h']
-b = a[:] ## 전체 리스트 복사되어 값은 같지만 다른 list
-assert b == a and b is not a
-print('a id:', id(a)) # a id: 1996685917440
-print('b id:', id(b)) # b id: 1996685924672
+# a = ['a','b','c','d','e','f','g','h']
+# b = a[:] ## 전체 리스트 복사되어 값은 같지만 다른 list
+# assert b == a and b is not a
+# print('a id:', id(a)) # a id: 1996685917440
+# print('b id:', id(b)) # b id: 1996685924672
 
 
-b = a ## 복사되는 것이 아니라 얕은복사 되어서 같은 list를 가리키는 상황
-print('이전 a:', a)  # 이전 a: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-print('이전 b:', b)  # 이전 b: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-a[:] = [101, 102, 103]
-assert a is b
-print('이후 a:', a)   # 이후 a: [101, 102, 103]
-print('a id:', id(a)) # a id: 1941179284736
-print('b id:', id(b)) # b id: 1941179284736
+# b = a ## 복사되는 것이 아니라 얕은복사 되어서 같은 list를 가리키는 상황
+# print('이전 a:', a)  # 이전 a: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+# print('이전 b:', b)  # 이전 b: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+# a[:] = [101, 102, 103]
+# assert a is b
+# print('이후 a:', a)   # 이후 a: [101, 102, 103]
+# print('a id:', id(a)) # a id: 1941179284736
+# print('b id:', id(b)) # b id: 1941179284736
 
+# 12
+# x = ['빨','주','노','초','파','남','보']
+# odd = x[::2]    # ['빨', '노', '파', '보']
+# even = x[1::2]  # ['주', '초', '남']
+
+# x = b'mongoose'
+# y = x[::-1]
+# print(y)
+
+
+# w = '스시'
+# x = w.encode('utf-8')
+# y = x[::-1]
+# z = y.decode('utf-8')
+# # Traceback (most recent call last):
+# #   File "c:\Users\ABO\Desktop\Study_Python\coding_tech\chapter2_list_dict.py", line 70, in <module>
+# #     z = y.decode('utf-8')
+# # UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 0: invalid start byte
+
+# x = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+# print(x[::2])       # ['a', 'c', 'e', 'g']
+# print(x[::-2])      # ['h', 'f', 'd', 'b']
+
+# print(x[2::2])      # ['c', 'e', 'g']
+# print(x[-2:2:-2])   # ['g', 'e']
+# print(x[2:2:-2])    # []
+
+# y = x[::2] # ['a', 'c', 'e', 'g']
+# z = y[1:-1] # ['c', 'e']
