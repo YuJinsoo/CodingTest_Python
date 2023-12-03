@@ -84,3 +84,70 @@
 
 # y = x[::2] # ['a', 'c', 'e', 'g']
 # z = y[1:-1] # ['c', 'e']
+
+# 13
+
+# car_ages = [0,9,4,8,7,20,19,1,6,15]
+# car_ages_desc = sorted(car_ages, reverse=True)
+
+# # 일반적으로 슬라이싱과 인덱스를 사용하면 이렇게 가져와야함
+# oldest = car_ages_desc[0]
+# second_oldest = car_ages_desc[1]
+# others = car_ages_desc[2:]              # 나머지
+# print(oldest, second_oldest, others)    # 20 19 [15, 9, 8, 7, 6, 4, 1, 0]
+
+# # # 하지만 나머지 언패킹을 사용하면 간단하게 처리할 수 있습니다.
+
+# oldest, second_oldest, *others = car_ages_desc
+# print(oldest, second_oldest, others)    # 20 19 [15, 9, 8, 7, 6, 4, 1, 0]
+
+
+# oldest, *others, youngest = car_ages_desc
+# print(oldest, others, youngest)         # 20 [19, 15, 9, 8, 7, 6, 4, 1] 0
+
+# *others, second_youngest, youngest = car_ages_desc
+# print(others, second_youngest, youngest)# [20, 19, 15, 9, 8, 7, 6, 4] 1 0
+
+# # *others = car_ages # SyntaxError: starred assignment target must be in a list or tuple
+# start, *part1, *part2, end = car_ages_desc
+
+# car_inventory = {
+#     '시내': ('그랜져', '아반떼', '티코'),
+#     '공항': ('제네시스', '소나타', 'K5', '엑센트'),
+# }
+
+# ((loc1, (best1, *rest1)),
+#  (loc2, (best2, *rest2))) = car_inventory.items()
+
+# print(f'{loc1} 최고는 {best1}, 나머지는 {len(rest1)}종')
+# print(f'{loc2} 최고는 {best2}, 나머지는 {len(rest2)}종')
+# # 시내 최고는 그랜져, 나머지는 2종
+# # 공항 최고는 제네시스, 나머지는 3종
+
+# short_list = [1, 2]
+# first, second, *others = short_list
+# print(first, second, others) # 1 2 []
+
+
+def generate_csv():
+    yield('날짜', '제조사', '모델', '연식', '가격')
+    yield('2021', '제조사1', '모델1', '연식1', '가격1')
+    yield('2021', '제조사2', '모델2', '연식2', '가격2')
+    yield('2021', '제조사3', '모델3', '연식3', '가격3')
+    yield('2021', '제조사2', '모델2', '연식2', '가격2')
+
+all_csv_rows = list(generate_csv())
+header = all_csv_rows[0]
+rows = all_csv_rows[1:]
+print('CSV 헤더:', header)
+print('행 수:', len(rows))
+# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# 행 수: 4
+
+## * 연산을 활용하면
+it = generate_csv()
+header, *rows = it
+print('CSV 헤더:', header)
+print('행 수:', len(rows))
+# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# 행 수: 4

@@ -196,9 +196,120 @@ z = y[1:-1] # ['c', 'e']
 
 ## BetterWay 13. 슬라이싱보다는 나머지를 모두 잡아내는 언패킹을 사용하라
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+
+- 시퀀스를 슬라이싱과 인덱싱으로 첫번째, 두번째, 나머지 로 가지고 오려면 가독성이 떨어집니다.
+    - 가독성이 떨어지고
+    - `off-by-one-error`(1차이로 인덱스를 잘못 주는 에러)가 발생할 수 있습니다.
+
+```python
+car_ages = [0,9,4,8,7,20,19,1,6,15]
+car_ages_desc = sorted(car_ages, reverse=True)
+
+# 일반적으로 슬라이싱과 인덱스를 사용하면 이렇게 가져와야함
+oldest = car_ages_desc[0]
+second_oldest = car_ages_desc[1]
+others = car_ages_desc[2:]              # 나머지
+print(oldest, second_oldest, others)    # 20 19 [15, 9, 8, 7, 6, 4, 1, 0]
+```
+<br>
+
+- 하지만 언패킹을 사용하면 간단하게 처리할 수 있습니다.
+    - **별표식`(*var)`**을 활용합니다. (starred expression)
+    - 순서를 어디에 두느냐에 따라 앞, 중간, 뒤의 나머지 값을 한 번에 처리할 수 있습니다.
+
+```python
+car_ages = [0,9,4,8,7,20,19,1,6,15]
+car_ages_desc = sorted(car_ages, reverse=True)
+
+# 하지만 나머지 언패킹을 사용하면 간단하게 처리할 수 있습니다.
+oldest, second_oldest, *others = car_ages_desc
+print(oldest, second_oldest, others)    # 20 19 [15, 9, 8, 7, 6, 4, 1, 0]
+
+# 별표식 위치에 따라 원하는 방식으로 나눌 수 있습니다.
+oldest, *others, youngest = car_ages_desc
+print(oldest, others, youngest)         # 20 [19, 15, 9, 8, 7, 6, 4, 1] 0
+
+*others, second_youngest, youngest = car_ages_desc
+print(others, second_youngest, youngest)# [20, 19, 15, 9, 8, 7, 6, 4] 1 0
+```
+<br>
+
+- 하지만 별표식만 활용해서 할당할 수는 없습니다. (SyntaxError)
+- 한 번의 언패킹 패턴에서(한 계층의 언패킹)별표 식을 두 개 이상 쓸 수 없습니다.
+- 하지만 여러 계층으로 이루어진 경우 별표식을 여러번 사용할 수 있습니다.
+
+```python
+*others = car_ages_desc 
+# SyntaxError: starred assignment target must be in a list or tuple
+
+start, *part1, *part2, end = car_ages_desc
+# SyntaxError: multiple starred expressions in assignment
+
+## 여러 계층으로 되어있는 자료인 경우
+car_inventory = {
+    '시내': ('그랜져', '아반떼', '티코'),
+    '공항': ('제네시스', '소나타', 'K5', '엑센트'),
+}
+
+# items()는 dictionary를 tuple로 출력해줍니다.
+((loc1, (best1, *rest1)),
+ (loc2, (best2, *rest2))) = car_inventory.items()
+
+print(f'{loc1} 최고는 {best1}, 나머지는 {len(rest1)}종')
+print(f'{loc2} 최고는 {best2}, 나머지는 {len(rest2)}종')
+# 시내 최고는 그랜져, 나머지는 2종
+# 공항 최고는 제네시스, 나머지는 3종
+```
+<br>
+
+- 별표식은 상항 `list` 인스턴스가 됩니다.
+- 언패킹하는 시퀀으세 남는 원소가 없으면, 별표 식 부분은 빈 리스트가 됩니다.
+    - 이런 특징을 활용해 최소 N개 들어있는 사실을 미리 아는 시퀀스를 처리할 때 유용합니다.
+
+```python
+# 최소 길이가 2개라는 사실은 안다면, others만 판별하면 됩니다.
+short_list = [1, 2]
+first, second, *others = short_list
+print(first, second, others) # 1 2 []
+# others 는 빈 list가 됩니다.
+```
+<br>
+
+- 별표 식을 활용하면 언패킹할 이터레이터의 값을 깔끔하게 가져올 수 있습니다.
+- 하지만 이터레이터를 별표식으로 언패킹하면 컴퓨터 메모리를 모두 다 사용해서 프로그램이 멈출 수 있습니다.
+    - 즉, 결과 데이터의 크기가 메모리에 들어갈 수 있는 안전한 때에만 사용해야 합니다.
+
+```python
+# 중고차 정보 csv
+def generate_csv():
+    yield('날짜', '제조사', '모델', '연식', '가격')
+    yield('2021', '제조사1', '모델1', '연식1', '가격1')
+    yield('2021', '제조사2', '모델2', '연식2', '가격2')
+    yield('2021', '제조사3', '모델3', '연식3', '가격3')
+    yield('2021', '제조사2', '모델2', '연식2', '가격2')
+
+# 인덱싱과 슬라이싱을 활용해서 이터레이터 값 가져오기
+all_csv_rows = list(generate_csv())
+header = all_csv_rows[0]
+rows = all_csv_rows[1:]
+print('CSV 헤더:', header)
+print('행 수:', len(rows))
+# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# 행 수: 4
+
+## * 연산을 활용하여 이터레이터 값 가져오기
+it = generate_csv()
+header, *rows = it
+print('CSV 헤더:', header)
+print('행 수:', len(rows))
+# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# 행 수: 4
+```
+<br>
+
+> - 언패킹 대입에 별표 식을 사용하면 언패킹 패턴에서 대입되지 않는 모든 부분을 리스트에 담아낼 수 있습니다.<br>
+> - 별표 식은 언패킹 패턴의 어떤 위치에든 놓을 수 있습니다. 별표 식에 대입도니 결과는 항상 리스트가 되면, 이 리스트에는 별표 식이 받은 값이 0개 또는 그 이상이 들어갑니다.<br>
+> - 리스트를 서료 겹치지 않게 여러 조각으로나눌 경우, 슬라이싱과 인덱싱을 사용하기보다는 나머지를 모두 잡아내는 언패킹을 사용해야 실수의 여지가 없습니다.<br>
 
 ## BetterWay 14. 복잡한 기준을 사용해 정렬할 때에는 key 파라미터를 사용하라
 ### 기억해야 할 Point
