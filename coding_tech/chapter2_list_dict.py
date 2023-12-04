@@ -128,26 +128,95 @@
 # first, second, *others = short_list
 # print(first, second, others) # 1 2 []
 
+# def generate_csv():
+#     yield('날짜', '제조사', '모델', '연식', '가격')
+#     yield('2021', '제조사1', '모델1', '연식1', '가격1')
+#     yield('2021', '제조사2', '모델2', '연식2', '가격2')
+#     yield('2021', '제조사3', '모델3', '연식3', '가격3')
+#     yield('2021', '제조사2', '모델2', '연식2', '가격2')
 
-def generate_csv():
-    yield('날짜', '제조사', '모델', '연식', '가격')
-    yield('2021', '제조사1', '모델1', '연식1', '가격1')
-    yield('2021', '제조사2', '모델2', '연식2', '가격2')
-    yield('2021', '제조사3', '모델3', '연식3', '가격3')
-    yield('2021', '제조사2', '모델2', '연식2', '가격2')
+# all_csv_rows = list(generate_csv())
+# header = all_csv_rows[0]
+# rows = all_csv_rows[1:]
+# print('CSV 헤더:', header)
+# print('행 수:', len(rows))
+# # CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# # 행 수: 4
 
-all_csv_rows = list(generate_csv())
-header = all_csv_rows[0]
-rows = all_csv_rows[1:]
-print('CSV 헤더:', header)
-print('행 수:', len(rows))
-# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
-# 행 수: 4
+# ## * 연산을 활용하면
+# it = generate_csv()
+# header, *rows = it
+# print('CSV 헤더:', header)
+# print('행 수:', len(rows))
+# # CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
+# # 행 수: 4
 
-## * 연산을 활용하면
-it = generate_csv()
-header, *rows = it
-print('CSV 헤더:', header)
-print('행 수:', len(rows))
-# CSV 헤더: ('날짜', '제조사', '모델', '연식', '가격')
-# 행 수: 4
+# 14
+# numbers = [93, 86, 11, 68, 70]
+# numbers.sort()
+# print(numbers) # [11, 68, 70, 86, 93]
+
+# numbers.sort(reverse=True)
+# print(numbers) # [93, 86, 70, 68, 11]
+
+class Tool:
+    def __init__(self, name, weight):
+        self.name = name
+        self.weight = weight
+    
+    def __repr__(self):
+        return f'Tool({self.name}, {self.weight})'
+
+tools = [
+    Tool('수준계', 3.5),
+    Tool('해머', 0.5),
+    Tool('슼크류드라이버', 1.25),
+    Tool('끌', 2.0),
+]
+
+# tools.sort() # TypeError: '<' not supported between instances of 'Tool' and 'Tool'
+
+print('미정렬:', repr(tools))   
+# 미정렬: [Tool(수준계, 3.5), Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0)]
+
+# 이름으로 정렬
+tools.sort(key=lambda x:x.name) 
+print('정렬:', repr(tools))     
+# 정렬: [Tool(끌, 2.0), Tool(수준계, 3.5), Tool(슼크류드라이버, 1.25), Tool(해머, 0.5)]
+
+# 무게로 정렬
+tools.sort(key=lambda x:x.weight) 
+print('정렬:', repr(tools))
+# 정렬: [Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0), Tool(수준계, 3.5)]
+
+
+places = ['home', 'work', 'New York', 'Paris']
+places.sort()
+print('대소문자 구분:', places)
+places.sort(key=lambda x: x.lower())
+print('대소문자 무시:', places)
+# 대소문자 구분: ['New York', 'Paris', 'home', 'work']
+# 대소문자 무시: ['home', 'New York', 'Paris', 'work']
+
+saw = (5, '원형 톱')
+jackhammer = (40, '착암기')
+assert not (jackhammer < saw)
+
+power_tools=[
+    Tool('드릴', 4),
+    Tool('원형톱', 5),
+    Tool('착암기', 40),
+    Tool('연마기', 4),
+]
+power_tools.sort(key=lambda x:(x.weight, x.name), reverse=True)
+print(power_tools)
+# [Tool(착암기, 40), Tool(원형톱, 5), Tool(연마기, 4), Tool(드릴, 4)]
+power_tools.sort(key=lambda x:(-x.weight, x.name), reverse=True)
+print(power_tools)
+# [Tool(연마기, 4), Tool(드릴, 4), Tool(원형톱, 5), Tool(착암기, 40)]
+
+# 정렬 우선순위 무게 - 이름 인 경우
+power_tools.sort(key=lambda x:x.name)  # 이름 오름차순 정렬
+power_tools.sort(key=lambda x:x.weight, reverse=True)  # 무게 내림차순 정렬
+print(power_tools)
+# [Tool(착암기, 40), Tool(원형톱, 5), Tool(드릴, 4), Tool(연마기, 4)]

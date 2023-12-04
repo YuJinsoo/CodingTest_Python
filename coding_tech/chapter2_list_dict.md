@@ -313,9 +313,143 @@ print('행 수:', len(rows))
 
 ## BetterWay 14. 복잡한 기준을 사용해 정렬할 때에는 key 파라미터를 사용하라
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+
+- `list`컨테이너에는 원소를 정렬시키는 `sort()` 메서드가 있습니다. 
+    - 리스트 자체를 변경시킴 (sorted(list) 는 새로운 리스트 반환)
+    - 아무 설정이 없으면 오름차순으로 정렬합니다.
+    - reverse 인자에 True를 넘기면 내림차순 정렬합니다.
+
+```python
+numbers = [93, 86, 11, 68, 70]
+numbers.sort()
+print(numbers) # [11, 68, 70, 86, 93]
+
+numbers.sort(reverse=True)
+print(numbers) # [93, 86, 70, 68, 11]
+```
+<br>
+
+- `list`에 기본형이 아닌 객체가 들어있는 경우에는 sort메서드가 호출하는 객체 비교 특별 메서드가 정의돼 있지 않아 정렬할 수 없습니다.
+
+```python
+class Tool:
+    def __init__(self, name, weight):
+        self.name = name
+        self.weight = weight
+    
+    def __repr__(self):
+        return f'Tool({self.name}, {self.weight})'
+
+tools = [
+    Tool('수준계', 3.5),
+    Tool('해머', 0.5),
+    Tool('슼크류드라이버', 1.25),
+    Tool('끌', 2.0),
+]
+
+tools.sort() # TypeError: '<' not supported between instances of 'Tool' and 'Tool'
+```
+<br>
+
+- 이런 경우에는 객체끼리 대소비교를 하는 매직메서드(`__lt__()` , `<`)를 구현하는 방법으로 sort() 메서드를 사용할 수 있지만, 여러가지 순서를 지원해야 하는 경우가 많기 때문에 큰 의미가 없습니다.
+- 객체에 대해 정렬할 때 정렬에 기준이 되는 애트리뷰트로 정렬할 수 있도록 `sort()` 메서드에 `key`라는 파라미터가 있습니다.
+    - `key`에는 함수가 전달되야 합니다.
+    - `key` 함수가 반환하는 값은 원소 대신 정렬 기준으로 사용할 수 있는 비교 가능한(자연스러운 순서가 정의된)값이어야 합니다.
+    - 일반적으로 `lambda`함수를 사용해서 정렬에 사용할 attribute를 지정합니다.
+    - 시퀀스가 넘어갈 경우 인덱싱도 가능합니다.
+
+```python
+
+print('미정렬:', repr(tools))   
+# 미정렬: [Tool(수준계, 3.5), Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0)]
+
+# 이름으로 정렬
+tools.sort(key=lambda x:x.name) 
+print('정렬:', repr(tools))     
+# 정렬: [Tool(끌, 2.0), Tool(수준계, 3.5), Tool(슼크류드라이버, 1.25), Tool(해머, 0.5)]
+
+# 무게로 정렬
+tools.sort(key=lambda x:x.weight) 
+print('정렬:', repr(tools))
+# 정렬: [Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0), Tool(수준계, 3.5)]
+```
+<br>
+
+- 문자열같은 기본 타입의 경우 정렬하기 전에 key 함수를 사용해 원소 값을 변경할 수도 있습니다.
+```python
+places = ['home', 'work', 'New York', 'Paris']
+places.sort()
+print('대소문자 구분:', places)
+places.sort(key=lambda x: x.lower())
+print('대소문자 무시:', places)
+# 대소문자 구분: ['New York', 'Paris', 'home', 'work']
+# 대소문자 무시: ['home', 'New York', 'Paris', 'work']
+```
+<br>
+
+- 여러 기준을 적용해서 정렬할 수 있습니다.
+    - weight로 먼저 정렬 후 name으로 정렬하고 싶은 경우.
+- 가장 쉬운 방법은 `tuple`을 사용하는 것입니다.
+    - `tuple`에는 sort()에 필요한 매직메서드가 정의되어 있습니다.
+    - 튜블의 각 위치를 이터레이션하면서 각 인덱스에 해당하는 원소를 한 번에 하나씩 비교하는 방식으로 구현되어 있습니다.
+    - 비교하는 튜플의 첫 번째 위치에 있는 값이 같으면 튜블의 비교 메서드는 다음 위치에 있는 값을 비교합니다.
+- 튜블 방식의 가장 큰 단점은 모든 요소가 같은 정렬(오름차순 or 내림차순)으로 결정되는 것입니다.
+    - 숫자 attribute에 `-`를 붙여 숫자만 반대로 정렬하는것이 가능합니다.
+
+
+```python
+saw = (5, '원형 톱')
+jackhammer = (40, '착암기')
+assert not (jackhammer < saw) ## True
+
+drill = (4, '드릴')
+sander = (4, '연마기')
+assert drill[0] == sander[0]    # True weight가같음
+assert drill[1] < sander[1]     # True 드릴의 이름이 더 빠른 값
+assert drill < sander           # True 그러므로 드릴이 먼저 정렬
+
+# tuple을 이용한 정렬
+power_tools=[
+    Tool('드릴', 4),
+    Tool('원형톱', 5),
+    Tool('착암기', 40),
+    Tool('연마기', 4),
+]
+power_tools.sort(key=lambda x:(x.weight, x.name), reverse=True)
+print(power_tools)
+# [Tool(착암기, 40), Tool(원형톱, 5), Tool(연마기, 4), Tool(드릴, 4)]
+
+# attribute가 숫자인 경우 - 기호를 넣어 숫자만 반대로 정렬할 수 있습니다.
+power_tools.sort(key=lambda x:(-x.weight, x.name), reverse=True)
+print(power_tools)
+# [Tool(착암기, 40), Tool(원형톱, 5), Tool(연마기, 4), Tool(드릴, 4)]
+power_tools.sort(key=lambda x:(-x.weight, x.name), reverse=True)
+print(power_tools)
+# [Tool(연마기, 4), Tool(드릴, 4), Tool(원형톱, 5), Tool(착암기, 40)]
+```
+<br>
+
+- 여러 기준으로 정렬하고 싶다면 sort()를 여러 번 걸어주어 구현할 수 있습니다.
+- 어떤 정렬 기준을 A > B > C 기준으로 정렬하고 싶다면 아래와 같은 방법으로 여러 번 sort()를 합니다.
+    - C에 대해 sort()
+    - 결과에 대해 B에 대해 sort()
+    - 결과에 대해 A에 대해 sort()
+- 이런 경우 오름차순/내림차순을 원하는 대로 설정할 수 있지만, 같은 코드가 반복되는 느낌이라 가독성이 좋지 않을 수 있습니다.
+
+```python
+# 정렬 우선순위 무게 - 이름 인 경우
+power_tools.sort(key=lambda x:x.name)  # 이름 오름차순 정렬
+power_tools.sort(key=lambda x:x.weight, reverse=True)  # 무게 내림차순 정렬
+print(power_tools)
+# [Tool(착암기, 40), Tool(원형톱, 5), Tool(드릴, 4), Tool(연마기, 4)]
+```
+<br>
+
+> - 리스트 타입에 들어 있는 `sort`메서드를 사용하며 원소 타입이 문자열, 정수, 튜플 등과 같은 내장 타입인 경우 자연스러운 순서(`__lt__()`)로 리스트의 원소를 정렬합니다.<br>
+> - 원소 타입에 자연스러운 순서가 정의되어있지 않으면 sort를 사용할 수 없습니다. 하지만 `key`인자에 정렬 기준을 반환하는 함수를 전달하면 사용할 수 있습니다.<br>
+> - `key`함수에 튜플을 반환하면 여러 정렬 기준을 하나로 엮을 수 있습니다.<br>
+> - `sort`함수를 우선순우 역 순으로 사용하여 여러 기준에 대해 정렬할 수 있습니다.<br>
+<br>
 
 ## BetterWay 15. 딕셔너리 삽입 순서에 의존할 때는 조심하라
 ### 기억해야 할 Point
