@@ -351,7 +351,7 @@ tools.sort() # TypeError: '<' not supported between instances of 'Tool' and 'Too
 ```
 <br>
 
-- 이런 경우에는 객체끼리 대소비교를 하는 매직메서드(`__lt__()` , `<`)를 구현하는 방법으로 sort() 메서드를 사용할 수 있지만, 여러가지 순서를 지원해야 하는 경우가 많기 때문에 큰 의미가 없습니다.
+- 이런 경우에는 객체끼리 대소비교를 하는 매직메서드(`__lt__()`, `<`)를 구현하는 방법으로 sort() 메서드를 사용할 수 있지만, 여러가지 순서를 지원해야 하는 경우가 많기 때문에 큰 의미가 없습니다.
 - 객체에 대해 정렬할 때 정렬에 기준이 되는 애트리뷰트로 정렬할 수 있도록 `sort()` 메서드에 `key`라는 파라미터가 있습니다.
     - `key`에는 함수가 전달되야 합니다.
     - `key` 함수가 반환하는 값은 원소 대신 정렬 기준으로 사용할 수 있는 비교 가능한(자연스러운 순서가 정의된)값이어야 합니다.
@@ -452,10 +452,141 @@ print(power_tools)
 <br>
 
 ## BetterWay 15. 딕셔너리 삽입 순서에 의존할 때는 조심하라
+
+- Python 3.5 이전에는 딕셔너리에 이터레이션을 수행하면 키를 임의의 순서로 반환했으며, 이터레이션 순서는 원소가 삽입된 순서와 일치하지 않았습니다.
+    - 원인: `딕셔너리`의 구현이 내장 `hash` 함수와 파이썬 인터프리터가 시작할 때 초기화되는 난수 씨앗값(seed)을 사용하는 해시 테이블 알고리즘으로 되어있었기 때문입니다.
+    - 즉 실행시마다 같은 딕셔너리 객체가 다른 순서로 원소를 뱉습니다.
+    - 딕셔너리의 `items()`, `keys()`, `values()`, `popitem()` 함수도 이터레이션에 의존했기 때문에 매번 순서가 달라졌습니다.
+    - 함수의 키워드 아규먼트(**kwarg) 도 순서가 매번 달랐습니다. (함수 호출 디버깅이 어려웠습니다.)
+    - 클래스도 인스턴스 딕셔너리에 `dict`타입을 사용하기 때문에 object필드가 난수 같은 동작을 보였습니다. (class의 `__dict__()` 매직메서드 호출 할 경우, 반환되는 attribute에 대해 랜덤한 순서로 출력되었습니다.)
+
+- **Python 3.6** 부터는 딕셔너리가 **삽입 순서를 보존**하도록 개선되었습니다.
+    - 파이썬의 `dictionary`가 삽입 순서를 보존하는 것이 표준이므로, 앞으로 개발할 함수 및 API의 일부분을 dict가 순서를 보장하는 것으로 개발해도 됩니다.
+
+```python
+baby_names = {
+    'cat': 'kitten',
+    'dog': 'puppy',
+}
+print(baby_names) # {'cat': 'kitten', 'dog': 'puppy'}
+```
+<br>
+
+### Note!
+> - python 3.5 까지는 순서를 보존하는 딕셔너리를 `collections`의 `OrderedDict`라는 클래스로 지원했습니다. <br>
+> - python 3.6 이후의 `표준 dict`와 `OrderedDict`의 동작은 유사하지만, 성능 특성은 다릅니다.<br>
+> - 키 삽입과 popitem호출을 매우 자주 처리해야 한다면(ex: LRU 캐시) 표준 python `dict`보다 `OrderedDict`를 사용하는 것이 더 좋습니다. (BetterWay70)<br>
+
+- 하지만 딕셔너리를 처리할 때 삽입 순서 관련 동작이 항상 성립한다고 가정해서는 안됩니다.
+- python 에서 list나 dict와 같은 구조이지만 커스터마이징이 추가된 클래스 개발이 쉬운데, 파이썬은 정적 언어가 아니기 때문에 덕타이핑에 의존해 커스터마이징한 클래스를 표준 dict와 혼동하여 함정에 빠지는 경우가 있습니다.
+    - 덕타이핑 : 오리처럼 소리를 내고 오리 모양이면 오리이다. 라는 말에서 온 단어로, 동적 타입 지정의 일종입니다. 객체가 실생 시점에 어떻게 행동하는지를 기준으로 객체의 타입을 지정하는 방식입니다. 때문에 같은 함수, 어트리뷰트를 가지고 있다면 동작이 어떻든 같은 타입으로 판단할 수 있습니다.
+
+```python
+# 순위를 출력하는데 SortedDict는 key이름 순서로 정렬하는 dict일 때
+# get_winner는 가장 첫 번째 원소를 출력하는데, dict는 득표수로 정렬되지만,
+# __iter__()에서 출력 순서가 key 순서로 출력하기 때문에
+# 득표수 1등인 otter가 아니라 fox가 나옴
+
+## dict 와 같은 구조의 함수를 가지는 클래스
+from collections.abc import MutableMapping
+
+class SortedDict(MutableMapping):
+    def __init__(self):
+        self.data = {}
+        
+    def __getitem__(self, key):
+        return self.data[key]
+    
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __delitem__(self, key):
+        del self.data[key]
+
+    def __iter__(self):
+        keys = list(self.data.keys())
+        keys.sort()
+        for key in keys:
+            yield key
+
+    def __len__(self):
+        return len(self.data)
+
+
+def populate_ranks(votes, ranks):
+    names = list(votes.keys())
+    names.sort(key=votes.get, reverse=True)
+    for i, name in enumerate(names, 1):
+        ranks[name] = i
+
+def get_winner(ranks):
+    return next(iter(ranks))
+
+vote = {
+    'otter': 1281,
+    'polar bear': 587,
+    'fox': 863,
+}
+
+ranks = {}
+populate_ranks(vote, ranks)
+print(ranks)    # {'otter': 1, 'fox': 2, 'polar bear': 3}
+winner = get_winner(ranks)
+print(winner)   # otter
+
+
+sorted_rank = SortedDict()
+populate_ranks(vote, sorted_rank)
+print(sorted_rank.data)  # {'otter': 1, 'fox': 2, 'polar bear': 3}
+sorted_winner = get_winner(sorted_rank)
+print(sorted_winner)    # fox
+```
+<br>
+
+- 이런 문제를 해결하는 방법은 세가지 방법이 있습니다.
+1. `ranks` 딕셔너리가 어떤 특정 순서로 이터레이션 된다고 가정하지 않고, `get_winner`함수를 구현. 가장 보수적이고 튼튼합니다.
+```python
+def get_winner(ranks):
+    for name, rank in ranks.items():
+        if rank == 1:
+            return name
+```
+<br>
+
+2. 함수 맨 앞에 `ranks`의 타입이 우리가 원하는 타입인지 검사하는 코드를 추가합니다. 원하는 타입이 아니면 타입 에러를 발생시킵니다.
+```python
+def get_winner(ranks):
+    if not isinstance(ranks, dict):
+        raise TypeError('dict 인스턴스가 필요합니다.')
+    return next(iter(ranks))
+```
+<br>
+
+3. 세 번째 방법은 타입 애너테이션(anootation)을 사용해서 `get_winner`에 전달되는값이 딕셔너리와 비슷한 동작을 하는 `MutableMapping`인스턴스가 아니라 `dict`인스턴스가 되도록 강제합니다.
+```python
+## 스크립트 실행 시
+# python -m mypy --strict 파일명
+# 명령어로 실행
+from typing import Dict, MutableMapping
+
+def populate_ranks(votes: Dict[str, int],
+                   ranks: Dict[str, int]) -> None:
+    names = list(votes.keys())
+    names.sort(key=votes.get, reverse=True)
+    for i, name in enumerate(names, 1):
+        ranks[name] = i
+
+def get_winner(ranks: Dict[str, int]) -> str:
+    return next(iter(ranks))
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+
+> - 파이썬 3.7 부터는 인스턴스에 들어 있는 내용을 이터레이션 할 때 키를 삽입한 순서대로 돌려받는 것에 의존할 수 있습니다.<br>
+> - 파이썬은 dict는 아니지만 표준 dict와 비슷한 객체를 쉽게 만들 수 있게 해줍니다. 이런 타입의 경우 삽입 순서가 그대로 보존된다고 보장할 수 없습니다.(`__iter__()` 메서드가 재정의 되어있으면 모름)<br>
+> - dict와 비슷한 클래슬를 다루는 방법으로는 dict의 삽입 순서 보존에 의존하지 않는 방법, 실행 시점에 명시적으로 dict 타입을 검사하는 방법, 타입 애너테이션과 정적분석을 사용하는 방법이 있습니다.<br>
+
 
 ## BetterWay 16. in을 사용하고 딕셔너리 키가 없을 때 KeyError를 처리하기 보다는 get을 사용하라
 ### 기억해야 할 Point

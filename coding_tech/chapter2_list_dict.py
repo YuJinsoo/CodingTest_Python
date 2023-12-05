@@ -159,64 +159,150 @@
 # numbers.sort(reverse=True)
 # print(numbers) # [93, 86, 70, 68, 11]
 
-class Tool:
-    def __init__(self, name, weight):
-        self.name = name
-        self.weight = weight
+# class Tool:
+#     def __init__(self, name, weight):
+#         self.name = name
+#         self.weight = weight
     
-    def __repr__(self):
-        return f'Tool({self.name}, {self.weight})'
+#     def __repr__(self):
+#         return f'Tool({self.name}, {self.weight})'
 
-tools = [
-    Tool('수준계', 3.5),
-    Tool('해머', 0.5),
-    Tool('슼크류드라이버', 1.25),
-    Tool('끌', 2.0),
-]
+# tools = [
+#     Tool('수준계', 3.5),
+#     Tool('해머', 0.5),
+#     Tool('슼크류드라이버', 1.25),
+#     Tool('끌', 2.0),
+# ]
 
-# tools.sort() # TypeError: '<' not supported between instances of 'Tool' and 'Tool'
+# # tools.sort() # TypeError: '<' not supported between instances of 'Tool' and 'Tool'
 
-print('미정렬:', repr(tools))   
-# 미정렬: [Tool(수준계, 3.5), Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0)]
+# print('미정렬:', repr(tools))   
+# # 미정렬: [Tool(수준계, 3.5), Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0)]
 
-# 이름으로 정렬
-tools.sort(key=lambda x:x.name) 
-print('정렬:', repr(tools))     
-# 정렬: [Tool(끌, 2.0), Tool(수준계, 3.5), Tool(슼크류드라이버, 1.25), Tool(해머, 0.5)]
+# # 이름으로 정렬
+# tools.sort(key=lambda x:x.name) 
+# print('정렬:', repr(tools))     
+# # 정렬: [Tool(끌, 2.0), Tool(수준계, 3.5), Tool(슼크류드라이버, 1.25), Tool(해머, 0.5)]
 
-# 무게로 정렬
-tools.sort(key=lambda x:x.weight) 
-print('정렬:', repr(tools))
-# 정렬: [Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0), Tool(수준계, 3.5)]
+# # 무게로 정렬
+# tools.sort(key=lambda x:x.weight) 
+# print('정렬:', repr(tools))
+# # 정렬: [Tool(해머, 0.5), Tool(슼크류드라이버, 1.25), Tool(끌, 2.0), Tool(수준계, 3.5)]
 
 
-places = ['home', 'work', 'New York', 'Paris']
-places.sort()
-print('대소문자 구분:', places)
-places.sort(key=lambda x: x.lower())
-print('대소문자 무시:', places)
-# 대소문자 구분: ['New York', 'Paris', 'home', 'work']
-# 대소문자 무시: ['home', 'New York', 'Paris', 'work']
+# places = ['home', 'work', 'New York', 'Paris']
+# places.sort()
+# print('대소문자 구분:', places)
+# places.sort(key=lambda x: x.lower())
+# print('대소문자 무시:', places)
+# # 대소문자 구분: ['New York', 'Paris', 'home', 'work']
+# # 대소문자 무시: ['home', 'New York', 'Paris', 'work']
 
-saw = (5, '원형 톱')
-jackhammer = (40, '착암기')
-assert not (jackhammer < saw)
+# saw = (5, '원형 톱')
+# jackhammer = (40, '착암기')
+# assert not (jackhammer < saw)
 
-power_tools=[
-    Tool('드릴', 4),
-    Tool('원형톱', 5),
-    Tool('착암기', 40),
-    Tool('연마기', 4),
-]
-power_tools.sort(key=lambda x:(x.weight, x.name), reverse=True)
-print(power_tools)
-# [Tool(착암기, 40), Tool(원형톱, 5), Tool(연마기, 4), Tool(드릴, 4)]
-power_tools.sort(key=lambda x:(-x.weight, x.name), reverse=True)
-print(power_tools)
-# [Tool(연마기, 4), Tool(드릴, 4), Tool(원형톱, 5), Tool(착암기, 40)]
+# power_tools=[
+#     Tool('드릴', 4),
+#     Tool('원형톱', 5),
+#     Tool('착암기', 40),
+#     Tool('연마기', 4),
+# ]
+# power_tools.sort(key=lambda x:(x.weight, x.name), reverse=True)
+# print(power_tools)
+# # [Tool(착암기, 40), Tool(원형톱, 5), Tool(연마기, 4), Tool(드릴, 4)]
+# power_tools.sort(key=lambda x:(-x.weight, x.name), reverse=True)
+# print(power_tools)
+# # [Tool(연마기, 4), Tool(드릴, 4), Tool(원형톱, 5), Tool(착암기, 40)]
 
-# 정렬 우선순위 무게 - 이름 인 경우
-power_tools.sort(key=lambda x:x.name)  # 이름 오름차순 정렬
-power_tools.sort(key=lambda x:x.weight, reverse=True)  # 무게 내림차순 정렬
-print(power_tools)
-# [Tool(착암기, 40), Tool(원형톱, 5), Tool(드릴, 4), Tool(연마기, 4)]
+# # 정렬 우선순위 무게 - 이름 인 경우
+# power_tools.sort(key=lambda x:x.name)  # 이름 오름차순 정렬
+# power_tools.sort(key=lambda x:x.weight, reverse=True)  # 무게 내림차순 정렬
+# print(power_tools)
+# # [Tool(착암기, 40), Tool(원형톱, 5), Tool(드릴, 4), Tool(연마기, 4)]
+
+# 15
+
+baby_names = {
+    'cat': 'kitten',
+    'dog': 'puppy',
+}
+print(baby_names) # {'cat': 'kitten', 'dog': 'puppy'}
+
+# 클래스 정의
+from collections.abc import MutableMapping
+
+class SortedDict(MutableMapping):
+    def __init__(self):
+        self.data = {}
+        
+    def __getitem__(self, key):
+        return self.data[key]
+    
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __delitem__(self, key):
+        del self.data[key]
+
+    def __iter__(self):
+        keys = list(self.data.keys())
+        keys.sort()
+        for key in keys:
+            yield key
+
+    def __len__(self):
+        return len(self.data)
+
+
+def populate_ranks(votes, ranks):
+    names = list(votes.keys())
+    names.sort(key=votes.get, reverse=True)
+    for i, name in enumerate(names, 1):
+        ranks[name] = i
+
+def get_winner(ranks):
+    return next(iter(ranks))
+
+vote = {
+    'otter': 1281,
+    'polar bear': 587,
+    'fox': 863,
+}
+
+ranks = {}
+populate_ranks(vote, ranks)
+print(ranks)    # {'otter': 1, 'fox': 2, 'polar bear': 3}
+winner = get_winner(ranks)
+print(winner)   # otter
+
+
+sorted_rank = SortedDict()
+populate_ranks(vote, sorted_rank)
+print(sorted_rank.data)  # {'otter': 1, 'fox': 2, 'polar bear': 3}
+sorted_winner = get_winner(sorted_rank)
+print(sorted_winner)    # fox
+
+
+def get_winner(ranks):
+    for name, rank in ranks.items():
+        if rank == 1:
+            return name
+        
+def get_winner(ranks):
+    if not isinstance(ranks, dict):
+        raise TypeError('dict 인스턴스가 필요합니다.')
+    return next(iter(ranks))
+
+from typing import Dict, MutableMapping
+
+def populate_ranks(votes: Dict[str, int],
+                   ranks: Dict[str, int]) -> None:
+    names = list(votes.keys())
+    names.sort(key=votes.get, reverse=True)
+    for i, name in enumerate(names, 1):
+        ranks[name] = i
+
+def get_winner(ranks: Dict[str, int]) -> str:
+    return next(iter(ranks))
+
