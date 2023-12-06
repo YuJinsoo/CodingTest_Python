@@ -589,10 +589,126 @@ def get_winner(ranks: Dict[str, int]) -> str:
 
 
 ## BetterWay 16. in을 사용하고 딕셔너리 키가 없을 때 KeyError를 처리하기 보다는 get을 사용하라
+
+- 딕셔너리에 존재하지 않는 key에 접근할 때 KeyError가 발생합니다.
+- 딕셔너리를 사용할 때 key가 있으면 값을 가져오고 존재하지 않는 경우 디폴트 값을 반환하는 흐름을 많이 사용하게 됩니다.
+- 딕셔너리의 `get(key, default)`메서드를 사용해서 값을 가져올 key와 없을 경우 반환할 default를 설정할 수 있습니다.
+- value가 간단한 타입이라면 `get`메서드를 사용하는 방법이 가장 코드가 짧고 깔끔합니다.
+
+```python
+counters = {
+    '품퍼니켈':2,
+    '사워도우':1,
+}
+key = '밀'
+
+# in 사용
+if key in counters:
+    count = counters[key]
+else:
+    count = 0
+counters[key] = count + 1
+
+# try catch
+try:
+    count = counters[key] ## 없는 키에 접근하면 KeyError발생
+except KeyError:
+    count = 0
+counters[key] = count + 1
+
+# get 메서드를 사용해서 간단하게 구현
+count = counters.get(key, 0)
+counters[key] = count + 1
+```
+<br>
+
+### Note
+> - 딕셔너리를 카운터(횟수 세는 용도)로 사용할 경우에는 `collections` 내장 모듈에 있는 `Counter`클래스를 고려할 수 있습니다. <br>
+
+- 딕셔너리에 저장된 값이 리스트처럼 복잡한 값이라도 동일하게 `in`, `try`, `get`을 사용해서 처리할 수 있습니다.
+- 그리고 `get`메서드를 사용하면 대입식(왈러스연산자)를 사용하면 더 짧게 쓸 수 있습니다.
+
+
+```python
+votes = {
+    '바게트': ['철수', '순이'],
+    '치아파바': ['하니', '유리'],
+}
+
+key = '브리오슈'
+who = '단이'
+
+## in 사용
+if key in votes:
+    names = votes[key]
+else:
+    votes[key] = names = [] # 두줄 짜리를 한줄에.... 이게 가능하네?
+
+names.append(who) # 참조를 통해 연결되어 있으므로 names에 값을 넣으면 딕셔너리에 들어감
+print(votes) 
+# {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+## try 사용
+try:
+    names = votes[key]
+except KeyError:
+    votes[key] = names = []
+
+names.append(who)
+# {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+## get 사용
+names = votes.get(key)
+if names is None:
+    votes[key] = names = []
+names.append(who)
+print(votes)
+# {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+## get + 왈러스
+if (names := votes.get(key)) is None:
+    votes[key] = names = []
+names.append(who)
+```
+<br>
+
+- `setdefault`를 사용해서 대입하는 과정르 줄여 더 간단하게 구현할 수 있습니다.
+    - 하지만 `setdefault`는 함수 이름이 `set~`인데 동작하는 기능은 `get`(값을 가져온다!)으로 함수 동작을 직접적으로 표현하지 못해 추천하지 않습니다.
+    - 왜냐하면 **코드를 읽으면서 바로 어떤 기능인지 알 수 있어야 좋은 코드**이기 때문입니다.
+
+```python
+votes = {
+    '바게트': ['철수', '순이'],
+    '치아파바': ['하니', '유리'],
+}
+
+key = '브리오슈'
+who = '단이'
+
+## setdefault
+names = votes.setdefault(key, [])
+names.append(who)
+```
+<br>
+
+- `setdefault`를 사용할 때 빠지는 함정으로 기본값으로 변수를 설정하게 되면 디폴트로 설정한 값이 복사가 되는 것이 아니라 전달되면서 변수값이 바뀌면 디폴트 값이 변하는 현상이 발생합니다.
+- 이 현상을 회피하려면 디폴트 값을 setdefault에 전달할 때마다 그 값을 새로 전달해 주어야 하기 때문에 성능 저하가 우려됩니다.
+- 대부분의 경우 setdefault를 사용할 경우가 많지 않습니다. 
+```python
+data = {}
+key = 'foo'
+value = []
+data.setdefault(key, value)
+print('이전:', data)    # 이전: {'foo': []}
+value.append('hello')
+print('이후:', data)    # 이후: {'foo': ['hello']}
+```
+
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `key`가 없는 딕셔너리를 처리하는 방법으로 `in`, `KeyError`, `get()`, `setdefault()`를 사용하는 방법이 있습니다.<br>
+> - 카운터와 같이 기본적인 타입이 들어가는 딕셔너리를 다룰 때에는 `get()`메서드가 가장 좋고, 딕셔너리에 삽입할 값을 만든는 비용이 비싸거나 만드는 과정에서 예외가 발생할 가능성이 있을 때에도 `get()`이 좋습니다.<br>
+> - `setdefault()` 메서드를 적용하려고 할 때면 `defaultdict`사용을 고려해보자.<br>
 
 ## BetterWay 17. 내부 상태에서 원소가 없는 경우를 처리할 때는 setdefault보다 defaultdict를 사용하라
 ### 기억해야 할 Point

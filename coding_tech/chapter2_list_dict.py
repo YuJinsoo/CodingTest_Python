@@ -223,86 +223,162 @@
 
 # 15
 
-baby_names = {
-    'cat': 'kitten',
-    'dog': 'puppy',
-}
-print(baby_names) # {'cat': 'kitten', 'dog': 'puppy'}
+# baby_names = {
+#     'cat': 'kitten',
+#     'dog': 'puppy',
+# }
+# print(baby_names) # {'cat': 'kitten', 'dog': 'puppy'}
 
-# 클래스 정의
-from collections.abc import MutableMapping
+# # 클래스 정의
+# from collections.abc import MutableMapping
 
-class SortedDict(MutableMapping):
-    def __init__(self):
-        self.data = {}
+# class SortedDict(MutableMapping):
+#     def __init__(self):
+#         self.data = {}
         
-    def __getitem__(self, key):
-        return self.data[key]
+#     def __getitem__(self, key):
+#         return self.data[key]
     
-    def __setitem__(self, key, value):
-        self.data[key] = value
+#     def __setitem__(self, key, value):
+#         self.data[key] = value
 
-    def __delitem__(self, key):
-        del self.data[key]
+#     def __delitem__(self, key):
+#         del self.data[key]
 
-    def __iter__(self):
-        keys = list(self.data.keys())
-        keys.sort()
-        for key in keys:
-            yield key
+#     def __iter__(self):
+#         keys = list(self.data.keys())
+#         keys.sort()
+#         for key in keys:
+#             yield key
 
-    def __len__(self):
-        return len(self.data)
-
-
-def populate_ranks(votes, ranks):
-    names = list(votes.keys())
-    names.sort(key=votes.get, reverse=True)
-    for i, name in enumerate(names, 1):
-        ranks[name] = i
-
-def get_winner(ranks):
-    return next(iter(ranks))
-
-vote = {
-    'otter': 1281,
-    'polar bear': 587,
-    'fox': 863,
-}
-
-ranks = {}
-populate_ranks(vote, ranks)
-print(ranks)    # {'otter': 1, 'fox': 2, 'polar bear': 3}
-winner = get_winner(ranks)
-print(winner)   # otter
+#     def __len__(self):
+#         return len(self.data)
 
 
-sorted_rank = SortedDict()
-populate_ranks(vote, sorted_rank)
-print(sorted_rank.data)  # {'otter': 1, 'fox': 2, 'polar bear': 3}
-sorted_winner = get_winner(sorted_rank)
-print(sorted_winner)    # fox
+# def populate_ranks(votes, ranks):
+#     names = list(votes.keys())
+#     names.sort(key=votes.get, reverse=True)
+#     for i, name in enumerate(names, 1):
+#         ranks[name] = i
+
+# def get_winner(ranks):
+#     return next(iter(ranks))
+
+# vote = {
+#     'otter': 1281,
+#     'polar bear': 587,
+#     'fox': 863,
+# }
+
+# ranks = {}
+# populate_ranks(vote, ranks)
+# print(ranks)    # {'otter': 1, 'fox': 2, 'polar bear': 3}
+# winner = get_winner(ranks)
+# print(winner)   # otter
 
 
-def get_winner(ranks):
-    for name, rank in ranks.items():
-        if rank == 1:
-            return name
+# sorted_rank = SortedDict()
+# populate_ranks(vote, sorted_rank)
+# print(sorted_rank.data)  # {'otter': 1, 'fox': 2, 'polar bear': 3}
+# sorted_winner = get_winner(sorted_rank)
+# print(sorted_winner)    # fox
+
+
+# def get_winner(ranks):
+#     for name, rank in ranks.items():
+#         if rank == 1:
+#             return name
         
-def get_winner(ranks):
-    if not isinstance(ranks, dict):
-        raise TypeError('dict 인스턴스가 필요합니다.')
-    return next(iter(ranks))
+# def get_winner(ranks):
+#     if not isinstance(ranks, dict):
+#         raise TypeError('dict 인스턴스가 필요합니다.')
+#     return next(iter(ranks))
 
-from typing import Dict, MutableMapping
+# from typing import Dict, MutableMapping
 
-def populate_ranks(votes: Dict[str, int],
-                   ranks: Dict[str, int]) -> None:
-    names = list(votes.keys())
-    names.sort(key=votes.get, reverse=True)
-    for i, name in enumerate(names, 1):
-        ranks[name] = i
+# def populate_ranks(votes: Dict[str, int],
+#                    ranks: Dict[str, int]) -> None:
+#     names = list(votes.keys())
+#     names.sort(key=votes.get, reverse=True)
+#     for i, name in enumerate(names, 1):
+#         ranks[name] = i
 
-def get_winner(ranks: Dict[str, int]) -> str:
-    return next(iter(ranks))
+# def get_winner(ranks: Dict[str, int]) -> str:
+#     return next(iter(ranks))
 
+
+# 16
+
+# counters = {
+#     '품퍼니켈':2,
+#     '사워도우':1,
+# }
+# key = '밀'
+
+# # try catch
+# try:
+#     count = counters[key] ## 없는 키에 접근하면 KeyError발생
+# except KeyError:
+#     count = 0
+
+# counters[key] = count + 1
+
+# # get 메서드를 사용해서 간단하게 구현
+# count = counters.get(key, 0)
+# counters[key] = count + 1
+
+# votes = {
+#     '바게트': ['철수', '순이'],
+#     '치아파바': ['하니', '유리'],
+# }
+
+# key = '브리오슈'
+# who = '단이'
+
+# ## in 사용
+# if key in votes:
+#     names = votes[key]
+# else:
+#     votes[key] = names = [] # 두줄 짜리를 한줄에.... 이게 가능하네?
+
+# names.append(who) # 참조를 통해 연결되어 있으므로 names에 값을 넣으면 딕셔너리에 들어감
+# print(votes) 
+# # {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+# votes = {
+#     '바게트': ['철수', '순이'],
+#     '치아파바': ['하니', '유리'],
+# }
+# key = '브리오슈'
+# who = '단이'
+# ## try 사용
+# try:
+#     names = votes[key]
+# except KeyError:
+#     votes[key] = names = []
+
+# names.append(who)
+# # {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+# ## get 사용
+# votes = {
+#     '바게트': ['철수', '순이'],
+#     '치아파바': ['하니', '유리'],
+# }
+# key = '브리오슈'
+# who = '단이'
+# names = votes.get(key)
+# if names is None:
+#     votes[key] = names = []
+# names.append(who)
+# print(votes)
+# # {'바게트': ['철수', '순이'], '치아파바': ['하니', '유리'], '브리오슈': ['단이']}
+
+
+data = {}
+key = 'foo'
+value = []
+data.setdefault(key, value)
+print('이전:', data)    # 이전: {'foo': []}
+value.append('hello')
+print('이후:', data)    # 이후: {'foo': ['hello']}
