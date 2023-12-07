@@ -703,18 +703,94 @@ print('이전:', data)    # 이전: {'foo': []}
 value.append('hello')
 print('이후:', data)    # 이후: {'foo': ['hello']}
 ```
-
+<br>
 
 ### 기억해야 할 Point
 > - `key`가 없는 딕셔너리를 처리하는 방법으로 `in`, `KeyError`, `get()`, `setdefault()`를 사용하는 방법이 있습니다.<br>
 > - 카운터와 같이 기본적인 타입이 들어가는 딕셔너리를 다룰 때에는 `get()`메서드가 가장 좋고, 딕셔너리에 삽입할 값을 만든는 비용이 비싸거나 만드는 과정에서 예외가 발생할 가능성이 있을 때에도 `get()`이 좋습니다.<br>
 > - `setdefault()` 메서드를 적용하려고 할 때면 `defaultdict`사용을 고려해보자.<br>
 
+<br>
+
 ## BetterWay 17. 내부 상태에서 원소가 없는 경우를 처리할 때는 setdefault보다 defaultdict를 사용하라
+
+- 직접 만들지 않은 딕셔너리를 다룰 때 `get()`메서드 사용을 대부분 추천하지만 경우에 따라서 `setdefault()`를 사용하는 것이 나은 경우가 있습니다.
+<br>
+
+- 방문했던 국가별 도시 딕셔너리 예제를 봅시다.
+    - 딕셔너리에 나라 이름이 있는지 여부와 관계 없이 각 집합에 새 도시를 추가할 때 `setdefault()`를 사용할 수 있습니다.
+    - `get()`과 왈러스연산자를 사용하는 것보다 짧습니다.
+```python
+visits = {
+    '미국': {'뉴욕', '로스엔젤레스'},
+    '일본': {'하코네' },
+}
+
+## dictionary get과 대입식 := 적용
+if (japan := visits.get('일본')) is None:
+    visits['일본'] = japan = set()
+japan.add('교토')
+print(visits)
+# {'미국': {'로스엔젤레스', '뉴욕'}, '일본': {'교토', '하코네'}}
+
+## setdefault 매우 짧다
+visits.setdefault('프랑스', set()).add('칸')
+print(visits)
+# {'미국': {'로스엔젤레스', '뉴욕'}, '일본': {'교토', '하코네'}, '프랑스': {'칸'}}
+```
+<br>
+
+- 클래스 내부에서 상태를 유지하기 위해 딕셔너리 인스턴스를 사용할 때 도우미 메서드를 제공해서 가독성을 높일 수 있습니다.
+    - `setdefault`는 함수 의도를 알기 어려운데, 클래스로 감싸져있어서 기능을 알기 쉬워졌습니다.
+    - 즉 개발자에게 더 나은 인터페이스를 제공하게 되었습니다.
+    - 하지만 `setdefault`가 호출될 때마다 빈 `set()`이 생성되어야 하므로 효율적이지 않습니다.
+```python
+class Visits():
+    def __init__(self):
+        self.data = {}
+    
+    def add(self, country, city):
+        city_set = self.data.setdefault(country, set())
+        city_set.add(city)
+
+visits = Visits()
+visits.add('러시아', '예카테린부르크')
+visits.add('탄자니아', '잔지바르')
+print(visits.data) # {'러시아': {'예카테린부르크'}, '탄자니아': {'잔지바르'}}
+```
+<br>
+
+- 이런 비효율적인 문제를 `collections`의 `defaultdict`를 통해 해결할 수 있습니다.
+    - 딕셔너리 대신 `collections`의 `defaultdict`로 생성해줍니다.
+    - Visits 클래스의 `add()`메서드 구현이 더 짧고 간단해졌습니다.
+
+```python
+from collections import defaultdict
+class Visits():
+    def __init__(self):
+        self.data = defaultdict(set)
+    
+    def add(self, country, city):
+        self.data[country].add(city)
+
+visits = Visits()
+visits.add('영국', '바스')
+visits.add('영국', '런던')
+visits.add('탄자니아', '잔지바르')
+print(visits.data) # defaultdict(<class 'set'>, {'영국': {'런던', '바스'}, '탄자니아': {'잔지바르'}})
+py_dict = dict(visits.data)
+print(type(py_dict), py_dict) ## dict로 바로 변환 가능
+```
+<br>
+
+- `defaultdict`가 모든 문제를 해결해 주지는 않지만, 다른 도구들이 더 있습니다.
+    - BetterWay37, BetterWay18, BetterWay43
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 키로 어떤 값이 들어올지 모르는 딕셔너리를 관리해야 하는데 `collections`내장 보듈에 있는 `defualtdict`인스턴스가 필요에 맞아 떨어진다면 사용하는 것을 추천합니다.<br>
+> - 임의의 딕셔너리의 key에 접근할 때에는 우선 `get()`메서드를 사용합니다. 하지만 `setdefault`가 더 짧은 코드를 작성할 수 있다면 `setdefault`를 사용하는 것도 추천합니다.<br>
+
+<br>
 
 ## BetterWay 18. __missing__을 사용해 키에 따라 다른 디폴트 값을 생성하는 방법을 아라두라
 ### 기억해야 할 Point
