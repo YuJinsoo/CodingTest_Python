@@ -793,7 +793,83 @@ print(type(py_dict), py_dict) ## dict로 바로 변환 가능
 <br>
 
 ## BetterWay 18. __missing__을 사용해 키에 따라 다른 디폴트 값을 생성하는 방법을 아라두라
+
+- `setdefault()`와 `defaultdict`를 사용하기 어려운 경우들이 있습니다.
+    - SNS 프로필 사진을 고나리하는 프로그램 예제
+    - 파일 핸들이 이미 딕셔너리 안에 있으면 이 코드는 딕셔너리를 단 한 번만 읽습니다.
+    - 파일 핸들이 없으면 `get()`을 이용해 딕셔너리를 읽고, try/except 블록의 else 절에서 핸들을 딕셔너리 안에 대입합니다.
+
+
+```python
+## SNS 프로필 사진을 고나리하는 프로그램 예제
+pictures = {}
+path = 'profile_1234.png'
+
+if (handle := pictures.get(path)) is None:
+    try:
+        handle = open(path, 'a+b')
+    except OSError:
+        print(f'경로를 열 수 없습니다.: {path}')
+    else:
+        pictures[path] = handle
+
+handle.seek(0)
+image_data = handle.read()
+```
+
+- KeyError를 활용하거나 defaultdict를 활용한 방법은 다음과 같습니다.
+    - 문제는 `defualtdict` 생성자에 전달한 함수는 인자를 받을 수 없습니다.
+    - `defualtdict`가 호출하는 도우미 함수의 처리 중인 키를 알 수 없다는 뜻입니다.
+    - 이러한 경우에서는 `setdefault()`와 `defualtdict`모두 필요한 기능을 제공하지 못합니다.
+
+```python
+##
+try:
+    handle = pictures.setdefault(path, open(path, 'a+b'))
+except OSError:
+    print(f'경로를 열 수 없습니다. {path}')
+    raise
+else:
+    handle.seek(0)
+    image_data = handle.read()
+
+
+##
+from collections import defaultdict
+
+def open_picture(profile_path):
+    try:
+        return open(profile_path, 'a+b')
+    except OSError:
+        print(f'경로를 열 수 없습니다. {path}')
+        raise
+
+pictures = defaultdict(open_picture)
+handle = pictures[path]
+handle.seek(0)
+image_data = handle.read()
+```
+<br>
+
+- 위와 같은 문제는 흔히 발생하기 때문에 `dict`타입의 하위 클래스를 만들고 `__missing__` 특별 메서드를 구현하면서 ㅣ가 없는 경우를 처리하는 로직을 커스텀화 할 수 있습니다.
+    - `pictures[path]`라는 딕셔너리 접근에서 path가 딕셔너리에 없으면 `__missing__()` 메서드가 호출됩니다.
+    - `__missing__`메서드는 키에 해당하는 디폴트 값을 생성해 딕셔너리에 넣어준 다음에 호출한 쪽에 그 값을 반환해야 합니다.
+
+```python
+class Pictures(dict):
+    def __missing__(self, key):
+        value = open_picture(key)
+        self[key] = value
+        return value
+    
+pictures = Pictures()
+handle = pictures[path]
+handle.seek(0)
+image_data = handle.read()
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 디폴트 값을 만드는 계산 비용이 높거나 만드는 과정에서 예외가 발샌할 수 있는 상황헤서는 `dict`의 `setdefault`를 사용하지 않습니다.<br>
+> - `defaultdict`에 전달되는 함수는 인자를 받지 않습니다. 따라서 접근에 사용한 키 값에 맞는 디폴트 값을 생성하는 것은 불가능합니다.<br>
+> - 디폴트 키를 만들 때 어떤 키를 사용했는지 반드시 알아야 하는 상황이라면 `dict`의 하위 클래스와 `__missing__()` 메서드를 저의하면 됩니다.<br>

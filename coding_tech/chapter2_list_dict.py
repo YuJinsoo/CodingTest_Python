@@ -417,18 +417,63 @@
 # visits.add('탄자니아', '잔지바르')
 # print(visits.data) # {'러시아': {'예카테린부르크'}, '탄자니아': {'잔지바르'}}
 
-from collections import defaultdict
-class Visits():
-    def __init__(self):
-        self.data = defaultdict(set)
+# from collections import defaultdict
+# class Visits():
+#     def __init__(self):
+#         self.data = defaultdict(set)
     
-    def add(self, country, city):
-        self.data[country].add(city)
+#     def add(self, country, city):
+#         self.data[country].add(city)
 
-visits = Visits()
-visits.add('영국', '바스')
-visits.add('영국', '런던')
-visits.add('탄자니아', '잔지바르')
-print(visits.data) # defaultdict(<class 'set'>, {'영국': {'런던', '바스'}, '탄자니아': {'잔지바르'}})
-py_dict = dict(visits.data)
-print(type(py_dict), py_dict) ## dict로 바로 변환 가능
+# visits = Visits()
+# visits.add('영국', '바스')
+# visits.add('영국', '런던')
+# visits.add('탄자니아', '잔지바르')
+# print(visits.data) # defaultdict(<class 'set'>, {'영국': {'런던', '바스'}, '탄자니아': {'잔지바르'}})
+# py_dict = dict(visits.data)
+# print(type(py_dict), py_dict) ## dict로 바로 변환 가능
+
+# 18
+## SNS 프로필 사진을 고나리하는 프로그램 예제
+pictures = {}
+path = 'profile_1234.png'
+
+if (handle := pictures.get(path)) is None:
+    try:
+        handle = open(path, 'a+b')
+    except OSError:
+        print(f'경로를 열 수 없습니다.: {path}')
+    else:
+        pictures[path] = handle
+
+handle.seek(0)
+image_data = handle.read()
+
+try:
+    handle = pictures.setdefault(path, open(path, 'a+b'))
+except OSError:
+    print(f'경로를 열 수 없습니다. {path}')
+    raise
+else:
+    handle.seek(0)
+    image_data = handle.read()
+    
+from collections import defaultdict
+
+def open_picture(profile_path):
+    try:
+        return open(profile_path, 'a+b')
+    except OSError:
+        print(f'경로를 열 수 없습니다. {path}')
+        raise
+
+class Pictures(dict):
+    def __missing__(self, key):
+        value = open_picture(key)
+        self[key] = value
+        return value
+    
+pictures = Pictures()
+handle = pictures[path]
+handle.seek(0)
+image_data = handle.read()
