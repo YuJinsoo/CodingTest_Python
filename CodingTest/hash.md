@@ -15,7 +15,7 @@
 - 해쉬충돌(Collison)에 대한 추가적인 내용이 있습니다.
 
   1. Chaining 기법
-  2. Linear Probing 기법
+  2. Linear Probing 기법 (Open Adderssing 기법 중 하나)
 
 - 유명한 해쉬 함수로는 SHA-256, SHA-512 등이 있습니다.
   <br> python의 `hash()`함수는 값이 달라질 수 있습니다.

@@ -1,6 +1,6 @@
 # 목록
-1. [BetterWay19: 함수가 여러 값을 반환하는 경우 절대로 네 값 이상을 언패킹 하지 않습니다.](#)
-2. [BetterWay20: 라](#)
+1. [BetterWay19: 함수가 여러 값을 반환하는 경우 절대로 네 값 이상을 언패킹 하지 않습니다.](#betterway-19-함수가-여러-값을-반환하는-경우-절대로-네-값-이상을-언패킹-하지-않습니다)
+2. [BetterWay20: None을 반환하기보다는 예외를 발생시켜라](#betterway-20-none을-반환하기보다는-예외를-발생시켜라)
 3. [BetterWay21: bytes와 str의 차이를 알아두라](#)
 4. [BetterWay22: c스타일 형식 문자열을 strformat과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라]()
 5. [BetterWay23: 복성해라]()
@@ -67,15 +67,14 @@ print(f'최소길이 : {shortest:>4.0%}') # 최소길이 :  89%
     3. 더 많은 값을 언패킹 해야 한다면 경량 클래스(lightweight class)나 `namedtuple`을 사용하고, 함수가 이런 값을 반환하게 설계합니다. 
 
 ```python
-# 결과가 많은경우
-
+# 함수의 return 값이 4개 이상인 경우
 def get_stats(numbers):
     ...
     return minimum, maximum, average, median, count
 
 minumum, maximum, average, median, count = get_stats(lengths)
 
-# 줄바꿈할경우는
+# 줄바꿈 경우에도 읽기 힘들어집니다.
 minumum, maximum, average, median, count = get_stats(
     lengths)
 
@@ -98,11 +97,111 @@ median, count = get_stats(lengths)
 <br>
 
 ## BetterWay 20. None을 반환하기보다는 예외를 발생시켜라
+
+- 파이썬 프로그래머들은 유틸리티 함수(도우미 함수)를 작성할 때 반환 값을 `None`로 하면서 이런 경우에 대한 로직을 처리하려는 경향이 있습니다.
+    - 경우에 따라서 맞는 결정으로 보일 수 있습니다.
+    - 하지만 `None`을 반환하는 경우 반환 값에 대해 조건문`if`를 수행하는 경우 다른 반환값의 경우가 `0`인 경우 `False`처럼 동작하기 때문에 `None`와 `0`을 구분할 수 없습니다.
+
+```python
+## 이렇게 특이한 경우 None을 반환하는 경우
+def careful_divide(a, b):
+    try:
+        return a/b
+    except ZeroDivisionError:
+        return None
+
+## 제수가 0이 입력되면 None을 반환하는 위 함수를 활용해 문자열이 출력됩니다.
+x, y = 1, 0
+result = careful_divide(x, y)
+if result is None:
+    print('잘못된 입력')
+
+## 숫자 0 을 반환하지만 False처럼 행동
+x, y = 0, 5
+result = careful_divide(x, y)
+if not result: ## result = 0 인데 조건식에 들어가면 False로 적용됨(None과 같은 동작을 함)
+    print('잘못된 입력') # 이 코드가 실해오디는데 사실 이 코드가 실행되면 안됨..
+
+## 조건문에서 0의 동작
+assert not 0 == True
+assert 0 == False
+```
+
+- `None`반환으로 인한 혼동을 막기 위해서 두 가지 방법을 사용합니다.
+    1. 반환값을 2-tuple(Betterway19)로 분리하는 것입니다.
+        - 이 방법은 호출하는 쪽에서 튜플을 언패킹해야 합니다.
+        - 이 방법의 문제점은 호출하는 쪽에서 튜플의 첫 번째 결과를 쉽게 무시할 수 있다는 것입니다.
+        
+    2. 이렇게 특이한 경우의 결과를 `None`으로 반환하지 않고 `Exception`을 호출한 쪽으로 발생시켜서 호출자가 이를 처리하게 합니다.
+        - `ZeroDivisionError`가 발생한 경우 `ValueError`로 바꿔 던져 호출한 쪽에 입력 값이 잘못되었음을 알립니다.
+
+```python
+## 첫 번째 해결방법 - 2-tuple 사용
+def careful_divide(a, b):
+    try:
+        return True, a/b
+    except ZeroDivisionError:
+        return False, None
+
+x, y = 0, 5
+success, result = careful_divide(x, y)
+if not success:
+    print('잘못된 입력') # 이 코드가 실행되면 안됨..
+
+## 문제점.. _ 를 통해 사용하지 않는 변수로 지정하고 무시당할 수 있습니다.
+## 이렇게 무시했을 때 원인을 찾기 어려워집니다.
+x, y = 0, 5
+_, result = careful_divide(x, y)
+if not success:
+    print('잘못된 입력') # 이 코드가 실행되면 안됨..
+```
+
+```python
+## 두 번째 해결방법 - Exception 날리기
+def careful_divide(a, b):
+    try:
+        return a/b
+    except ZeroDivisionError as e:
+        raise ValueError('잘못된 입력입니다.')
+
+x, y = 5, 2
+try:
+    result = careful_divide(x, y)
+except ValueError:
+    print('잘못된 입력')
+else:
+    print('결과는 %.1f 입니다.' % result)
+
+# 결과는 2.5 입니다.
+```
+<br>
+
+- 두 번째 해결방법을 확장해서 타입 애너테이션을 사용하는 코드에도 적용할 수 있습니다.
+    - 반환값이 항상 `float`이고 `None`이 반환되지 않음을 알릴 수 있습니다.
+    - 파이썬의 점진적 타입 지정(Gradual typing)에는 함수 인터페이스에 예외가 표현되는지 표현하는 방법(검증 오류(checked exception))이 의도적으로 제외되었습니다.
+    - 그 대신에 호출자가 어떤 Exception을 잡아내야 할 지 결정할 때 문서를 참조할 것으로 가정하고, 예외를 문서에 명시애햐 합니다.
+
+> 검증 오류(checked exception): 에러 종류 중 반드시 명시적으로 처리해야 하기 때문에 Checked Exception이라고 합니다. 프로그램의 제어 밖에 있는 예외들입니다. 예외처리 참고: https://exponential-e.tistory.com/53
+
+> 점진적 타입 지정(Gradual typing): 프로그램의 일부는 동적으로 타이핑하고 다른 부분은 정적으로 타이핑하는 방법입니다. 즉, 프로그래머는 자신이 입력하고 싶은 프로그램 부분을 선택할 수 있습니다.
+
+```python
+def careful_divide(a: float, b: float) -> float:
+    """a를 b로 나눕니다.
+    Raise:
+        ValueError: b가 0이어서 나눗셈을 할 수 없을 때
+    """
+    try:
+        return a/b
+    except ZeroDivisionError as e:
+        raise ValueError('잘못된 입력입니다.')
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 특별한 의미를 표시하는 `None`을 반환하는 함수를 사용하면 `None`과 다른값(0이나 빈 문자열)이 조건문에서 `False`로 평가될 수 있기 때문에 실수하기 쉽습니다.<br>
+> - 특별한 상황을 표현하기 위해 `None`대신 예외를 발생시킵니다. 또한 문서에 예외 정보를 기록해 호출자가 예외를 제대로 처리하도록 알려줍니다.<br>
+> - 함수가 특별한 경우를 포함하는 그 어떤 경우에도 `None`을 반환하지 않는다는 사실을 타입 애너테이션으로 명시할 수 있습니다.<br>
 
 <br>
 
