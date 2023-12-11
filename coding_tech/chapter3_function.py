@@ -103,22 +103,79 @@
 
 # # 결과는 2.5 입니다.
 
-def careful_divide(a: float, b: float) -> float:
-    """a를 b로 나눕니다.
-    Raise:
-        ValueError: b가 0이어서 나눗셈을 할 수 없을 때
-    """
-    try:
-        return a/b
-    except ZeroDivisionError as e:
-        raise ValueError('잘못된 입력입니다.')
+# def careful_divide(a: float, b: float) -> float:
+#     """a를 b로 나눕니다.
+#     Raise:
+#         ValueError: b가 0이어서 나눗셈을 할 수 없을 때
+#     """
+#     try:
+#         return a/b
+#     except ZeroDivisionError as e:
+#         raise ValueError('잘못된 입력입니다.')
 
-x, y = 5, 2
-try:
-    result = careful_divide(x, y)
-except ValueError:
-    print('잘못된 입력')
-else:
-    print('결과는 %.1f 입니다.' % result)
+# x, y = 5, 2
+# try:
+#     result = careful_divide(x, y)
+# except ValueError:
+#     print('잘못된 입력')
+# else:
+#     print('결과는 %.1f 입니다.' % result)
 
-# 결과는 2.5 입니다.
+# # 결과는 2.5 입니다.
+
+
+
+
+# 22
+
+# def log(message, values):
+#     if not values:
+#         print(message)
+#     else:
+#         values_str = ', '.join(str(x) for x in values)
+#         print(f'{message}: {values_str}')
+
+# log('내 숫자는', [1, 2]) # 내 숫자는: 1, 2
+# log('안녕', []) # 안녕
+
+def log(message, *values):
+    if not values:
+        print(message)
+    else:
+        values_str = ', '.join(str(x) for x in values)
+        print(f'{message}: {values_str}')
+
+log('내 숫자는', 1, 2) # 내 숫자는: 1, 2
+log('안녕') # 안녕
+
+favorites = [7,33,99]
+log('좋아하는 숫자는', *favorites) # 좋아하는 숫자는: 7, 33, 99
+
+def my_generator():
+    for i in range(10):
+        yield i
+        
+def my_func(*args):
+    print(args)
+
+def my_func2(args):
+    print(args)
+    
+it = my_generator()
+my_func(*it) # (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+it = my_generator()
+my_func(it) # (<generator object my_generator at 0x000001871B1C0A50>,)
+
+
+
+def log(sequence, message, *values):
+    if not values:
+        print(f'{sequence} - {message}')
+    else:
+        value_str = ', '.join(str(x) for x in values)
+        print(f'{sequence} - {message}: {value_str}')
+
+log(1, '좋아하는 숯자는', 7, 33)     # 1 - 좋아하는 숮자는: 7, 33
+log(1, '안녕')                      # 1 - 안녕
+log('좋아하는 숮자는', 7, 33)        # 좋아하는 숮자는 - 7: 33

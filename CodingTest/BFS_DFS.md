@@ -128,6 +128,37 @@ def solution(maps):
 
 ```
 
+```python
+## BFS풀이인데 좀더 짧은거
+from collections import deque
+
+def solution(maps):
+    answer = 0
+    row = len(maps)
+    col = len(maps[0])
+    directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    
+    queue = deque()
+    queue.append((0, 0, 1))
+    
+    while queue:
+        x, y, distance = queue.popleft()
+        
+        if x == col-1 and y == row-1:
+            return distance
+        
+        if maps[y][x] == 0:
+            continue
+        
+        maps[y][x] = 0
+        
+        for d in directions:
+            if x + d[0] >= 0 and x + d[0] < col and y + d[1] >= 0 and y + d[1] < row:
+                queue.append((x+d[0], y+d[1], distance+1))
+    
+    return -1
+```
+
 ## 문제 : 단어변환
 
 - https://school.programmers.co.kr/learn/courses/30/lessons/43163
@@ -200,6 +231,37 @@ def solution(begin, target, words):
                 queue.append(next_word)
 
     return dist.get(target, 0)
+```
+
+```python
+##BFS로 다시 푼 방법
+from collections import deque
+
+def solution(begin, target, words):
+    
+    queue = deque()
+    queue.append((begin, 0))
+    
+    while queue:
+        now, level = queue.popleft()
+        
+        if now == target:
+            return level
+        
+        if level > len(words):
+            return 0
+        
+        for word in words:
+            cnt = 0
+            for n, w in zip(list(now), list(word)):
+                if n != w:
+                    cnt += 1
+            
+            if cnt == 1:
+                queue.append((word, level+1))
+    
+    return 0
+
 ```
 
 ## 문제 : 여행경로
