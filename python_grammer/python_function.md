@@ -1,5 +1,18 @@
 # python 함수 관련 정리
 
+- 목차
+    1. [제너레이터](#제너레이터-generator)
+        - [제너레이터와 리턴](#generator와-return)
+        - [yield form 사용](#yield-from-사용하기)
+    2. [이터러블](#이터러블-iterable)
+    3. [이터레이터](#이터레이터-iterator)
+    4. [데코레이터](#데코레이터-decorator---함수)
+    5. [클래스 데코레이터](#클래스-데코레이터-class-decorator)
+    6. [람다함수](#람다함수-lambda)
+    7. [클로저](#클로저-closuer)
+    8. [순수함수](#순수함수)
+
+
 ## 제너레이터 (Generator)
 
 1. Generator란?
@@ -534,7 +547,7 @@ hello()
 
 ---
 
-## 클래스 데코레이터 ( class decorator)
+## 클래스 데코레이터 (class decorator)
 
 - 데코레이터를 클래스로 생성할 수 있습니다.
   ~~- 데코레이터 함수의 **파라미터로 함수가 아닌 클래스를 받는 데코레이터**를 의미합니다.~~
