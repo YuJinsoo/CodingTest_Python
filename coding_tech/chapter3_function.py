@@ -123,8 +123,69 @@
 
 # # 결과는 2.5 입니다.
 
+# 21
+
+def sort_priority(values, group):
+    def helper(x):
+        if x in group:
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    
+numbers = [ 8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+sort_priority(numbers, group)
+print(numbers) # [2, 3, 5, 7, 1, 4, 6, 8]
+
+def sort_priority2(values, group):
+    found = False
+    def helper(x):
+        if x in group:
+            found = True
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    return found
+    
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+result = sort_priority2(numbers, group)
+print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] False
+
+def sort_priority2(values, group):
+    found = False
+    def helper(x):
+        nonlocal found
+        if x in group:
+            found = True
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    return found
+    
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+result = sort_priority2(numbers, group)
+print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] True
 
 
+class Sorter():
+    def __init__(self, group):
+        self.group = group
+        self.found = False
+    
+    def __call__(self, x):
+        if x in self.group:
+            self.found = True
+            return (0, x)
+        return (1,)
+
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+
+sorter = Sorter(group)
+numbers.sort(key=sorter)
+assert sorter.found is True
 
 # 22
 
@@ -138,44 +199,44 @@
 # log('내 숫자는', [1, 2]) # 내 숫자는: 1, 2
 # log('안녕', []) # 안녕
 
-def log(message, *values):
-    if not values:
-        print(message)
-    else:
-        values_str = ', '.join(str(x) for x in values)
-        print(f'{message}: {values_str}')
+# def log(message, *values):
+#     if not values:
+#         print(message)
+#     else:
+#         values_str = ', '.join(str(x) for x in values)
+#         print(f'{message}: {values_str}')
 
-log('내 숫자는', 1, 2) # 내 숫자는: 1, 2
-log('안녕') # 안녕
+# log('내 숫자는', 1, 2) # 내 숫자는: 1, 2
+# log('안녕') # 안녕
 
-favorites = [7,33,99]
-log('좋아하는 숫자는', *favorites) # 좋아하는 숫자는: 7, 33, 99
+# favorites = [7,33,99]
+# log('좋아하는 숫자는', *favorites) # 좋아하는 숫자는: 7, 33, 99
 
-def my_generator():
-    for i in range(10):
-        yield i
+# def my_generator():
+#     for i in range(10):
+#         yield i
         
-def my_func(*args):
-    print(args)
+# def my_func(*args):
+#     print(args)
 
-def my_func2(args):
-    print(args)
+# def my_func2(args):
+#     print(args)
     
-it = my_generator()
-my_func(*it) # (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+# it = my_generator()
+# my_func(*it) # (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 
-it = my_generator()
-my_func(it) # (<generator object my_generator at 0x000001871B1C0A50>,)
+# it = my_generator()
+# my_func(it) # (<generator object my_generator at 0x000001871B1C0A50>,)
 
 
 
-def log(sequence, message, *values):
-    if not values:
-        print(f'{sequence} - {message}')
-    else:
-        value_str = ', '.join(str(x) for x in values)
-        print(f'{sequence} - {message}: {value_str}')
+# def log(sequence, message, *values):
+#     if not values:
+#         print(f'{sequence} - {message}')
+#     else:
+#         value_str = ', '.join(str(x) for x in values)
+#         print(f'{sequence} - {message}: {value_str}')
 
-log(1, '좋아하는 숯자는', 7, 33)     # 1 - 좋아하는 숮자는: 7, 33
-log(1, '안녕')                      # 1 - 안녕
-log('좋아하는 숮자는', 7, 33)        # 좋아하는 숮자는 - 7: 33
+# log(1, '좋아하는 숯자는', 7, 33)     # 1 - 좋아하는 숮자는: 7, 33
+# log(1, '안녕')                      # 1 - 안녕
+# log('좋아하는 숮자는', 7, 33)        # 좋아하는 숮자는 - 7: 33

@@ -207,11 +207,131 @@ def careful_divide(a: float, b: float) -> float:
 
 ## BetterWay 21. 변수 영역과 클로저의 상호작용 방식을 이해해라
 
+- 숫자로 이루어진 list를 정렬할 때 list의 앞 부분에는 우선순위를 부여한 몇몇 숫자를 위치시켜야 하는 예제를 생각해보자.
+    - 이 패턴은 사용자 인터페이스를 표시하면서 중요한 메시지나 예외적인 이벤트를 다른 것보다 우선해 표시하고 싶을 때 유용합니다.
+- 가장 일반적인 방법은 list의 `sort()`메서드에 `key`인자로 도우미 함수를 전달하는 것입니다.
+    - list는 각 원소를 정렬할 때 이 도우미 함수가 반환하는 값을 기준으로 사용합니다.
+    - 도우미 함수는 주어진 원소의 우선순위를 검사해서 정렬 기준값을 적절히 조절해줍니다.
+
+```python
+def sort_priority(values, group):
+    def helper(x):
+        if x in group:
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+sort_priority(numbers, group)
+print(numbers) # [2, 3, 5, 7, 1, 4, 6, 8]
+```
+
+### 위 예제가 정확하게 동작하는 이유 세 가지
+1. python은 클로저를 지원합니다.
+    - `클로저`란 자신이 정의된 영역 밖의 변수를 참조하는 함수입니다.
+    - `클로저`로 인해 도우미 함수가 `sort_priority()`함수의 `group` 인자를 접근할 수 있습니다.
+2. 파이썬에서 함수는 일급객체(일급 시민) 입니다.
+    - 일급 객체라고 하면...
+    - 직접 가리킬 수 있고,
+    - 변수에 대입하거나
+    - 다른 함수에 인자로 전달할 수 있으며,
+    - 식이나 if문에서 함수를 비교하거나 함수에서 반환하는 것이 가능합니다.
+    - 이런 특징으로 인해 `sort`메서드는 클로저 함수를 `key`인자로 받을 수 있습니다.
+3. python에는 시퀀스(튜플 포함)을 비교하는 구체적인 규칙이 있습니다.
+    - python의 시퀀스는 0번 시퀀스부터 차례대로 서로 순서 비교를 하여 모든 원소를 다 비교하거나 경과가 정해질 때까지 계속합니다.
+    - 이로 인해 `helper()`클로저가 반환하는 튜플이 서로 다른 두 그룹을 정렬하는 기준 역할을 합니다.
+
+<br>
+
+- 위 예제에 추가적인 기능으로 우선순위가 있는 요소가 들어왔을 때 알림을 플래그를 통해 전달하는 기능을 추가하는 경우를 생각해봅시다.
+- found라는 변수를 플래그로 활용하여 `group`에 해당하는 원소가 있다면 found에 True를 대입하여 반환하면 될 것이라고 생각하기 쉽습니다. **하지만 실제로 반환되는 값은 `True`가 아니라 `False` 입니다.**
+    - `found`변수는 `helper` 도우미 함수 의 영역에서 `True`로 대입됩니다. `helper`함수 영역 안에 새로운 `found`변수를 정의하는 것으로 취급되어 `sort_priority2()` 내부의 `found` 변수에 값이 대입하는 것으로 취급되지 않습니다.
+
+- 이 문제는 `영역 지정 버그`라고 부르기도 합니다.
+    - 이 동작은 언어 설계에서 의도된 부분입니다.
+    - 함수에서 사용한 지역 변수가 그 함수를 포함하고 잇는 모듈 영역을 더럽히지 못하게 막는 역할을 합니다.
+    - 즉, 이런 식으로 처리하지 않으면 함수 내에서 사용한 모든 대입문이 전역 모듈 영역에 쓰레기 변수를 추가하게 됩니다. 
+
+```python
+def sort_priority2(values, group):
+    found = False
+    def helper(x):
+        if x in group:
+            found = True
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    return found
+    
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+result = sort_priority2(numbers, group)
+print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] False
+```
+
+- 클로저 안에서 사용하는 변수가 클로저를 감싼 영역의 변수를 사용하고 싶을 때에는 `nonlocal`이라는 예약어를 사용하면 됩니다.
+    - `nonlocal`은 대입할 데이터가 클로저 밖에 있어 다른 영역에 속한다는 것을 알려줍니다.
+    - 변수 대입시 직접 모듈 영역(전역 영역)을 사용해야 한다고 지정하는 `global`을 보완합니다.
+    - **하지만 간단한 함수 외에는 어떤 경우라도 `nonlocal`사용을 지양합니다.**
+    - 특히 함수가 길고 `nonlocal`문이 지정한 변수와 대입이 이뤄지는 위치와의 거리가 멀면 함수 동작을 이해하기 힘들어지기 때문입니다.
+
+> Python에서 변수를 찾는 순서<br>
+> 1. 현재 함수의 영역
+> 2. 현재 함수를 둘러썬 영역 (현재 함수를 둘러싸고 있는 함수 등)
+> 3. 현재 코드가 들어 있는 모듈의 영역 (전역영영(global-scope)이라고도 부름)
+> 4. 내장 영역(built-in scope)
+
+<br>
+
+
+```python
+def sort_priority2(values, group):
+    found = False
+    def helper(x):
+        nonlocal found ## hleper영역에 클로저 함수 밖의 found임을 알려줌
+        if x in group:
+            found = True
+            return (0, x)
+        return (1, x)
+    values.sort(key=helper)
+    return found
+    
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+result = sort_priority2(numbers, group)
+print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] True
+```
+
+<br>
+
+- `nonlocal`사용을 피하려면, 도우미 함수를 사용하거나 클래스를 작성해서 정의하여 활용하는 것이 코드는 길어지지만, 이해하기 쉽습니다.
+```python
+class Sorter():
+    def __init__(self, group):
+        self.group = group
+        self.found = False
+    
+    def __call__(self, x):
+        if x in self.group:
+            self.found = True
+            return (0, x)
+        return (1,)
+
+numbers = [8,3,1,2,5,4,7,6]
+group = {2,3,5,7}
+
+sorter = Sorter(group)
+numbers.sort(key=sorter)
+assert sorter.found is True
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 클로저 함수는 자신의 정의된 영역 외부에서 정의된 변수도 참조할 수 있습니다.<br>
+> - 기본적으로 클로저 내부에 사용한 대입문은 클로저를 감싸는 영역에 영향을 끼칠 수 없습니다.<br>
+> - 클로저가 자신을 감싸는 영역의 변수를 변경한다는 사실을 표시할 때는 `nonlocal`문을 사용합니다.<br>
+> - 간단한 경우가 아니라면 `nonlocal`사용을 지양합니다.<br>
 
 <br>
 
