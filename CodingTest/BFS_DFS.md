@@ -87,6 +87,35 @@ def solution(n, computers):
 
 ##
 ```
+```python
+## 함수로 안풀어도 됨.
+from collections import deque
+def solution(n, computers):
+    answer = 0
+    visits = [0 for x in range(n)]
+    q = deque()
+    
+    for i in range(n):
+        if visits[i] == 1:
+            continue
+            
+        q.append(i)
+        while q:
+            index = q.popleft()
+            if visits[index] == 1:
+                continue
+            visits[index] = 1
+            
+            for idx, com in enumerate(computers[index]):
+                if index == idx:
+                    continue
+                    
+                if com == 1:
+                    q.append(idx)
+        answer += 1
+
+    return answer
+```
 
 ## 문제 : 게임 맵 최단거리
 
