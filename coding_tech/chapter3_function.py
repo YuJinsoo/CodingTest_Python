@@ -125,67 +125,67 @@
 
 # 21
 
-def sort_priority(values, group):
-    def helper(x):
-        if x in group:
-            return (0, x)
-        return (1, x)
-    values.sort(key=helper)
+# def sort_priority(values, group):
+#     def helper(x):
+#         if x in group:
+#             return (0, x)
+#         return (1, x)
+#     values.sort(key=helper)
     
-numbers = [ 8,3,1,2,5,4,7,6]
-group = {2,3,5,7}
-sort_priority(numbers, group)
-print(numbers) # [2, 3, 5, 7, 1, 4, 6, 8]
+# numbers = [ 8,3,1,2,5,4,7,6]
+# group = {2,3,5,7}
+# sort_priority(numbers, group)
+# print(numbers) # [2, 3, 5, 7, 1, 4, 6, 8]
 
-def sort_priority2(values, group):
-    found = False
-    def helper(x):
-        if x in group:
-            found = True
-            return (0, x)
-        return (1, x)
-    values.sort(key=helper)
-    return found
+# def sort_priority2(values, group):
+#     found = False
+#     def helper(x):
+#         if x in group:
+#             found = True
+#             return (0, x)
+#         return (1, x)
+#     values.sort(key=helper)
+#     return found
     
-numbers = [8,3,1,2,5,4,7,6]
-group = {2,3,5,7}
-result = sort_priority2(numbers, group)
-print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] False
+# numbers = [8,3,1,2,5,4,7,6]
+# group = {2,3,5,7}
+# result = sort_priority2(numbers, group)
+# print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] False
 
-def sort_priority2(values, group):
-    found = False
-    def helper(x):
-        nonlocal found
-        if x in group:
-            found = True
-            return (0, x)
-        return (1, x)
-    values.sort(key=helper)
-    return found
+# def sort_priority2(values, group):
+#     found = False
+#     def helper(x):
+#         nonlocal found
+#         if x in group:
+#             found = True
+#             return (0, x)
+#         return (1, x)
+#     values.sort(key=helper)
+#     return found
     
-numbers = [8,3,1,2,5,4,7,6]
-group = {2,3,5,7}
-result = sort_priority2(numbers, group)
-print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] True
+# numbers = [8,3,1,2,5,4,7,6]
+# group = {2,3,5,7}
+# result = sort_priority2(numbers, group)
+# print(numbers, result) # [2, 3, 5, 7, 1, 4, 6, 8] True
 
 
-class Sorter():
-    def __init__(self, group):
-        self.group = group
-        self.found = False
+# class Sorter():
+#     def __init__(self, group):
+#         self.group = group
+#         self.found = False
     
-    def __call__(self, x):
-        if x in self.group:
-            self.found = True
-            return (0, x)
-        return (1,)
+#     def __call__(self, x):
+#         if x in self.group:
+#             self.found = True
+#             return (0, x)
+#         return (1,)
 
-numbers = [8,3,1,2,5,4,7,6]
-group = {2,3,5,7}
+# numbers = [8,3,1,2,5,4,7,6]
+# group = {2,3,5,7}
 
-sorter = Sorter(group)
-numbers.sort(key=sorter)
-assert sorter.found is True
+# sorter = Sorter(group)
+# numbers.sort(key=sorter)
+# assert sorter.found is True
 
 # 22
 
@@ -240,3 +240,64 @@ assert sorter.found is True
 # log(1, '좋아하는 숯자는', 7, 33)     # 1 - 좋아하는 숮자는: 7, 33
 # log(1, '안녕')                      # 1 - 안녕
 # log('좋아하는 숮자는', 7, 33)        # 좋아하는 숮자는 - 7: 33
+
+# 23
+
+# def remainder(num, div):
+#     return num % div
+
+# assert remainder(20, 7) == 6
+# assert remainder(20, div=7) == 6
+# assert remainder(num=20, 7) == 6 ## StntaxError
+# assert remainder(num=20, div=7) == 6
+# assert remainder(div=7, num=20) == 6
+
+# my_kwargs = {
+#     'num': 20,
+#     'div': 7
+# }
+
+# def remainder(num, div):
+#     return num % div
+
+# assert remainder(**my_kwargs) == 6
+
+# my_kwargs = {
+#     'div': 7
+# }
+
+# def remainder(num, div):
+#     return num % div
+
+# assert remainder(num = 20, **my_kwargs) == 6
+
+# def print_parameters(**kwargs):
+#     for key, value in kwargs.items():
+#         print(f'{key}: {value}')
+
+# print_parameters(alpha=1.5, beta=9, 감마=4)
+# # alpha: 1.5
+# # beta: 9
+# # 감마: 4
+
+def flow_rate(weight_diff, time_diff):
+    return weight_diff/time_diff
+
+weight_diff = 0.5
+time_diff = 3
+flow = flow_rate(weight_diff, time_diff)
+print(f'{flow:.3} kg/s') # 0.167 kg/s
+
+# 전형적인 경우 시간당 유립량이 초당 킬로그램(kg/s)입니다.
+# 더 긴 시간 단위의 양을 계산하고 싶어 period 파라메터를 추가하게되면 아래와 같습니다.
+# 하지만 이럴 겨웅 flow_rate의 모든 호출 부분에 period를 추가해야 하고,
+# 일반적인 경우에도 period를 1로 지정해주어야 합니다.
+def flow_rate(weight_diff, time_diff, period):
+    return (weight_diff/time_diff)*period
+
+# 하지만 default 값을 설정하면 period 파라미터로 값을 전달하지 않으면 default로 설정된 값으로 인자가 전달됩니다.
+def flow_rate(weight_diff, time_diff, period=1):
+    return (weight_diff/time_diff)*period
+
+flow_per_second = flow_rate(weight_diff, time_diff)
+flow_per_hour = flow_rate(weight_diff, time_diff, period=3600)

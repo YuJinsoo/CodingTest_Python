@@ -437,11 +437,132 @@ log('좋아하는 숮자는', 7, 33)        # 좋아하는 숮자는 - 7: 33 ## 
 
 ## BetterWay 23. 키워드 인자로 선택적인 기능을 제공하라
 
+- Python도 다른 언어와 마찬가지로 함수를 호출할 때 위치에 따라 인자를 넘길 수 있습니다.
+
+```python
+def remainder(num, div):
+    return num % div
+
+## 파라메터 num에 인자 20, 파라메터 div에 인자 7이 넘어갑니다.
+assert remainder(20, 7) == 6
+```
+<br>
+
+- Python 함수에서는 모든 일반적인 인자를 키워드르 사용해 넘길 수 있습니다.
+- 키워드를 사용해 인자를 넘길 떄에는 함수 호출 괄호 내부에서 파라미터 이름을 사용합니다.
+    - 파라미터 이름을 사용한 인자 할당 이후의 변수들은 모두 키워드를 사용해 인자를 넘겨주어야 에러가 발생하지 않습니다.
+
+```python
+def remainder(num, div):
+    return num % div
+
+assert remainder(20, 7) == 6
+assert remainder(20, div=7) == 6
+assert remainder(num=20, 7) == 6 ## StntaxError
+assert remainder(num=20, div=7) == 6
+assert remainder(div=7, num=20) == 6
+```
+
+- 딕셔너리를 이용해 키워드 인자를 넘길 수 있습니다.
+- 딕셔너리를 함수의 인자로 넘겨줄 때에는 `**`연산자를 붙여주어야 합니다.
+    - `**`연산자는 파있너이  딕셔너리에 들어 있는 값을 함수에 전달하되, 각 값에 대응하는 키를 키워드로 사용하도록 명령합니다.
+    - 파라메터이름과 딕셔너리의 key 이름이 일치하는 것으로 할당됩니다.
+
+- `**`연산자를 위치인자나 키워드 인자와 섞어서 함수 호출이 가능합니다.
+```python
+## 딕셔너리로 키워드 인자 전달
+my_kwargs = {
+    'num': 20,
+    'div': 7
+}
+
+def remainder(num, div):
+    return num % div
+
+assert remainder(**my_kwargs) == 6
+
+## 위치인자와 딕셔너리로 키워드 인자 전달 같이 사용
+my_kwargs = {
+    'div': 7
+}
+
+def remainder(num, div):
+    return num % div
+
+assert remainder(num = 20, **my_kwargs) == 6
+```
+<br>
+
+- 아무 키워드 인자를 받는 함수를 만들고 싶다면, 모든 키워드 인자를 `dict`에 모아주는 **kwargs라는 파라미터를 사용합니다.
+
+```python
+def print_parameters(**kwargs):
+    for key, value in kwargs.items():
+        print(f'{key}: {value}')
+
+print_parameters(alpha=1.5, beta=9, 감마=4)
+# alpha: 1.5
+# beta: 9
+# 감마: 4
+```
+
+### 키워드 인자가 제공하는 유연성 활용으로 얻는 세 가지 이점
+1. 코드를 처음 보는 사람들에게 함수 호출의 의미를 명확히 알려줄 수 있습니다.
+    - 구현을 보지 않고 어떤 목적으로 사용하는 파라미터인지 알 수 있기 때문입니다.
+2. 키워드 인자의 경우 함수 정의에서 디폴트 값을 지정할 수 있습니다.
+    - 기본값을 사용하고 싶은 경우 따로 지정을 해주지 않아도 되기 때문에 가독성이 코드 중복이 줄어듭니다.
+3. 어떤 함수를 사용하던 기존 호출자에게 하위 호환성(backward compatibility)를 제공하면서 함수 파라미터를 확장할 수 있습니다.
+    - 새로운 버그가 생길 여지가 줄어듭니다.
+    - 예를 들어 2번예제에 kg단위가 아니라 다른 단위로 측정하고 싶을 때(즉 함수의 기능을 확장할 때) unit부분을 추가하여 단위를 변환할 수 있습니다.
+
+```python
+## 장점 2번 예제
+## 유속을 측정하는 함수.
+def flow_rate(weight_diff, time_diff):
+    return weight_diff/time_diff
+
+weight_diff = 0.5
+time_diff = 3
+flow = flow_rate(weight_diff, time_diff)
+print(f'{flow:.3} kg/s') # 0.167 kg/s
+
+# 전형적인 경우 시간당 유립량이 초당 킬로그램(kg/s)입니다.
+# 더 긴 시간 단위의 양을 계산하고 싶어 period 파라메터를 추가하게되면 아래와 같습니다.
+# 하지만 이럴 겨웅 flow_rate의 모든 호출 부분에 period를 추가해야 하고,
+# 일반적인 경우에도 period를 1로 지정해주어야 합니다.
+def flow_rate(weight_diff, time_diff, period):
+    return (weight_diff/time_diff)*period
+
+# 하지만 default 값을 설정하면 period 파라미터로 값을 전달하지 않으면 default로 설정된 값으로 인자가 전달됩니다.
+def flow_rate(weight_diff, time_diff, period=1):
+    return (weight_diff/time_diff)*period
+
+flow_per_second = flow_rate(weight_diff, time_diff)
+flow_per_hour = flow_rate(weight_diff, time_diff, period=3600)
+```
+<br>
+
+- 파라미터를 추가하여 손쉽게 기능을 확장했습니다.
+- 이 경우 period와 weight_unit을 위치인자(순서대로 대입)을 할 수 있지만, 함수에서 어떤 동작을 하는 파라미터인지 알기 어렵고 순서를 혼동할 수 있기 때문에 **위치인자를 절대 사용하지 않고 키워드 인자를 사용**합니다.
+
+```python
+## 장점 3번 예제
+## 예를 들어 2번예제에 kg단위가 아니라 다른 단위로 측정하고 싶을 때
+## 아래와 같이 파라미터를 추가하면 됩니다.
+## weight_unit에는 1키로그램와 같은 무게를 가지는 다른 단위의 크기를 쓰면 됩니다.
+def flow_rate(weight_diff, time_diff, period=1, weight_unit=1):
+    return ((weight_diff*weight_unit)/time_diff)*period
+
+## 1 kg = 2.2 poound
+pound_per_hour = flow_rate(weight_diff, time_diff, period=3600, weight_unit=2.2)
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 함수 인자의 위치에 따라 지정할 수도 있고, 키워드를 사용해 지정할 수 있습니다.<br>
+> - 키워드를 사용하면 위치 인자만 사용할 대는 혼동할 수 있는 여러 인자의 목적을 명확히 할 수 있습니다.<br>
+> - 키워드 인자와 디폴트 값을 함께 사용하면 기본 호출 코드를 마이그레이션 하지 않고도 함수에 새로운 기능을 쉽게 추가할 수 있습니다.<br>
+> - 선택적 키워드는 인자는 항상 위치가 아니라 키워드를 사용해 전달되어야 합니다.<br>
 
 <br>
 
