@@ -280,24 +280,106 @@
 # # beta: 9
 # # 감마: 4
 
-def flow_rate(weight_diff, time_diff):
-    return weight_diff/time_diff
+# def flow_rate(weight_diff, time_diff):
+#     return weight_diff/time_diff
 
-weight_diff = 0.5
-time_diff = 3
-flow = flow_rate(weight_diff, time_diff)
-print(f'{flow:.3} kg/s') # 0.167 kg/s
+# weight_diff = 0.5
+# time_diff = 3
+# flow = flow_rate(weight_diff, time_diff)
+# print(f'{flow:.3} kg/s') # 0.167 kg/s
 
-# 전형적인 경우 시간당 유립량이 초당 킬로그램(kg/s)입니다.
-# 더 긴 시간 단위의 양을 계산하고 싶어 period 파라메터를 추가하게되면 아래와 같습니다.
-# 하지만 이럴 겨웅 flow_rate의 모든 호출 부분에 period를 추가해야 하고,
-# 일반적인 경우에도 period를 1로 지정해주어야 합니다.
-def flow_rate(weight_diff, time_diff, period):
-    return (weight_diff/time_diff)*period
+# # 전형적인 경우 시간당 유립량이 초당 킬로그램(kg/s)입니다.
+# # 더 긴 시간 단위의 양을 계산하고 싶어 period 파라메터를 추가하게되면 아래와 같습니다.
+# # 하지만 이럴 겨웅 flow_rate의 모든 호출 부분에 period를 추가해야 하고,
+# # 일반적인 경우에도 period를 1로 지정해주어야 합니다.
+# def flow_rate(weight_diff, time_diff, period):
+#     return (weight_diff/time_diff)*period
 
-# 하지만 default 값을 설정하면 period 파라미터로 값을 전달하지 않으면 default로 설정된 값으로 인자가 전달됩니다.
-def flow_rate(weight_diff, time_diff, period=1):
-    return (weight_diff/time_diff)*period
+# # 하지만 default 값을 설정하면 period 파라미터로 값을 전달하지 않으면 default로 설정된 값으로 인자가 전달됩니다.
+# def flow_rate(weight_diff, time_diff, period=1):
+#     return (weight_diff/time_diff)*period
 
-flow_per_second = flow_rate(weight_diff, time_diff)
-flow_per_hour = flow_rate(weight_diff, time_diff, period=3600)
+# flow_per_second = flow_rate(weight_diff, time_diff)
+# flow_per_hour = flow_rate(weight_diff, time_diff, period=3600)
+
+# 24
+
+# from time import sleep
+# from datetime import datetime
+
+# def log(message, when=datetime.now()):
+#     print(f'{when}: {message}')
+
+# log('안녕!')
+# sleep(0.1)
+# log('다시안녕!')
+# # 2023-12-15 18:59:57.989971: 안녕!
+# # 2023-12-15 18:59:57.989971: 다시안녕!
+
+
+# from time import sleep
+# from datetime import datetime
+
+# def log(message, when=None):
+#     """메시지와 타임스탬프를 로그에 남깁니다.
+
+#     Args:
+#         message (_type_): 출력할 메시지
+#         when (_type_, optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간이다.
+#     """
+#     if when is None:
+#         when = datetime.now()
+#     print(f'{when}: {message}')
+
+# log('안녕!')
+# sleep(0.1)
+# log('다시안녕!')
+# # 2023-12-15 19:08:32.024760: 안녕!
+# # 2023-12-15 19:08:32.138589: 다시안녕!
+
+
+# import json
+
+# def decode(data, default={}):
+#     try:
+#         return json.loads(data) # 그냥 string을 넣을거기 때문에 에러
+#     except ValueError:
+#         return default
+
+# foo = decode('잘못된 데이터')
+# foo['stuff'] = 5
+# bar = decode('또 잘못된 데이터')
+# bar['meep'] = 1
+# print('Foo:', foo) # Foo: {'stuff': 5, 'meep': 1}
+# print('Bar:', bar) # Bar: {'stuff': 5, 'meep': 1}
+
+# import json
+
+# def decode(data, default=None):
+#     try:
+#         return json.loads(data) # 그냥 string을 넣을거기 때문에 에러
+#     except ValueError:
+#         if default is None:
+#             default = {}
+#         return default
+
+# foo = decode('잘못된 데이터')
+# foo['stuff'] = 5
+# bar = decode('또 잘못된 데이터')
+# bar['meep'] = 1
+# print('Foo:', foo) # Foo: {'stuff': 5}
+# print('Bar:', bar) # Bar: {'meep': 1}
+
+from typing import Optional
+from datetime import datetime
+
+def log_typed(message:str, when:Optional[datetime]=None) -> None:
+    """메시지와 타임스탬프를 로그에 남긴다.
+
+    Args:
+        message (str): 출력할 메시지
+        when (Optional[datetime], optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간입니다.
+    """
+    if when is None:
+        when = datetime.now()
+    print(f'{when}: {message}')

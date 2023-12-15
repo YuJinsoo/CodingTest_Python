@@ -1,10 +1,10 @@
 # 목록
 1. [BetterWay19: 함수가 여러 값을 반환하는 경우 절대로 네 값 이상을 언패킹 하지 않습니다.](#betterway-19-함수가-여러-값을-반환하는-경우-절대로-네-값-이상을-언패킹-하지-않습니다)
 2. [BetterWay20: None을 반환하기보다는 예외를 발생시켜라](#betterway-20-none을-반환하기보다는-예외를-발생시켜라)
-3. [BetterWay21: bytes와 str의 차이를 알아두라](#)
-4. [BetterWay22: c스타일 형식 문자열을 strformat과 쓰기보다는 f-문자열 을 통한 인터폴레이션을 사용해라]()
-5. [BetterWay23: 복성해라]()
-6. [BetterWay24: 인패킹해라]()
+3. [BetterWay21: 변수 영역과 클로저의 상호작용 방식을 이해해라](#betterway-21-변수-영역과-클로저의-상호작용-방식을-이해해라)
+4. [BetterWay22: 변수 위치 인자를 사용해 시각적인 잡음을 줄여라](#betterway-22-변수-위치-인자를-사용해-시각적인-잡음을-줄여라)
+5. [BetterWay23: 키워드 인자로 선택적인 기능을 제공하라](#betterway-23-키워드-인자로-선택적인-기능을-제공하라)
+6. [BetterWay24: None과 독스트링을 사용해 동적인 디폴트 인자를 지정하라](#betterway-24-none과-독스트링을-사용해-동적인-디폴트-인자를-지정하라)
 7. [BetterWay25: ra용하라]()
 8. [BetterWay26: 여러 수행하려면 zip을 사용해라]()
 
@@ -568,11 +568,123 @@ pound_per_hour = flow_rate(weight_diff, time_diff, period=3600, weight_unit=2.2)
 
 ## BetterWay 24. None과 독스트링을 사용해 동적인 디폴트 인자를 지정하라
 
+- 키워드 인자의 값으로 정적으로 정해지지 않는 타입의 값을 써야 할 때가 있습니다.
+    - 현재시간을 디폴트로 하는 키워드 인자로 로그 함수 예제
+    - `datetime.now()`를 디폴트로 설정하지만 다른 시간에 호출해도 같은 시간이 나옵니다.
+    - 이런 현상이 나오는 이유는 default인자의 값은 모듈이 로드될 때 한 번만 평가되는데, 보통 프로그램이 시작하 ㄹ때 모듈을 로드하는 경우가 많습니다.
+    - 즉 default에 넣은 값은 함수가 정의되는 시점에 `datetime.now()`가 한 번 호출되고 그 값이 유지되기 때문입니다.
+
+```python
+## 지금 시간을 입력해서 로그 출력하는 함수 예제
+from time import sleep
+from datetime import datetime
+
+def log(message, when=datetime.now()):
+    print(f'{when}: {message}')
+
+log('안녕!')
+sleep(0.1)
+log('다시안녕!')
+# 2023-12-15 18:59:57.989971: 안녕!
+# 2023-12-15 18:59:57.989971: 다시안녕!
+```
+<br>
+
+- 위의 예제와 같은 경우 원하는 동작을 하게 하려면, 디폴트 값을 `None`으로 설정하고 실제 동작을 독스트링에 문서화하는 것입니다.
+
+```python
+from time import sleep
+from datetime import datetime
+
+def log(message, when=None):
+    """메시지와 타임스탬프를 로그에 남깁니다.
+
+    Args:
+        message (_type_): 출력할 메시지
+        when (_type_, optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간이다.
+    """
+    if when is None:
+        when = datetime.now()
+    print(f'{when}: {message}')
+
+log('안녕!')
+sleep(0.1)
+log('다시안녕!')
+# 2023-12-15 19:08:32.024760: 안녕!
+# 2023-12-15 19:08:32.138589: 다시안녕!
+```
+<br>
+
+- 키워드인자의 디폴트 값으로 `None`을 사용하는 것은 인자가 가변적인(mutable)경우 특히 중요합니다.
+    - 다음 예제를 봅시다
+    - 이 예제는 `datetime.now()`를 지정한 것과 같은 문제가 발생합니다.
+    - 모듈을 로드하는 시점에 한번 호출되므로 default에 특정 빈 `dictionary` 오브젝트가 할당됩니다.
+    - 그래서 함수의 리턴에 값을 넣으면 또 다른 호출에서 default를 호출 했을 때 같은 객체가 리턴됩니다.
+
+```python
+## JSON 데이터로 인코딩된 값을 읽으려고 하는데, 데이터 디코딩에 실패하면 디폴트로 빈 딕셔너리를 반환하고 싶을 때
+import json
+
+def decode(data, default={}):
+    try:
+        return json.loads(data) # 그냥 string을 넣을거기 때문에 에러
+    except ValueError:
+        return default
+
+foo = decode('잘못된 데이터')
+foo['stuff'] = 5
+bar = decode('또 잘못된 데이터')
+bar['meep'] = 1
+print('Foo:', foo) # Foo: {'stuff': 5, 'meep': 1}
+print('Bar:', bar) # Bar: {'stuff': 5, 'meep': 1}
+```
+<br>
+
+- 앞에서 말한 해법으로 default 키워드 인자에 `None`을 설정해줍니다. 
+    - 함수 내부에서 `None`일 때 빈 딕셔너리를 새로 생성해서 반환해줍니다.
+
+```python
+import json
+
+def decode(data, default=None):
+    try:
+        return json.loads(data) # 그냥 string을 넣을거기 때문에 에러
+    except ValueError:
+        if default is None:
+            default = {}
+        return default
+
+foo = decode('잘못된 데이터')
+foo['stuff'] = 5
+bar = decode('또 잘못된 데이터')
+bar['meep'] = 1
+print('Foo:', foo) # Foo: {'stuff': 5}
+print('Bar:', bar) # Bar: {'meep': 1}
+```
+<br>
+
+- 이런 해결 방법은 타입 애너테이션(BetterWay90)을 사용해도 잘 작동합니다.
+```python
+from typing import Optional
+from datetime import datetime
+
+def log_typed(message:str, when:Optional[datetime]=None) -> None:
+    """메시지와 타임스탬프를 로그에 남긴다.
+
+    Args:
+        message (str): 출력할 메시지
+        when (Optional[datetime], optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간입니다.
+    """
+    if when is None:
+        when = datetime.now()
+    print(f'{when}: {message}')
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 디폴트 인자 값은 그 인자가 포함된 함수 정의가 속한 모듈이 로드되는 시점에 단 한번 평가됩니다. 이로인해 동적인 설정(`dict()`, `list()`, `datetime.now()`같은 경우) 이상한 동작이 일어날 수 있습니다.<br>
+> - 동적인 값을 가질 수 있는 키워드 인자의 디폴트 값을 표현할 때에는 `None`을 사용하고, 함수의 독스트링에 동적인 디폴트 인자가 어떻게 동작하는지 작성합니다.<br>
+> - 타입 애너테이션을 사용할 때도 `None`을 사용해 키워드 인자의 디폴트 값을 표현하는 방식을 적용할 수 있습니다.<br>
 
 <br>
 
