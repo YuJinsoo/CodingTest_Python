@@ -5,8 +5,8 @@
 4. [BetterWay22: 변수 위치 인자를 사용해 시각적인 잡음을 줄여라](#betterway-22-변수-위치-인자를-사용해-시각적인-잡음을-줄여라)
 5. [BetterWay23: 키워드 인자로 선택적인 기능을 제공하라](#betterway-23-키워드-인자로-선택적인-기능을-제공하라)
 6. [BetterWay24: None과 독스트링을 사용해 동적인 디폴트 인자를 지정하라](#betterway-24-none과-독스트링을-사용해-동적인-디폴트-인자를-지정하라)
-7. [BetterWay25: ra용하라]()
-8. [BetterWay26: 여러 수행하려면 zip을 사용해라]()
+7. [BetterWay25: 위치로만 인자를 지정하게 하거나 키워드로만 인자를 지정하게 해서 함수 호출을 명확하게 만들어라](#betterway-25-위치로만-인자를-지정하게-하거나-키워드로만-인자를-지정하게-해서-함수-호출을-명확하게-만들어라)
+8. [BetterWay26: ](#betterway-26-functoolswrap을-사용해-함수-데코레이터를-정의하라)
 
 
 # Chapter3 : 함수
@@ -690,11 +690,193 @@ def log_typed(message:str, when:Optional[datetime]=None) -> None:
 
 ## BetterWay 25. 위치로만 인자를 지정하게 하거나 키워드로만 인자를 지정하게 해서 함수 호출을 명확하게 만들어라
 
+- 함수에 `위치로만 인자`나 `키워드로만 인자`를 지정해서 함수의 의미를 명확하게 할 수 있습니다.
+
+- 나눗셈 예제 문제
+    - `OverflowError`는 산술 연산의 결과가 표현하기에는 너무 클 때 발생하는 에러입니다. 
+    - 이 예제는 에러가 발생해도 플래그를 `True`로 전달하면 에러를 무시하고 정해신 값(0 혹은 'inf')가 전달됩니다.
+    - 이 문제는 몇 번 째 인자가 어떤 플래그 인자인지 알 수 없다는 점입니다.
+    
+```python
+# python 정수 범위는 없음..
+# float의 범위는 64비트	유효자리 15자리, 약 10의+-308승
+def safe_division(number, divisor,
+                  ignore_overflow,
+                  ignore_zero_division):
+    try:
+        return number/divisor
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+result = safe_division(1.0, 10**500, True, False)
+print(result) # 0
+
+result = safe_division(1.0, 0, False, True)
+print(result) # 0
+```
+<br>
+
+- 그래서 Default 값을 지정하고 원하는 설정이 있을 때에만 키워드 인자에 값을 넘겨주도록 수정해보면 다음 예제와 같습니다.
+    - 하지만 이런 식으로 키워드 인자를 사용하는 것은 선택적인 사항입니다.
+    - 그래서 기존 위치 인자를 통해 전달하는 방법도 가능합니다.
+    - 즉, 플래그들을 키워드 인자로만 전달하도록 강제할 수 없습니다.
+    - 이런 혼동을 해결하려면 `키워드만 사용하는 인자`를 통해 의도를 명확히 밝히는 것이 좋습니다.
+
+```python
+def safe_division_b(number, divisor,
+                  ignore_overflow=False,
+                  ignore_zero_division=False):
+    try:
+        return number/divisor
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+result = safe_division_b(1.0, 10**500, ignore_overflow=True)
+print(result) # 0
+result = safe_division_b(1.0, 0, ignore_zero_division=True)
+print(result) # inf
+
+## 키워드 인자를 쓰도록 강제할 수 없습니다.
+assert safe_division_b(1.0, 10**500, True, False) == 0
+```
+<br>
+
+- 위와 같이 복잡한 함수의 경우 키워드만 사용하는 인자만 받도록 만드는 `키워드만 사용하는 인자`를 지정할 수 있습니다.
+    - 키워드 인자가 시작하는 부분에 `*`기호를 하나 추가합니다.
+    - `*`는 위치인자의 마지막과 키워드만 사용하는 인자의 시작을 구분해줍니다.
+    - 위치인자로는 정확하게 동작하지 않습니다.
+
+```python
+def safe_division_c(number, divisor, *,
+                  ignore_overflow=False,
+                  ignore_zero_division=False):
+    try:
+        return number/divisor
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+result = safe_division_c(1.0, 10**500, ignore_overflow=True)
+assert result == 0
+result = safe_division_c(1.0, 0, ignore_zero_division=True)
+assert result == float('inf')
+
+### 위치인자로는 정확하게 동작하지 않습니다.
+## TypeError: safe_division_c() takes 2 positional arguments but 4 were given
+## assert safe_division_c(1.0, 10**500, True, False) == 0
+assert safe_division_c(1.0, 10**500, True, False) == 0
+```
+<br>
+
+- 하지만 * 문자 만으로는 맨 앞에 있는 두 필수인자(number, divisor)를 호출하면서 위치와 키워드를 혼용할 수 있습니다.
+    - 두 필수인자를 순서대로 전달하면 문제가 없지만 순서가 바뀌는 순간 에러가 발생합니다.
+    
+
+```python
+assert safe_division_c(number=2, divisor=5) == 0.4 # pass
+assert safe_division_c(divisor=2, number=2) == 0.4 # AssertionError
+assert safe_division_c(2, divisor=5) == 0.4 # pass
+```
+<br>
+
+- 순서를 바꾸거나 나중에 스타일이 바뀌어 맨 앞의 두 인자 이름을 수정해야 하는 경우가 있습니다.
+- 이런 경우 모든 함수 호출에서 number와 divisor 이름을 수정해주어야 합니다.
+    - 이 함수는 명시적으로 인터페이스에 number와 divisor를 사용하도록 의도한 것이 아니기 때문에 문제가 발생한 것입니다.
+    - 즉 위치인자도 키워드처럼 전달이 가능하기 때문에 발생한 문제입니다.
+- 이런 것을 해결하려면 처음 두 인자를 위치로만 지정하는 인자로 지정할 수 있습니다.
+    - 위치 인자로만 지정하는 문자 `/`를 위치인자 마지막 다음에 추가해줍니다.
+    - 이제 number와 divisor를 키워드인자로 전달하면 에러가 발생합니다.
+    - 이제 위치인자로만 사용하는 부분을 키워드로 전달하여 발생할 수 있는 문제도 해결되었습니다.(number와 divisor 이름 수정 같은 것)
+
+```python
+def safe_division_d(number, divisor, /, *,
+                  ignore_overflow=False,
+                  ignore_zero_division=False):
+    try:
+        return number/divisor
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+assert safe_division_d(2, 5) # pass
+
+# TypeError: safe_division_d() got some positional-only arguments passed as keyword arguments: 'number, divisor'
+assert safe_division_d(number=2, divisor=5) == 0.4 
+assert safe_division_d(divisor=2, number=2) == 0.4 
+assert safe_division_d(2, divisor=5) == 0.4
+```
+<br>
+
+- 위 예제는 위치 인자로만 문자(`/`) 와 키워드 인자로만 문자(`*`)를 둘 다 사용했습니다.
+    - 두 문자 사이에 위치한 인자는 위치인자, 키워드 인자로 모두 전달 가능합니다.
+- 다음 예제는 위치 인자로만 문자(`/`) 와 키워드 인자로만 문자(`*`) 사이에 나눗셈 결과에 대한 자리수를 결정하는 인자를 추가했습니다.
+
+```python
+def safe_division_d(number, divisor, /, 
+                  ndigits=10, *,
+                  ignore_overflow=False,
+                  ignore_zero_division=False):
+    try:
+        return round(number/divisor, ndigits)
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+result = safe_division_d(22, 7)
+print(result) # 3.1428571429
+result = safe_division_d(22, 7, 5)
+print(result) # 3.14286
+result = safe_division_d(22, 7, ndigits=2)
+print(result) # 3.14
+```
+<br>
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 키워드로만 지정해야 하는 인자(`*`)를 사용하면 호출하는 쪽에서 특정 인자를 반드시 키워드 인자로 전달해야 합니다.<br>
+> - 위치로만 지정해야 하는 인자(`/`)를 사용하면 키워드 인자로 전달하지 못하게 강제할 수 있습니다. 이 방법으로 구현 부분과 호출 부분의 결합을 줄일 수 있습니다.<br>
+> - 인자 목록에서 `/`와 `*`사이의 파라미터는 키워드, 위치 두 방법으로 모두 전달이 가능합니다.(python 인자 기본 동작)<br>
 
 <br>
 

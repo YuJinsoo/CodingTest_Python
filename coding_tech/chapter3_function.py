@@ -370,16 +370,146 @@
 # print('Foo:', foo) # Foo: {'stuff': 5}
 # print('Bar:', bar) # Bar: {'meep': 1}
 
-from typing import Optional
-from datetime import datetime
+# from typing import Optional
+# from datetime import datetime
 
-def log_typed(message:str, when:Optional[datetime]=None) -> None:
-    """메시지와 타임스탬프를 로그에 남긴다.
+# def log_typed(message:str, when:Optional[datetime]=None) -> None:
+#     """메시지와 타임스탬프를 로그에 남긴다.
 
-    Args:
-        message (str): 출력할 메시지
-        when (Optional[datetime], optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간입니다.
-    """
-    if when is None:
-        when = datetime.now()
-    print(f'{when}: {message}')
+#     Args:
+#         message (str): 출력할 메시지
+#         when (Optional[datetime], optional): 메시지가 발생한 시각(datetime). 디폴트 값은 현재 시간입니다.
+#     """
+#     if when is None:
+#         when = datetime.now()
+#     print(f'{when}: {message}')
+
+
+# 25
+# OverflowError는 산술 연산의 결과가 표현하기에는 너무 클 때 발생하는 에러입니다. 
+# python 정수 범위는 없음..
+# float의 범위는 64비트	유효자리 15자리, 약 10의+-308승
+# def safe_division(number, divisor,
+#                   ignore_overflow,
+#                   ignore_zero_division):
+#     try:
+#         return number/divisor
+    
+#     except OverflowError:
+#         if ignore_overflow:
+#             return 0
+#         else:
+#             raise
+#     except ZeroDivisionError:
+#         if ignore_zero_division:
+#             return float('inf')
+#         else:
+#             raise
+
+# result = safe_division(1.0, 10**500, True, False)
+# print(result) # 0
+
+# def safe_division_b(number, divisor,
+#                   ignore_overflow=False,
+#                   ignore_zero_division=False):
+#     try:
+#         return number/divisor
+    
+#     except OverflowError:
+#         if ignore_overflow:
+#             return 0
+#         else:
+#             raise
+#     except ZeroDivisionError:
+#         if ignore_zero_division:
+#             return float('inf')
+#         else:
+#             raise
+
+# result = safe_division_b(1.0, 10**500, ignore_overflow=True)
+# print(result) # 0
+# result = safe_division_b(1.0, 0, ignore_zero_division=True)
+# print(result) # inf
+
+# def safe_division_c(number, divisor, *,
+#                   ignore_overflow=False,
+#                   ignore_zero_division=False):
+#     try:
+#         return number/divisor
+    
+#     except OverflowError:
+#         if ignore_overflow:
+#             return 0
+#         else:
+#             raise
+#     except ZeroDivisionError:
+#         if ignore_zero_division:
+#             return float('inf')
+#         else:
+#             raise
+
+# result = safe_division_c(1.0, 10**500, ignore_overflow=True)
+# assert result == 0
+# result = safe_division_c(1.0, 0, ignore_zero_division=True)
+# assert result == float('inf')
+
+
+# assert safe_division_c(number=2, divisor=5) == 0.4 # pass
+# assert safe_division_c(divisor=2, number=2) == 0.4 # AssertionError
+# assert safe_division_c(2, divisor=5) == 0.4 # pass
+
+
+# def safe_division_d(number, divisor, /, *,
+#                   ignore_overflow=False,
+#                   ignore_zero_division=False):
+#     try:
+#         return number/divisor
+    
+#     except OverflowError:
+#         if ignore_overflow:
+#             return 0
+#         else:
+#             raise
+#     except ZeroDivisionError:
+#         if ignore_zero_division:
+#             return float('inf')
+#         else:
+#             raise
+
+# result = safe_division_d(1.0, 10**500, ignore_overflow=True)
+# assert result == 0
+# result = safe_division_d(1.0, 0, ignore_zero_division=True)
+# assert result == float('inf')
+
+# assert safe_division_d(2, 5) # pass
+
+# # TypeError: safe_division_d() got some positional-only arguments passed as keyword arguments: 'number, divisor'
+# assert safe_division_d(number=2, divisor=5) == 0.4 
+# assert safe_division_d(divisor=2, number=2) == 0.4 
+# assert safe_division_d(2, divisor=5) == 0.4
+
+
+def safe_division_d(number, divisor, /, 
+                  ndigits=10, *,
+                  ignore_overflow=False,
+                  ignore_zero_division=False):
+    try:
+        return round(number/divisor, ndigits)
+    
+    except OverflowError:
+        if ignore_overflow:
+            return 0
+        else:
+            raise
+    except ZeroDivisionError:
+        if ignore_zero_division:
+            return float('inf')
+        else:
+            raise
+
+result = safe_division_d(22, 7)
+print(result) # 3.1428571429
+result = safe_division_d(22, 7, 5)
+print(result) # 3.14286
+result = safe_division_d(22, 7, ndigits=2)
+print(result) # 3.14
