@@ -489,27 +489,112 @@
 # assert safe_division_d(2, divisor=5) == 0.4
 
 
-def safe_division_d(number, divisor, /, 
-                  ndigits=10, *,
-                  ignore_overflow=False,
-                  ignore_zero_division=False):
-    try:
-        return round(number/divisor, ndigits)
+# def safe_division_d(number, divisor, /, 
+#                   ndigits=10, *,
+#                   ignore_overflow=False,
+#                   ignore_zero_division=False):
+#     try:
+#         return round(number/divisor, ndigits)
     
-    except OverflowError:
-        if ignore_overflow:
-            return 0
-        else:
-            raise
-    except ZeroDivisionError:
-        if ignore_zero_division:
-            return float('inf')
-        else:
-            raise
+#     except OverflowError:
+#         if ignore_overflow:
+#             return 0
+#         else:
+#             raise
+#     except ZeroDivisionError:
+#         if ignore_zero_division:
+#             return float('inf')
+#         else:
+#             raise
 
-result = safe_division_d(22, 7)
-print(result) # 3.1428571429
-result = safe_division_d(22, 7, 5)
-print(result) # 3.14286
-result = safe_division_d(22, 7, ndigits=2)
-print(result) # 3.14
+# result = safe_division_d(22, 7)
+# print(result) # 3.1428571429
+# result = safe_division_d(22, 7, 5)
+# print(result) # 3.14286
+# result = safe_division_d(22, 7, ndigits=2)
+# print(result) # 3.14
+
+
+# 26
+#데코레이터
+# def trace(func):
+#     def wrapper(*args, **kwargs):
+#         result = func(*args, **kwargs)
+#         print(f'{func.__name__}({args!r}, {kwargs!r}) '
+#               f'-> {result!r}')
+#         return result
+#     return wrapper
+
+
+# @trace
+# def fibonacci(n):
+#     """n번째 피보나치 수를 반환한다."""
+#     if n in (0, 1):
+#         return n
+#     return (fibonacci(n-2) + fibonacci(n-1))
+
+# # print(fibonacci(4)) # 3
+
+# fibonacci = trace(fibonacci)
+# fibonacci(4)
+# print(fibonacci) # <function trace.<locals>.wrapper at 0x00000247FDEAF700>
+
+# help(fibonacci)
+# # Help on function wrapper in module __main__:
+# # wrapper(*args, **kwargs)
+
+# import pickle
+# pickle.dumps(fibonacci)
+# # AttributeError: Can't pickle local object 'trace.<locals>.wrapper'
+
+from functools import wraps
+import pickle
+
+
+def trace(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        print(f'{func.__name__}({args!r}, {kwargs!r}) '
+              f'-> {result!r}')
+        return result
+    return wrapper
+
+@trace
+def fibonacci(n):
+    """n번째 피보나치 수를 반환한다."""
+    if n in (0, 1):
+        return n
+    return (fibonacci(n-2) + fibonacci(n-1))
+
+fibonacci = trace(fibonacci)
+
+help(fibonacci)
+# Help on function fibonacci in module __main__:
+
+# fibonacci(n)
+#     n번째 피보나치 수를 반환한다.
+
+print(fibonacci(4))
+# fibonacci((0,), {}) -> 0
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((0,), {}) -> 0
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((3,), {}) -> 2
+# fibonacci((3,), {}) -> 2
+# fibonacci((4,), {}) -> 3
+# fibonacci((4,), {}) -> 3
+# 3
+
+print(pickle.dumps(fibonacci))
+# b'\x80\x04\x95\x1a\x00\x00\x00\x00\x00\x00\x00\x8c\x08__main__\x94\x8c\tfibonacci\x94\x93\x94.'

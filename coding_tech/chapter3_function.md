@@ -882,10 +882,186 @@ print(result) # 3.14
 
 ## BetterWay 26. functools.wrap을 사용해 함수 데코레이터를 정의하라
 
+- Python은 데코레이터를 지원합니다.
+- 데코레이터는 자신이 감싸고 있는 함수가 호출되기 전과 후에 코드를 추가로 실행해줍니다.
+    - 데코레이터로 감싼 함수의 입력인자, 반환값, 함수에서 발생한 오류에 접근할 수 있습니다.
+    - `@`를 사용한 것은 이 함수에 대해 데코레이터를 호출한 후 데코레이터가 반환한 결과를 원래 함수가 속한 영역에 원래 함수와 같은 이름으로 등록하는 것과 같습니다.
+    > fibonacci = trace(fibonacci)
+    - 새 fibonacci는 wrapper의 코드를 원래의 fibonacci 함수가 실행되기 전과 후에 실행해서 wrapper는 재귀 스택의 매 단계마다 함수의 인자와 반환값을 출력합니다.
+
+
+
+```python
+# 함수 이름 인자, 결과 기록하는 데코레이터
+def trace(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        print(f'{func.__name__}({args!r}, {kwargs!r}) '
+              f'-> {result!r}')
+        return result
+    return wrapper
+
+## 피보나치 수열에 데코레이터 적용
+@trace
+def fibonacci(n):
+    """n번째 피보나치 수를 반환한다."""
+    if n in (0, 1):
+        return n
+    return (fibonacci(n-2) + fibonacci(n-1))
+
+print(fibonacci(4)) # 3
+
+## 출력문자들
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((3,), {}) -> 2
+# fibonacci((4,), {}) -> 3
+```
+
+```python
+fibonacci = trace(fibonacci)
+fibonacci(4)
+
+## 위와 같이 호출하면 아래처럼 출력됨
+# fibonacci((0,), {}) -> 0
+# wrapper((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# wrapper((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# wrapper((2,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# wrapper((1,), {}) -> 1
+# fibonacci((0,), {}) -> 0
+# wrapper((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# wrapper((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# wrapper((2,), {}) -> 1
+# fibonacci((3,), {}) -> 2
+# wrapper((3,), {}) -> 2
+# fibonacci((4,), {}) -> 3
+# wrapper((4,), {}) -> 3
+
+print(fibonacci) 
+# <function trace.<locals>.wrapper at 0x00000247FDEAF700>
+```
+<br>
+
+- 하지만 위 방식(데코레이터함수에 함수를 넣어 새로운 함수로 직접 재할당 한 방식)식으로 호출하면 데코레이터가 반환하는 값이 함수의 이름이 fibonacci가 아닙니다.
+- 이런 결과가 나온 이유
+    - trace함수는 자신의 본문에 정의된 wrapper 함수를 반환합니다.
+    - 데코레이터로 인해 wrapper함수가 모듈에 fibonacci라는 이름으로 등록됩니다.
+    - 이런 방법은 디버거와 같이 인트로스펙션을 하는 도구에서 문제가 됩니다.
+    - 예를 들어 기존 fibonacci에 등록한 docstring이 출력되지 않습니다.
+
+```python
+help(fibonacci)
+# Help on function wrapper in module __main__:
+# wrapper(*args, **kwargs)
+```
+
+- 즉 데코레이터가 감싸고 있는 원래 함수의 위치를 찾을 수 없기 때문에 객체 직렬화도 깨집니다.
+    - BetterWay68. copyreg를 사용해 pickle 신뢰성 확보
+
+```python
+import pickle
+pickle.dumps(fibonacci)
+# AttributeError: Can't pickle local object 'trace.<locals>.wrapper'
+```
+
+- 해결 방법으로 `functools` 내장 모듈에 정의된 `wraps` 도우미 함수를 사용합니다.
+- `wraps`를 `wrapper`함수에 적용하면 `wraps`가 데코레이터 내부에 들어가는 함수에서 중요한 메타데이터를 복사해 `wrapper`함수에 적용해줍니다.
+```python
+from functools import wraps
+import pickle
+
+
+def trace(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        print(f'{func.__name__}({args!r}, {kwargs!r}) '
+              f'-> {result!r}')
+        return result
+    return wrapper
+
+@trace
+def fibonacci(n):
+    """n번째 피보나치 수를 반환한다."""
+    if n in (0, 1):
+        return n
+    return (fibonacci(n-2) + fibonacci(n-1))
+
+fibonacci = trace(fibonacci)
+
+help(fibonacci)
+# Help on function fibonacci in module __main__:
+
+# fibonacci(n)
+#     n번째 피보나치 수를 반환한다.
+
+print(fibonacci(4))
+# fibonacci((0,), {}) -> 0
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((0,), {}) -> 0
+# fibonacci((0,), {}) -> 0
+# fibonacci((1,), {}) -> 1
+# fibonacci((1,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((2,), {}) -> 1
+# fibonacci((3,), {}) -> 2
+# fibonacci((3,), {}) -> 2
+# fibonacci((4,), {}) -> 3
+# fibonacci((4,), {}) -> 3
+# 3
+
+print(pickle.dumps(fibonacci))
+# b'\x80\x04\x95\x1a\x00\x00\x00\x00\x00\x00\x00\x8c\x08__main__\x94\x8c\tfibonacci\x94\x93\x94.'
+```
+<br>
+
+- 파이썬 함수에는 많은 표준 어트리뷰트가 이있습니다.
+    - `__name__`, `__module__`, `__annotations__`
+    - 파이썬 언어에서 함수의 인터페이스를 처리하려면 이런 어트리뷰트들은 보존되어야 합니다.
+    - wraps를 사용하면 모든 어트리뷰트를 제대로 복사해서 함수가 제대로 동작하도록 합니다.
+
+
+#### 인트로스펙션
+- 실행 시점에 프로그램이 어떻게 실행되는지 관찰하는 것
+- 리플렉션은 실생 시점에 프로그램을 조작하는 것으로 인트로스펙션과 혼동하는 경우가 있음
+
+#### pickle
+- 텍스트 상태의 데이터가 아닌 파이썬 객체 자체를 파일로 저장하는 것 입니다.
+- pickle.dump(객체, 파일) 로 저장하고 pickle.load(파일) 로 로딩합니다
+
+```python
+import picklemy_list = ['a','b','c'] 
+
+## Save pickle
+with open("data.pickle","wb") as fw:
+    pickle.dump(my_list, fw) 
+
+## Load pickle
+with open("data.pickle","rb") as fr:
+    data = pickle.load(fr)
+
+print(data)#['a', 'b', 'c']
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - python 데코레이터는 실행 시점에 함수가 다른 함수를 변경할 수 있게 해주는 기능입니다.<br>
+> - 데코레이터를 사용하면 디버거 등 인트로스펙션을 사용하는 도구가 잘못 작동할 수 있습니다.<br>
+> - 직접 데코레이터를 구현할 때 인트로스펙션에서 문제가 생기기 않도록 `functools` 내장모듈의 `wraps`데코레이터를 사용합니다.<br>
 
 <br>
