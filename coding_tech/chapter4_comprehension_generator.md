@@ -165,11 +165,49 @@ print(filtered) # [[6], [9]]
 
 ## BetterWay30. 리스트를 반환하기보다는 제너레이터를 사용하라
 
+- 시퀀스를 결과로 반환하는 경우 가장 간단한 선택은 리스트를 반환하는 것입니다.
+
+- 문자열에서 띄어쓰기 구분 리스트 예제
+    - 리스트를 반환하는 경우 
+        1. 코드 잡음이 많고 핵심을 알아보기 어렵습니다.
+        2. 반환하기 전에 리스트에 모든 결과를 다 저장해야 해서 메모리 문제가 발생할 수 있습니다.
+    - `yield`를 사용해서 `제너레이터`를 활용
+        1. 코드 기능을 명확하게 표현할 수 있습니다.
+        2. 한번에 한개씩만 반환하기 때문에 메모리가 매우 작습니다.
+```python
+def index_words(text):
+    result = []
+    if text:
+        result.append(0)
+    for index, letter in enumerate(text):
+        if letter == ' ':
+            result.append(index + 1)
+    return result
+
+address = '컴퓨터(영어: Computer, 문화어: 콤퓨터  , 순화어: 전산기)는 진공관'
+
+print(index_words(address)) # [0, 8, 18, 23, 27, 28, 30, 35, 41]
+
+## 개선
+def index_word_iter(text):
+    if text:
+        yield 0
+    for index, letter in enumerate(text):
+        if letter == ' ':
+            yield index + 1
+
+it = index_word_iter(address)
+print(next(it)) # 0
+print(next(it)) # 8
+```
+<br>
+
+- 제너레이터를 호출하는 부분에서 주의할 점이 있습니다. 제너레이터가 반환하는 이터레이터에 상태가 있기 때문에 호출하는 쪽에서 재사용이 불가능합니다.
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 제너레이터를 사용하면 결과를 리스트에 합쳐서 반환하는 것보다 더 깔끔합니다.<br>
+> - 제너레이터가 반환하는 이터레이터는 제너레이터 함수의 본문에서 `yield`가 반환하는 값들로 이뤄진 집합을 만들어냅니다.<br>
+> - 제너레이터를 사용하면 작업 메모리에 모든 입력과 출력을 저장할 필요가 없기 때문에 입력 길이가 아주 길어도 출력 시퀀스를 만들 수 있습니다.<br>
 
 <br>
 

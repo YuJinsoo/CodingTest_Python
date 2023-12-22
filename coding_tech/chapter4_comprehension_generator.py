@@ -43,8 +43,37 @@
 #         flat2.extend(sublist2)
 
 # print(flat2) # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        
-        
-matrix = [[1,2,3], [4,5,6], [7,8,9]]
-filtered = [[x for x in row if x%3==0] for row in matrix if sum(row)>=10]
-print(filtered) # [[6], [9]]
+
+
+# matrix = [[1,2,3], [4,5,6], [7,8,9]]
+# filtered = [[x for x in row if x%3==0] for row in matrix if sum(row)>=10]
+# print(filtered) # [[6], [9]]
+
+
+# 29
+
+# 30
+def index_words(text):
+    result = []
+    if text:
+        result.append(0)
+    for index, letter in enumerate(text):
+        if letter == ' ':
+            result.append(index + 1)
+    return result
+
+address = '컴퓨터(영어: Computer, 문화어: 콤퓨터  , 순화어: 전산기)는 진공관'
+
+print(index_words(address)) # [0, 8, 18, 23, 27, 28, 30, 35, 41]
+
+## 개선
+def index_word_iter(text):
+    if text:
+        yield 0
+    for index, letter in enumerate(text):
+        if letter == ' ':
+            yield index + 1
+
+it = index_word_iter(address)
+print(next(it)) # 0
+print(next(it)) # 8
