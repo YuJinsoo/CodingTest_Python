@@ -155,11 +155,98 @@ print(filtered) # [[6], [9]]
 
 ## BetterWay29. 대입식을 사용해 컴프리헨션 안에서 반복 작업을 피하라
 
+- 컴프리헨션(리스트, 딕셔너리, 셋 등)에서 같은 계산을 여러 위치에서 공유하는 경우는 흔합니다.
+
+- 재고를 파악하는 기능 예제
+    - 요청품목을 받아서 주문 최소개수(8)이상인지 판별해서 보여주는 기능.
+    - 반복되는 계산을 컴프리헨션으로 처리하서 간단하게 표현할 수 있습니다.
+    - 하지만 `stock.get`을 활용한 `get_batch()`가 여러번 호출되어 가독성이 떨어지고, 실수할 가능성이 높아집니다.
+```python
+## 예제
+stock = {
+    '못': 125,
+    '나사못': 35,
+    '나비너트': 8,
+    '와셔': 24,
+}
+
+order = ['나사못', '나비너트', '클립']
+
+def get_batches(count, size):
+    return count//size
+
+result = {}
+for name in order:
+    count = stock.get(name, 0)
+    batches = get_batches(count, 8)
+    if batches:
+        result[name] = batches
+print(result) # {'나사못': 4, '나비너트': 1}
+
+## 컴프리헨션 적용하면
+found = {name: get_batches(stock.get(name, 0), 8) for name in order if get_batches(stock.get(name, 0), 8)}
+print(found) #{'나사못': 4, '나비너트': 1}
+```
+<br>
+
+- 개선 방법은 왈러스 연산자(`:=`)를 활용하는 것입니다.
+    - 대입식을 활용하면 한 `get_batch`함수를 한 번만 호출해서 그 결과를 변수에 저장할 수 있습니다.
+    - 그래서 다시 호출할 필요 없이 딕셔너리의 내용을 만들 수 있습니다.
+    - 불필요한 호출이 없으므로 불필요한 연산을 수행하지 않으므로 성능도 향상됩니다.
+- 하지만 왈러스 연산자를 사용할 때 변수의 범위를 잘 생각해야 합니다.
+    - 에러 예제에서
+    - `for`와 `if`의 변수 범위가 같은데 tenth라는 변수는 `for`이나 `if`에서 정의되어 있지 않아서 에러가 납니다.
+    - 즉 컴프리헨션이 평가되는 순서 때문에 에러가 발생합니다.
+```python
+## 왈러스 연산자 도입으로 깔끔 및 선능향상
+real_found = {name: batches 
+              for name in order 
+              if (batches := get_batches(stock.get(name, 0), 8))}
+print(real_found) #{'나사못': 4, '나비너트': 1}
+
+## 왈러스 에러
+# NameError: name 'tenth' is not defined
+result = {name: (tenth := count // 10) for name, count in stock.items() if tenth >0}
+## 에러개선
+# 왈러스를 if문으로 옮겨주면 됨
+result = {name: tenth for name, count in stock.items() if (tenth := count // 10) > 0}
+print(result) # {'못': 12, '나사못': 3, '와셔': 2}
+```
+<br>
+
+- 컴프리헨션에서 값 부분에 왈러스를 사용했을 때 값에 대한 조건 부분이 없다면 왈러스연산자로 정의한 변수가 밖으로 노출됩니다.
+- 이런 변수 누출은 일반적인 for 루프에서 발생하는 루프 변수 누출과 비슷합니다.
+    - 하지만 컴프리헨션 `for`구문에서는 누출되지 않습니다.
+```python
+half = [(last := count // 2) for count in stock.values()]
+print(f'{half}의 마지막 원소는 {last}') #  [62, 17, 4, 12]의 마지막 원소는 12
+
+## for loop 변수 누출
+for count in stock.values():
+    pass
+print(f'{list(stock.values())}의 마지막 원소는 {count}')
+# [125, 35, 8, 24]의 마지막 원소는 24
+
+## 컴프리헨션 for에서는 누출되지 않음
+half = [count2 // 2 for count2 in stock.values()]
+print(half)
+# print(count2) #NameError: name 'count2' is not defined
+```
+<br>
+
+- 루프 변수는 누출되지 않는 편이 좋습니다. 따라서 컴프리헨션에서 대입식을 조건에만 사용합니다.
+- 대입식은 제너레이터의 경우에도 같은 방식으로 동작합니다.
+    - 다음 예제는 딕셔너리 인스턴스 대신 제품 이름과 현재 재로 수량 쌍으로 이뤄진 이터레이터를 만듭니다.
+```python
+found = ((name, batches) for name in order if (batches := get_batches(stock.get(name, 0), 8)))
+
+print(next(found)) # ('나사못', 4)
+print(next(found)) # ('나비너트', 1)
+```
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 대입식(왈러스 연산)을 통해 컴프리헨션이나 제너레이터 식의 조건 부분에서 사용한 값을 같은 컴프리헨션이나 제너레이터의 다른 위치에서 재사용할 수 있습니다. 이 방법으로 가독성이 좋아지고 성능 향상이 됩니다. <br>
+> - 조건이 아닌 부분에도 대입식을 사용할 수 있찌만, 그런 형태의 사용은 피해야 합니다.(반복문 변수 누출의 위험)<br>
 
 <br>
 

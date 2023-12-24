@@ -52,28 +52,82 @@
 
 # 29
 
+stock = {
+    '못': 125,
+    '나사못': 35,
+    '나비너트': 8,
+    '와셔': 24,
+}
+
+order = ['나사못', '나비너트', '클립']
+
+def get_batches(count, size):
+    return count//size
+
+result = {}
+for name in order:
+    count = stock.get(name, 0)
+    batches = get_batches(count, 8)
+    if batches:
+        result[name] = batches
+print(result) # {'나사못': 4, '나비너트': 1}
+
+found = {name: get_batches(stock.get(name, 0), 8) for name in order if get_batches(stock.get(name, 0), 8)}
+print(found) #{'나사못': 4, '나비너트': 1}
+
+
+real_found = {name: batches 
+              for name in order 
+              if (batches := get_batches(stock.get(name, 0), 8))}
+print(real_found) #{'나사못': 4, '나비너트': 1}
+
+# NameError: name 'tenth' is not defined
+# result = {name: (tenth := count // 10) for name, count in stock.items() if tenth >0}
+
+
+result = {name: tenth for name, count in stock.items() if (tenth := count // 10) > 0}
+print(result) # {'못': 12, '나사못': 3, '와셔': 2}
+
+half = [(last := count // 2) for count in stock.values()]
+print(f'{half}의 마지막 원소는 {last}') #  [62, 17, 4, 12]의 마지막 원소는 12
+
+
+for count in stock.values():
+    pass
+print(f'{list(stock.values())}의 마지막 원소는 {count}')
+# [125, 35, 8, 24]의 마지막 원소는 24
+
+half = [count2 // 2 for count2 in stock.values()]
+print(half)
+# print(count2) #NameError: name 'count2' is not defined
+
+found = ((name, batches) for name in order if (batches := get_batches(stock.get(name, 0), 8)))
+
+print(next(found)) # ('나사못', 4)
+print(next(found)) # ('나비너트', 1)
+
 # 30
-def index_words(text):
-    result = []
-    if text:
-        result.append(0)
-    for index, letter in enumerate(text):
-        if letter == ' ':
-            result.append(index + 1)
-    return result
+# def index_words(text):
+#     result = []
+#     if text:
+#         result.append(0)
+#     for index, letter in enumerate(text):
+#         if letter == ' ':
+#             result.append(index + 1)
+#     return result
 
-address = '컴퓨터(영어: Computer, 문화어: 콤퓨터  , 순화어: 전산기)는 진공관'
+# address = '컴퓨터(영어: Computer, 문화어: 콤퓨터  , 순화어: 전산기)는 진공관'
 
-print(index_words(address)) # [0, 8, 18, 23, 27, 28, 30, 35, 41]
+# print(index_words(address)) # [0, 8, 18, 23, 27, 28, 30, 35, 41]
 
-## 개선
-def index_word_iter(text):
-    if text:
-        yield 0
-    for index, letter in enumerate(text):
-        if letter == ' ':
-            yield index + 1
+# ## 개선
+# def index_word_iter(text):
+#     if text:
+#         yield 0
+#     for index, letter in enumerate(text):
+#         if letter == ' ':
+#             yield index + 1
 
-it = index_word_iter(address)
-print(next(it)) # 0
-print(next(it)) # 8
+# it = index_word_iter(address)
+# print(next(it)) # 0
+# print(next(it)) # 8
