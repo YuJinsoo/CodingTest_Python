@@ -52,59 +52,59 @@
 
 # 29
 
-stock = {
-    '못': 125,
-    '나사못': 35,
-    '나비너트': 8,
-    '와셔': 24,
-}
+# stock = {
+#     '못': 125,
+#     '나사못': 35,
+#     '나비너트': 8,
+#     '와셔': 24,
+# }
 
-order = ['나사못', '나비너트', '클립']
+# order = ['나사못', '나비너트', '클립']
 
-def get_batches(count, size):
-    return count//size
+# def get_batches(count, size):
+#     return count//size
 
-result = {}
-for name in order:
-    count = stock.get(name, 0)
-    batches = get_batches(count, 8)
-    if batches:
-        result[name] = batches
-print(result) # {'나사못': 4, '나비너트': 1}
+# result = {}
+# for name in order:
+#     count = stock.get(name, 0)
+#     batches = get_batches(count, 8)
+#     if batches:
+#         result[name] = batches
+# print(result) # {'나사못': 4, '나비너트': 1}
 
-found = {name: get_batches(stock.get(name, 0), 8) for name in order if get_batches(stock.get(name, 0), 8)}
-print(found) #{'나사못': 4, '나비너트': 1}
-
-
-real_found = {name: batches 
-              for name in order 
-              if (batches := get_batches(stock.get(name, 0), 8))}
-print(real_found) #{'나사못': 4, '나비너트': 1}
-
-# NameError: name 'tenth' is not defined
-# result = {name: (tenth := count // 10) for name, count in stock.items() if tenth >0}
+# found = {name: get_batches(stock.get(name, 0), 8) for name in order if get_batches(stock.get(name, 0), 8)}
+# print(found) #{'나사못': 4, '나비너트': 1}
 
 
-result = {name: tenth for name, count in stock.items() if (tenth := count // 10) > 0}
-print(result) # {'못': 12, '나사못': 3, '와셔': 2}
+# real_found = {name: batches 
+#               for name in order 
+#               if (batches := get_batches(stock.get(name, 0), 8))}
+# print(real_found) #{'나사못': 4, '나비너트': 1}
 
-half = [(last := count // 2) for count in stock.values()]
-print(f'{half}의 마지막 원소는 {last}') #  [62, 17, 4, 12]의 마지막 원소는 12
+# # NameError: name 'tenth' is not defined
+# # result = {name: (tenth := count // 10) for name, count in stock.items() if tenth >0}
 
 
-for count in stock.values():
-    pass
-print(f'{list(stock.values())}의 마지막 원소는 {count}')
-# [125, 35, 8, 24]의 마지막 원소는 24
+# result = {name: tenth for name, count in stock.items() if (tenth := count // 10) > 0}
+# print(result) # {'못': 12, '나사못': 3, '와셔': 2}
 
-half = [count2 // 2 for count2 in stock.values()]
-print(half)
-# print(count2) #NameError: name 'count2' is not defined
+# half = [(last := count // 2) for count in stock.values()]
+# print(f'{half}의 마지막 원소는 {last}') #  [62, 17, 4, 12]의 마지막 원소는 12
 
-found = ((name, batches) for name in order if (batches := get_batches(stock.get(name, 0), 8)))
 
-print(next(found)) # ('나사못', 4)
-print(next(found)) # ('나비너트', 1)
+# for count in stock.values():
+#     pass
+# print(f'{list(stock.values())}의 마지막 원소는 {count}')
+# # [125, 35, 8, 24]의 마지막 원소는 24
+
+# half = [count2 // 2 for count2 in stock.values()]
+# print(half)
+# # print(count2) #NameError: name 'count2' is not defined
+
+# found = ((name, batches) for name in order if (batches := get_batches(stock.get(name, 0), 8)))
+
+# print(next(found)) # ('나사못', 4)
+# print(next(found)) # ('나비너트', 1)
 
 # 30
 # def index_words(text):
@@ -131,3 +131,8 @@ print(next(found)) # ('나비너트', 1)
 # it = index_word_iter(address)
 # print(next(it)) # 0
 # print(next(it)) # 8
+
+
+# 31
+
+value = [len(x) for x in open('my_file.txt')]
