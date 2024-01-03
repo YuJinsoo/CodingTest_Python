@@ -298,14 +298,128 @@ print(next(it)) # 8
 
 <br>
 
-## BetterWay31. 인자에 대해 이터레이션 할 때는 방어적이 되어라
+## BetterWay31. 인자에 대해 이터레이션 할 때는 방어적으로 해야 합니다
 
+- 리스트를 입력으로 받아 계산하는 기능은 입력 리스트가 매우 커질 경우 프로그램이 멈춰버리는 문제가 발생할 수 있습니다.
+- 제너레이터나 이터레이터를 이용해서 메모리 문제를 개선할 수 있지만, 한 번 순회한 경우 재사용할 수 없기 때문에 재사용하게 될 경우 빈 리스트를 반환받을 수 있습니다. (**입력으로 받은 이터레이터를 여러 번 순회하는 경우**)
+    - 제너레이터를 `list`객체로 복사하여 사용하는 방법이 있지만 이 또한 길이가 길어질 경우 프로그램이 멈출 가능성이 있습니다.
+
+- 항상 새로운 이터레이터를 반환하도록 `__iter__`와 `__next__` 매직메서드를 정의한 새로운 컨테이너를 사용하는 것이 해결 방법입니다.
+
+
+- 다음은 방문객 수를 확인하는 예제
+```python
+## 리스트 입력에 리스트를 줄력으로 하는 경우 아래처럼 작성이 가능
+## 하지만 입력 바리언스에 따라 메모리 문제가 걱정됨
+def normalize(numbers):
+    total = sum(numbers)
+    result = []
+    for value in numbers:
+        percent = 100 * value / total
+        result.append(percent)
+    return result
+
+visits = [15,35, 80]
+percentages = normalize(visits)
+print(percentages)
+assert sum(visits) == 100
+
+## 입력이 커져서 제너레이터/이터레이터를 넘기도록 하는 방법 (파일로 입력을 읽어온다고 가정)
+# 이또한 한 번 이터레이션이 되면 한 번만 순회되어 사라짐
+# 여기서는 normalize에서 sum() 과정에서 모두 순회되어 사라져서 for 문에서는 numbers에 아무것도 없는 것입니다.
+# 하지만 모두 소진된 iterator와 없는 iterator를 구분할 수 없어 에러가 발생하지 않습니다.
+def read_visits(data_path):
+    with open(data_path) as f:
+        for line in f:
+            yield int(line)
+
+it = read_visits('my_numbers.txt')
+percentages = normalize(it)
+print(percentages) ## []
+
+## 전달받은 이터레이터를 list로 변환하면 여러번 순회 가능합니다.
+# 하지만 리스트로 변환하는 과정에서 메모리 부족 문제가 발생할 수 있습니다.
+def normalize_copy(numbers):
+    numbers_copy = list(numbers) ## 리스트로 변환
+    total = sum(numbers_copy)
+    result = []
+    for value in numbers_copy:
+        percent = 100 * value / total
+        result.append(percent)
+    return result
+
+def read_visits(data_path):
+    with open(data_path) as f:
+        for line in f:
+            yield int(line)
+
+it = read_visits('my_numbers.txt')
+percentages = normalize(it)
+print(percentages) ## 정확한 출력이 나옴
+```
+
+- 새로운 컨테이너를 정의해서 사용해봅시다.
+```python
+##
+# ReadVisits 컨테이너의 __iter__가 각각 호출되므로 새로운 이터레이터를 생성해서 넘겨주어 반복문이 정상적으로 처리됩니다.
+# 또한 계산을 처리하는 함수에서 컨테이너의 속성을 확인하는 코들르 추가해서 안정성을 높일 수 있습니다.
+# normalize_defensive 메서드에서 컨테이너가 아닌 이터레이터가 들어가면 에러를 발생시킵니다.
+# 여러번 순회하기 때문에 이터레이터가 들어가면 안됩니다.
+class ReadVisits:
+    def __init__(self, data_path):
+        self.data_path = data_path
+    
+    def __iter__(self):
+        with open(self.data_path) as f:
+            for line in f:
+                yield int(line)
+
+def normalize_defensive(numbers):
+    if iter(number) is number: ## True가 되면 __iter__가 없는 객체라는 뜻.
+        raise TypeError('컨테이너를 제공해야 합니다')
+    total = sum(numbers) ## __iter__ 호출
+    result = []
+    for value in numbers: ## __iter__ 호출
+        percent = 100 * value / total
+        result.append(percent)
+    return result
+
+visits = ReadVisits('my_numbers.txt')
+percentages = normalize(visits)
+print(percentages) ## 정상
+assert sum(percentages) == 100 ## 정상
+```
+<br>
+
+- `iter`로 확인하는 방법 말고 다른 해결 방법으로는 `collections.abc.Iterator`를 활용하는 방법입니다.
+```python
+from collections.abc import Iterator
+
+def normalize_defensive(numbers):
+    if isinstance(numbers, Iterator): ## True가 되면 __iter__가 없는 객체라는 뜻.
+        raise TypeError('컨테이너를 제공해야 합니다')
+    total = sum(numbers) ## __iter__ 호출
+    result = []
+    for value in numbers: ## __iter__ 호출
+        percent = 100 * value / total
+        result.append(percent)
+    return result
+```
+<br>
+
+### 이터레이터 프로토콜
+
+- 파이썬의 `for`루프나 그와 관련된 식들이 컨테이너 타입의 내용을 방문할 때 사용하는 절차입니다.
+    - `for x in foo`에서 `iter(foo)`를 호출합니다. (매직메서드 `__iter__` 호출)
+    - `__iter__`메서드는 반드시 이터레이터 객체(`__next__` 가 정의된 객체)를 반환해야 합니다.
+    - `for`루프는 반환받은 이터레이터 객체가 데이터를 소진할 때까지(StopIteration 예외가 발생할 때까지)반복적으로 이터레이터 객체에 대해 `next`내장 함수를 호출합니다.
 
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 입력 인자를 여러 번 이터레이션 하는 함수나 메서드를 조심해야 합니다. 입력받은 안지가 이터레이터면 함수가 이상하게 동작하거나 결과가 없을 수 있습니다.<br>
+> - 파이썬의 이터레이터 프로토콜은 컨테이너와 이터레이터가 `iter`, `next`내장 함수나 `for`루프 등의 관련 식과 상호작용하는 절차를 정의합니다.<br>
+> - `__iter__`메서드를 제너레이터로 정의하면 쉽게 이터러블 컨테이너 타입을 정의할 수 있습니다.<br>
+> - 컨테이너가 아닌 어떤 값이 이터레이터인지 판별하려면, 이 값을 `iter()`메서드에 넣어서 반환되는 값이 원래 값과 같은 값인지 확인하면 됩니다. 다른 방법으로는 `collections.abc.Iterator`클래스를 `isinstance()`메서드와 사용하는 방법도 있습니다. <br>
 
 <br>
 
