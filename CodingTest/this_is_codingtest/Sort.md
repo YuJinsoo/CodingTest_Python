@@ -49,5 +49,79 @@ print(array)
 - 현재 위치의 값이 왼쪽 배열의 어느 위치에 있어야 할지 결정하는 방식으로 정렬이 이루어집니다.
 
 
+```python
+# 삽입정렬
+array = [7,5,9,0,3,1,6,2,4,8]
+
+## 내풀이
+for i in range(1, len(array)):
+    if array[i-1] < array[i]:
+        continue
+    
+    for j in range(0, i):
+        if array[j] > array[i]:
+            array[i], array[j] = array[j], array[i]
+
+print(array)
 ```
+
+#### 삽입정렬 시간복잡도
+- 최악의 경우 O(N^2)
+- 최선의 경우 O(N) >> 정렬이 많이 되어있는 경우
+- 퀵정렬보다 비효율 적이지만, 정렬이 거의 되어 있는 상황에서는 퀵정렬보다 강력하다.
+
+
+### 퀵정렬
+- 가장 많이 사용되는 정렬 알고리즘.
+- 병합 정렬과 함께 성능이 가장 좋은 정렬 알고리즘 중 하나
+- 병합정렬과 퀵정렬은 프로그래밍 언어에서 정렬 라이브러리의 근간이 되는 알고리즘
+
+- 기준을 설정한 다음 큰 수와 작은 수를 교환한 후 리스트를 반으로 나누는 방식으로 동작.
+- 피벗이 사용됨
+
+- 동작원리
+    - 피벗으로 사용할 값을 결정함
+    - 왼쪽에서부터 피벗보다 큰 값, 우측에서부터 피벗보다 작은 값을 탐색하여 서로 위치를 교환
+    - 만일 큰 값과 작은 값의 위치가 교환(큰값이 우측에 있다면) 되었다면 피벗과 작은값의 위치를 교환
+    - 그럼 피벗 값 왼쪽은 피벗보다 작은 값들의 배열 우즉은 큰 값들의 배열이 됨.
+    - 이것을 반복
+    - 분할된 배열의 크기가 1이면 종료됨.
+
+```python
+arr = [5,7,9,0,3,1,6,2,4,8]
+
+## pythonic하게 이용한 코드.
+def quick_pythonic(array):
+    if len(array) <= 1:
+        return array
+    
+    pivot = array[0]
+    tail = array[1:]
+    
+    left_side = [x for x in tail if x<=pivot]
+    right_side = [x for x in tail if x>=pivot]
+    
+    return quick_pythonic(left_side) + [pivot] + quick_pythonic(right_side)
+
+result = quick_pythonic(arr)
+print(result) ## [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
 ```
+
+#### 퀵정렬 시간복잡도
+- 평균적으로 O(NlogN)
+- 최악으로는 O(N^2)
+
+- 데이터가 무작위로 입력되는 겨우 빠르게 동작할 수 있다.
+- 반면 이미 데이터가 어느정도 정렬되어 있는 상황에서는 매우 느리다.(삽입정렬과 반대)
+- 피벗값을 잘 설정하는 것이 중요
+
+
+### 계수정렬
+- pass
+
+
+### Python의 정렬 알고리즘
+- Tim Sort를 사용합니다.
+- 병합정렬과 삽입정렬을 적절히 조합하여 사용하는 정렬입니다.
+
