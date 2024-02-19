@@ -464,13 +464,113 @@ roots = ((x, x**0.5 for x in it))
 
 <br>
 
-## BetterWay33. yield from을 사용해 여러 제너레ㅔ이터를 합성하라
+## BetterWay33. yield from을 사용해 여러 제너레이터를 합성하라
 
+- 애니메이션 효과 예제
+    - 문제점: `animate()`함수가 너무 반복적
+    - for과 yield식이 반복되면서 이해하기 어렵고 가독성이 줄어듦
+```python
+def move(period, speed):
+    for _ in range(period):
+        yield speed
+
+def pause(delay):
+    for _ in range(delay):
+        yield 0
+
+# 애니메이션 동작은
+def animate():
+    for delta in move(4, 5.0):
+        yield delta
+    for delta in pause(3):
+        yield delta
+    for delta in move(2, 3.0):
+        yield delta
+
+def render(delta):
+    print(f'Delta: {delta:.1f}')
+    
+def run(func):
+    for delta in func():
+        render(delta)
+
+run(animate)
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 0.0
+# Delta: 0.0
+# Delta: 0.0
+# Delta: 3.0
+# Delta: 3.0
+
+```
+
+- 위 코드의 문제를 `yield from`을 활용해서 개선할 수 있습니다.
+    - 기능은 같지만 `animate`와 `animate_composed`를 비교해보면 후자의 가독성이 훨씬 좋다.
+    - `yield from`은 근본적으로 파이썬 인터프리터가 개발자 대신 for 루프를 내포시키고 `yield`식을 처리하도록 합니다. >> **성능이 좋아짐**
+
+```python
+def animate_composed():
+    yield from move(4, 5.0)
+    yield from pause(3)
+    yield from move(2, 3.0)
+
+run(animate_composed)
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 5.0
+# Delta: 0.0
+# Delta: 0.0
+# Delta: 0.0
+# Delta: 3.0
+# Delta: 3.0
+```
+
+- timeit로 성능 벤치마크 예제
+
+```python
+import timeit
+
+## 제너레이터
+def child():
+    for i in range(1_000_000):
+        yield i
+
+## for문으로 호출
+def slow():
+    for i in child():
+        yield i
+
+## yield from으로 호출
+def fast():
+    yield from child()
+
+baseline = timeit.timeit(
+    stmt='for _ in slow(): pass',
+    globals=globals(),
+    number=50)
+print(f'수동 내포: {baseline:.2f}s')
+
+comparison = timeit.timeit(
+    stmt='for _ in fast(): pass',
+    globals=globals(),
+    number=50)
+print(f'합성 사용: {comparison:.2f}s')
+
+reduction = -(comparison - baseline) / baseline
+print(f'{reduction:.1%} 시간이 적게 듦')
+
+# 수동 내포: 3.15s
+# 합성 사용: 2.64s
+# 16.1% 시간이 적게 듦
+```
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - <br> `yield from`을 사용하면 여러 내장 제너레이터 를 모아서 제너레이터 하나로 합성할 수 있다.
+> - <br> 직접 내포된 제너레이터를 이터레이션하면서 각 제너레이터의 출력을 내보내는 것보다 `yield from`을 사용하는 것이 성능 면에서 좋다.
 
 <br>
 
