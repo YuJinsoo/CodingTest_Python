@@ -436,7 +436,7 @@ value = [len(x) for x in open('my_file.txt')]
 <br>
 
 - `제너레이터 식`을 활용해서 문제를 해결할 수 있습니다.
-    - 리스트 컴프리헨션과 제너레이터를 일반화하 ㄴ것입니다.
+    - 리스트 컴프리헨션과 제너레이터를 일반화 한 것입니다.
     - 시퀀스 전체가 실체화 되지는 않습니다.
     - `()`사이에 리스트 컴프리헨션과 비슷한 구문을 넣어 제너레이터 식을 만들 수 있습니다.
     - `next()`함수를 이용해서 순서대로 값을 꺼낼 수 있습니다.
@@ -575,12 +575,215 @@ print(f'{reduction:.1%} 시간이 적게 듦')
 <br>
 
 ## BetterWay34. send로 제너레이터에 데이터를 주입하지 말라
+- `yield`를 사용하면 제너레이터 함수가 간단하게 이터레이션이 가능한 출력 값을 만들어낼 수 있음
+    - 위와 같은 방식은 단방향 동작임
+    - 제너레이터가 데이터를 보내면서 받아들일 때 직접 쓸 방법이 없어 보임
 
+- 파형을 생성해서 보내는 예제(단방향)
+    - 고정된 파형을 생성하는 것은 가능하다.
+    - 하지만 별도의 입력(진폭 변조 같은)을 통해 신호를 변경해야 한다면 이 코드는 쓸모가 없음
+
+```python
+## 주어진 간격과 진폭에 따른 사인파를 생성하는 함수
+import math
+
+def wave(amplitude, steps):
+    step_size = 2 * math.pi / steps
+    for step in range(steps):
+        radians = step * step_size
+        fraction = math.sin(radians)
+        output = amplitude * fraction
+        yield output
+
+# wave 제너레이터를 이터레이션하면서 진폭이 고정된 파형 신호를 송신
+def transmit(output):
+    if output is None:
+        print(f'출력: None')
+    else:
+        print(f'출력: {output:>5.1f}')
+
+def run(it):
+    for output in it:
+            transmit(output)
+
+run(wave(3.0, 8))
+# 출력:   0.0
+# 출력:   2.1
+# 출력:   3.0
+# 출력:   2.1
+# 출력:   0.0
+# 출력:  -2.1
+# 출력:  -3.0
+# 출력:  -2.1
+```
+
+- 그래서 python 제너레이터는 `send`를 지원합니다.
+    - `yield`식을 양방향 채널로 만들어줌
+    - `send`메서드를 사용하면 입력을 제너레이터에 스트리밍 하는 동시에 출력을 내보낼 수 있습니다.
+    - `yield`가 반환하는 값은 None입니다.
+
+- `for`이나 `next`내장 함수로 제너레이터를 이터레이션 하지 않고 `send`메서드를 호출하면, 제너레이터가 재개(resume)될 때 `yield가` `send에` 전달된 파라미터 값을 반환한다.
+- 하지만 방금 시작한 제너레이터는 `yield`에 도달하지 못해 최초 `send`에는 None만 인자로 전달할 수 있다. (다른값 전달시 `TypeError`)
+
+```python
+def my_generator():
+    received = yield 1
+    print(f'받은 값 = {received}')
+    
+it = iter(my_generator())
+output = next(it)   # 첫 번째 제너레이터 출력 얻음
+print(f'출력값 = {output}')
+
+try:
+    next(it)        # 종료될 때까지 제너레이터를 실행
+except StopIteration:
+    pass
+
+# 출력값 = 1
+# 받은 값 = None
+
+###
+it = iter(my_generator())
+output = it.send(None) # 첫 제너레이터 출력을 얻음
+print(f'출력값 = {output}')
+
+try:
+    it.send('안녕!') # 값을 제너레이터에 넣음
+except StopIteration:
+    pass
+# 출력값 = 1
+# 받은 값 = 안녕!
+
+```
+
+- 이런 동작을 이용해 사인파의 진폭을 변조할 수 있습니다. (예제)
+    - 입력 신호 (run_modulating 함수의 amplitudes)에 따라 변조되어 출력됩니다.
+    - 첫 출력은 `None`
+    - 문제 1: 코드를 이해하기 어렵다. yield, send 숙련자가 아니라면 보기 힘듦
+    - 문제 2: 여러 제너레이터를 합성하는 경우에 None이 사이사이에 발생합니다.
+```python
+import math
+
+# send로 진폭을 전달하여 aplitude에 값을 저장
+def wave_modulating(steps):
+    step_size = 2 * math.pi / steps
+    amplitude = yield   # 초기 진폭을 받음
+    for step in range(steps):
+        radians = step * step_size
+        fraction = math.sin(radians)
+        output = amplitude * fraction
+        amplitude = yield output # 다음 진폭을 받음
+
+# wave 제너레이터를 이터레이션하면서 진폭이 고정된 파형 신호를 송신
+def transmit(output):
+    if output is None:
+        print(f'출력: None')
+    else:
+        print(f'출력: {output:>5.1f}')
+
+
+# run함수를 바꿔 매 이터레이션마다 
+# 변조에 사용할 진폭을 wave_modulating 제너레이터에 스트리밍 하도록 만든다.
+
+def run_modulating(it):
+    amplitudes = [ None, 7,7,7,2,2,2,2,10,10,10,10,10 ]
+    for amp in amplitudes:
+        output = it.send(amp)
+        transmit(output)
+
+run_modulating(wave_modulating(12))
+# 출력: None
+# 출력:   0.0
+# 출력:   3.5
+# 출력:   6.1
+# 출력:   2.0
+# 출력:   1.7
+# 출력:   1.0
+# 출력:   0.0
+# 출력:  -5.0
+# 출력:  -8.7
+# 출력: -10.0
+# 출력:  -8.7
+# 출력:  -5.0
+```
+
+- 문제 2 예제
+
+```python
+def complex_wave_modulating():
+    yield from wave_modulating(3)
+    yield from wave_modulating(4)
+    yield from wave_modulating(5)
+
+run_modulating(complex_wave_modulating())
+# 출력: None
+# 출력:   0.0
+# 출력:   6.1
+# 출력:  -6.1
+# 출력: None
+# 출력:   0.0
+# 출력:   2.0
+# 출력:   0.0
+# 출력: -10.0
+# 출력: None
+# 출력:   0.0
+# 출력:   9.5
+# 출력:   5.9
+```
+
+- 쉬운 해결책을 추천합니다.
+    - wave함수에 이터레이터를 전달
+    - 합성할 때에도 이터레이터를 전달
+
+```python
+def wave_cascading(amplitude_it, steps):
+    step_size = 2 * math.pi / steps
+    for step in range(steps):
+        radians = step * step_size
+        fraction = math.sin(radians)
+        amplitude = next(amplitude_it) # 전달한 이터레이터 값을 순서대로 입력
+        output = amplitude * fraction
+        yield output
+        
+def complex_wave_casecading(amplitude_it):
+    yield from wave_cascading(amplitude_it,3)
+    yield from wave_cascading(amplitude_it,4)
+    yield from wave_cascading(amplitude_it,5)
+    
+def run_cascading():
+    amplitude_it = [7,7,7,2,2,2,2,10,10,10,10,10]
+    it = complex_wave_casecading(iter(amplitude_it))
+    for amp in amplitude_it:
+        output = next(it)
+        transmit(output)
+    
+run_cascading()
+# 출력:   0.0
+# 출력:   6.1
+# 출력:  -6.1
+# 출력:   0.0
+# 출력:   2.0
+# 출력:   0.0
+# 출력:  -2.0
+# 출력:   0.0
+# 출력:   9.5
+# 출력:   5.9
+# 출력:  -5.9
+# 출력:  -9.5
+```
+
+- 이 방법은 이터레이터가 완전히 동적인 경우에도 잘 작동합니다.
+- 하지만 제너레이터가 스레드 세이프 한 것을 가정한 동작입니다.
+- 실제로는 스레드 세이프하지 않습니다.
+- 그래서 async함수를 사용하는 것이 더 나은 방법일 수 있습니다.
+    - betterway 62
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `send`메서드를 사용해 데이터 제너레이터에 주입할 수 있다.
+> - 제너레이터는 `send`로 주입된 값을 `yield` 식이 반환하는 값을 통해 받으며, 이 값을 변수에 저장해 활용합니다.
+> - `send`와 `yield from`식을 함께 사용하면 제너레이터의 출력에 None이 불쑥불쑥 나타나는 의외의 결과를 얻을 수 있습니다.
+> - 합성할 제너레이터들의 입력으로 이터레이터를 전달하는 방식이 `send`를 사용하는 방식보다 더 낫습니다. `send`는 가급적 사용을 지양합니다.
+<br>
 
 <br>
 

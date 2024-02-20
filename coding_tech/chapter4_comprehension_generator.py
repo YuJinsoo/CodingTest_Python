@@ -211,86 +211,255 @@
 
 # 33
 
-#움직임 함수와 멈춤함수
-def move(period, speed):
-    for _ in range(period):
-        yield speed
+# #움직임 함수와 멈춤함수
+# def move(period, speed):
+#     for _ in range(period):
+#         yield speed
 
-def pause(delay):
-    for _ in range(delay):
-        yield 0
+# def pause(delay):
+#     for _ in range(delay):
+#         yield 0
 
-# 애니메이션 동작은
-def animate():
-    for delta in move(4, 5.0):
-        yield delta
-    for delta in pause(3):
-        yield delta
-    for delta in move(2, 3.0):
-        yield delta
+# # 애니메이션 동작은
+# def animate():
+#     for delta in move(4, 5.0):
+#         yield delta
+#     for delta in pause(3):
+#         yield delta
+#     for delta in move(2, 3.0):
+#         yield delta
 
-def render(delta):
-    print(f'Delta: {delta:.1f}')
+# def render(delta):
+#     print(f'Delta: {delta:.1f}')
     
-def run(func):
-    for delta in func():
-        render(delta)
+# def run(func):
+#     for delta in func():
+#         render(delta)
 
-run(animate)
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 0.0
-# Delta: 0.0
-# Delta: 0.0
-# Delta: 3.0
-# Delta: 3.0
+# run(animate)
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 0.0
+# # Delta: 0.0
+# # Delta: 0.0
+# # Delta: 3.0
+# # Delta: 3.0
 
 
-def animate_composed():
-    yield from move(4, 5.0)
-    yield from pause(3)
-    yield from move(2, 3.0)
+# def animate_composed():
+#     yield from move(4, 5.0)
+#     yield from pause(3)
+#     yield from move(2, 3.0)
 
-run(animate_composed)
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 5.0
-# Delta: 0.0
-# Delta: 0.0
-# Delta: 0.0
-# Delta: 3.0
-# Delta: 3.0
+# run(animate_composed)
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 5.0
+# # Delta: 0.0
+# # Delta: 0.0
+# # Delta: 0.0
+# # Delta: 3.0
+# # Delta: 3.0
 
-import timeit
+# import timeit
 
-## 제너레이터
-def child():
-    for i in range(1_000_000):
-        yield i
+# ## 제너레이터
+# def child():
+#     for i in range(1_000_000):
+#         yield i
 
-## for문으로 호출
-def slow():
-    for i in child():
-        yield i
+# ## for문으로 호출
+# def slow():
+#     for i in child():
+#         yield i
 
-## yield from으로 호출
-def fast():
-    yield from child()
+# ## yield from으로 호출
+# def fast():
+#     yield from child()
 
-baseline = timeit.timeit(
-    stmt='for _ in slow(): pass',
-    globals=globals(),
-    number=50)
-print(f'수동 내포: {baseline:.2f}s')
+# baseline = timeit.timeit(
+#     stmt='for _ in slow(): pass',
+#     globals=globals(),
+#     number=50)
+# print(f'수동 내포: {baseline:.2f}s')
 
-comparison = timeit.timeit(
-    stmt='for _ in fast(): pass',
-    globals=globals(),
-    number=50)
-print(f'합성 사용: {comparison:.2f}s')
+# comparison = timeit.timeit(
+#     stmt='for _ in fast(): pass',
+#     globals=globals(),
+#     number=50)
+# print(f'합성 사용: {comparison:.2f}s')
 
-reduction = -(comparison - baseline) / baseline
-print(f'{reduction:.1%} 시간이 적게 듦')
+# reduction = -(comparison - baseline) / baseline
+# print(f'{reduction:.1%} 시간이 적게 듦')
+
+# # 수동 내포: 3.15s
+# # 합성 사용: 2.64s
+# # 16.1% 시간이 적게 듦
+
+
+# 34
+## 주어진 간격과 진폭에 따른 사인파를 생성하는 함수
+# import math
+
+# def wave(amplitude, steps):
+#     step_size = 2 * math.pi / steps
+#     for step in range(steps):
+#         radians = step * step_size
+#         fraction = math.sin(radians)
+#         output = amplitude * fraction
+#         yield output
+
+# # wave 제너레이터를 이터레이션하면서 진폭이 고정된 파형 신호를 송신
+# def transmit(output):
+#     if output is None:
+#         print(f'출력: None')
+#     else:
+#         print(f'출력: {output:>5.1f}')
+
+# def run(it):
+#     for output in it:
+#             transmit(output)
+
+# run(wave(3.0, 8))
+# # 출력:   0.0
+# # 출력:   2.1
+# # 출력:   3.0
+# # 출력:   2.1
+# # 출력:   0.0
+# # 출력:  -2.1
+# # 출력:  -3.0
+# # 출력:  -2.1
+
+# ## 
+
+def my_generator():
+    received = yield 1
+    print(f'받은 값 = {received}')
+    
+it = iter(my_generator())
+output = next(it)
+print(f'출력값 = {output}')
+
+try:
+    next(it)
+except StopIteration:
+    pass
+
+# 출력값 = 1
+# 받은 값 = None
+
+it = iter(my_generator())
+output = it.send(None) # 첫 제너레이터 출력을 얻음
+print(f'출력값 = {output}')
+
+try:
+    it.send('안녕!') # 값을 제너레이터에 넣음
+except StopIteration:
+    pass
+# 출력값 = 1
+# 받은 값 = 안녕!
+
+
+
+import math
+
+# send로 진폭을 전달하여 aplitude에 값을 저장
+def wave_modulating(steps):
+    step_size = 2 * math.pi / steps
+    amplitude = yield   # 초기 진폭을 받음
+    for step in range(steps):
+        radians = step * step_size
+        fraction = math.sin(radians)
+        output = amplitude * fraction
+        amplitude = yield output # 다음 진폭을 받음
+
+# wave 제너레이터를 이터레이션하면서 진폭이 고정된 파형 신호를 송신
+def transmit(output):
+    if output is None:
+        print(f'출력: None')
+    else:
+        print(f'출력: {output:>5.1f}')
+
+
+# run함수를 바꿔 매 이터레이션마다 
+# 변조에 사용할 진폭을 wave_modulating 제너레이터에 스트리밍 하도록 만든다.
+
+def run_modulating(it):
+    amplitudes = [ None, 7,7,7,2,2,2,2,10,10,10,10,10 ]
+    for amp in amplitudes:
+        output = it.send(amp)
+        transmit(output)
+
+run_modulating(wave_modulating(12))
+# 출력: None
+# 출력:   0.0
+# 출력:   3.5
+# 출력:   6.1
+# 출력:   2.0
+# 출력:   1.7
+# 출력:   1.0
+# 출력:   0.0
+# 출력:  -5.0
+# 출력:  -8.7
+# 출력: -10.0
+# 출력:  -8.7
+# 출력:  -5.0
+
+def complex_wave_modulating():
+    yield from wave_modulating(3)
+    yield from wave_modulating(4)
+    yield from wave_modulating(5)
+
+run_modulating(complex_wave_modulating())
+# 출력: None
+# 출력:   0.0
+# 출력:   6.1
+# 출력:  -6.1
+# 출력: None
+# 출력:   0.0
+# 출력:   2.0
+# 출력:   0.0
+# 출력: -10.0
+# 출력: None
+# 출력:   0.0
+# 출력:   9.5
+# 출력:   5.9
+
+print('======================')
+def wave_cascading(amplitude_it, steps):
+    step_size = 2 * math.pi / steps
+    for step in range(steps):
+        radians = step * step_size
+        fraction = math.sin(radians)
+        amplitude = next(amplitude_it) # 전달한 이터레이터 값을 순서대로 입력
+        output = amplitude * fraction
+        yield output
+        
+def complex_wave_casecading(amplitude_it):
+    yield from wave_cascading(amplitude_it,3)
+    yield from wave_cascading(amplitude_it,4)
+    yield from wave_cascading(amplitude_it,5)
+    
+def run_cascading():
+    amplitude_it = [7,7,7,2,2,2,2,10,10,10,10,10]
+    it = complex_wave_casecading(iter(amplitude_it))
+    for amp in amplitude_it:
+        output = next(it)
+        transmit(output)
+    
+run_cascading()
+# 출력:   0.0
+# 출력:   6.1
+# 출력:  -6.1
+# 출력:   0.0
+# 출력:   2.0
+# 출력:   0.0
+# 출력:  -2.0
+# 출력:   0.0
+# 출력:   9.5
+# 출력:   5.9
+# 출력:  -5.9
+# 출력:  -9.5
