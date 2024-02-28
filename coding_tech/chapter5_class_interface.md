@@ -125,11 +125,13 @@ print(book.average_grade('아인슈타인')) # 80.25
 
 - 의존 관계 트리의 맨 밑바닥(가장 깊은 레벨)을 점수로 표현하는 클래스로 변환할 수 있음
     - 단순 데이터를 리팩토링 하기 위해 클래스를 도입하는 것은 비효율적입니다.
-    - 튜플을 사용해보자
+    - 점수는 불변이므로 마침 `튜플`을 사용해보자
         - 튜플을 길게 확장하는 패턴은 딕셔너리를 중첩하는 것과 유사하여 비추
+        - 내부 원소의 위치를 사용해 접근해야함. 즉 외부에서 구조를 알고 있어야함.
 
 ``` python
 # 튜플을 길게 확장하는 패턴은 딕셔너리를 중첩하는 것과 유사
+# 내부 원소의 위치를 사용해 접근해야함. 즉 외부에서 구조를 알고 있어야함.
 grades =[]
 grades.append((95, 0.45))
 grades.append((85, 0.55))
@@ -138,9 +140,89 @@ total_weight = sum(weight for _, weight in grades)
 average_grade = total / total_weight
 ```
 
-> `namedtuple`의 한계
-- 
+- `튜플`사용시 길이가 길어질 것이 예상된다면 `namedtuple`타입을 사용해보자
+    - 작은 크기의 불변 데이터 클래스를 쉽게 정의할 수 있음
+    - 위치인자, 키워드 인자 모두 사용 가능
+    - 요구사항이 바뀌는 경우에 `namedtuple`을 클래스로 바꾸기 쉽다.
+        (어트리뷰트처럼 사용할 수 있기 때문에 정의만 클래스로 바꾸면 호환이 됨)
 
+```python
+from collections import namedtuple
+
+Grade = namedtuple('Grade', ('score', 'weight'))
+
+test = Grade(10, 0.5)
+print(test)         #Grade(score=10, weight=0.5)
+print(test.score)   #10
+print(test.weight)  #0.5
+print(test[0])      #10
+print(test[1])      #0.5
+```
+
+
+> #### `namedtuple`의 한계
+> - 디폴트 인자 값을 지정할 수 없다. <br>
+> - 속정이 4~5개 이상이면 `dataclasses`내장 모듈을 사용하는 편이 낫다.<br>
+> - 여전히 숫자 이터레이션이 가능하기 때문에 외부에 제공하는 API의 겨웅 클래스로 변경이 어려울 수 있다. <br>
+> - 모든 부분을 제어할 수 있지 않다면 클래스로 정의하는 편이 더 낫다.<br>
+
+- 클래스로 구현
+    - 코드는 길어지지만 읽기 쉬워진다.
+    - 사용 코드도 읽기 쉽고 확정성이 좋다.
+
+```python
+from collections import namedtuple, defaultdict
+Grade = namedtuple('Grade', ('score', 'weight'))
+
+class Subject:
+    def __init__(self):
+        self._grades = []
+    
+    def report_grades(self, score, weight):
+        self._grades.append(Grade(score, weight))
+    
+    def average_grades(self):
+        total, total_weight = 0, 0
+        for grade in self._grades:
+            total += grade.score * grade.weight
+            total_weight += grade.weight
+        
+        return total/total_weight
+
+class Student:
+    def __init__(self):
+        self._subjects = defaultdict(Subject)
+    
+    def get_subject(self, name):
+        return self._subjects[name]
+    
+    def average_grade(self):
+        total, count = 0,0
+        for subject in self._subjects.values():
+            total += subject.average_grades()
+            count += 1
+        return total / count
+
+class Gradebook:
+    def __init__(self):
+        self._students = defaultdict(Student)
+    
+    def get_student(self, name):
+        return self._students[name]
+    
+book = Gradebook()
+albert = book.get_student('아인슈타인')
+math = albert.get_subject('수학')
+math.report_grades(70, 0.05)
+math.report_grades(65, 0.15)
+math.report_grades(70, 0.80)
+gym = albert.get_subject('체육')
+gym.report_grades(100, 0.40)
+gym.report_grades(100, 0.60)
+print(albert.average_grade()) # 84.625
+```
+
+<br>
 ### 기억해야 할 Point
 
 > - 딕셔너리, 긴 튜플, 다른 내장 타입이 복잡하게 내표된 데이터를 값으로 사용하는 딕셔너리를 만들지 말자. <br> 

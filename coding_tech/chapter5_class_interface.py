@@ -111,5 +111,63 @@ from collections import namedtuple
 
 Grade = namedtuple('Grade', ('score', 'weight'))
 
+test = Grade(10, 0.5)
+print(test)         #Grade(score=10, weight=0.5)
+print(test.score)   #10
+print(test.weight)  #0.5
+print(test[0])      #10
+print(test[1])      #0.5
+
 # 위치기반, 키워드 기반 다 가능합니다.
 # 
+
+# 클래스로 구현
+from collections import namedtuple, defaultdict
+Grade = namedtuple('Grade', ('score', 'weight'))
+
+class Subject:
+    def __init__(self):
+        self._grades = []
+    
+    def report_grades(self, score, weight):
+        self._grades.append(Grade(score, weight))
+    
+    def average_grades(self):
+        total, total_weight = 0, 0
+        for grade in self._grades:
+            total += grade.score * grade.weight
+            total_weight += grade.weight
+        
+        return total/total_weight
+
+class Student:
+    def __init__(self):
+        self._subjects = defaultdict(Subject)
+    
+    def get_subject(self, name):
+        return self._subjects[name]
+    
+    def average_grade(self):
+        total, count = 0,0
+        for subject in self._subjects.values():
+            total += subject.average_grades()
+            count += 1
+        return total / count
+
+class Gradebook:
+    def __init__(self):
+        self._students = defaultdict(Student)
+    
+    def get_student(self, name):
+        return self._students[name]
+    
+book = Gradebook()
+albert = book.get_student('아인슈타인')
+math = albert.get_subject('수학')
+math.report_grades(70, 0.05)
+math.report_grades(65, 0.15)
+math.report_grades(70, 0.80)
+gym = albert.get_subject('체육')
+gym.report_grades(100, 0.40)
+gym.report_grades(100, 0.60)
+print(albert.average_grade()) # 84.625
