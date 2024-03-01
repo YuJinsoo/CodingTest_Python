@@ -227,18 +227,160 @@ print(albert.average_grade()) # 84.625
 
 > - 딕셔너리, 긴 튜플, 다른 내장 타입이 복잡하게 내표된 데이터를 값으로 사용하는 딕셔너리를 만들지 말자. <br> 
 > - 완전한 클래스가 제공하는 유연성이 필요하지 않고 가벼운 불변 데이터 컨테이너가 필요하다면 `namedtuple`을 사용하라 <br>
-> - 내부 상태르 ㄹ표현하는 딕셔너리가 복잡해지면 이 데이터를 관리하는 코드를 여러 클래스로 나눠서 재작성해라 <br>
+> - 내부 상태를 표현하는 딕셔너리가 복잡해지면 이 데이터를 관리하는 코드를 여러 클래스로 나눠서 재작성해라 <br>
 
 <br>
 
 
-
-
 ## BetterWay38. 간단한 인터페이스의 경우 클래스 대신 함수를 받아라
+
+- 파이썬 내장 API중 상당수는 인자로 함수를 전달해 도작을 바꿀 수 있다.
+    - 이런 함수를 훅(hook)이라고 부름
+    - `sort`메서드에 `len`함수를 넘겨주는 예제
+        ``` python
+            ## 이름 길이에 따라 정렬합니다.
+            names = ['소크라테스','아르키메데스','플라톤','아리스토텔레스']
+            names.sort(key=len)
+            print(names) 
+            # ['플라톤', '소크라테스', '아르키메데스', '아리스토텔레스']
+        ``` 
+
+- `훅`을 추상 클래스를 통해 정의해아 하는 언어도 있음
+- python에서는 **인자와 반환 값이 잘 정의되고 상태가 없는 함수**를 훅으로 사용하는 경우가 많음
+- python은 함수를 `일급 시민 객체`로 취급하기 때문에 가능
+    - 일급 시민 객체
+        - 언어 안에서 제약 없이 사용할 수 있는 데이터값
+        - 변수 할당, 함수 리턴, 함수 인자, 동등성을 검사할 수 있는 값
+
+- defaultdict 클래스의 동작을 커스터마이즈 하는 예제
+    - `log_missing`과 같이 커스텀 함수를 사용할 수 있으면 정해진 동작과 부수효과를 분리할 수 있기 때문에 API를 더 쉽게 만들 수 있다.
+```python
+# defaultdict 클래스의 동작을 커스터마이즈 하는 예제
+def log_missing():
+    print('키 추가됨')
+    return 0
+
+from collections import defaultdict
+
+current = {'초록': 12, '파랑': 3}
+increments = [
+    ('빨강', 5),
+    ('파랑', 17),
+    ('주황', 9)
+]
+
+## 없는 key에 접근할 때 실행할 함수를 1번 인자로 넘겨줄 수 있다.
+result = defaultdict(log_missing, current)
+print('이전: ', dict(result))
+for key, amount in increments:
+    result[key] += amount
+
+print('이후: ', dict(result)) 
+# 이후:  {'초록': 12, '파랑': 20, '빨강': 5, '주황': 9}
+```
+
+- defaultdict에 없는 key에 접근한 횟수를 세고 싶은 예제
+    - 상태가 있는 클로저를 사용하면 된다. (Better way 21)
+    - 내부 함수 `missing`이 상태를 관리함
+    - 하지만 상태있는 클로저를 활용한 것은 그렇지 않은 코드보다 이해하기 어렵다.
+        - 추적하고 싶은 상태를 저장하는 클래스를 구현하는 방법도 있음.
+```python
+def log_missing():
+    print('키 추가됨')
+    return 0
+
+from collections import defaultdict
+
+def increment_with_report(current, increments):
+    added_count = 0
+    
+    def missing():
+        nonlocal added_count # 상태가 있는 클로저
+        added_count += 1
+        return 0
+
+    result = defaultdict(missing, current)
+    for key, amount in increments:
+        result[key] += amount
+    
+    return result, added_count
+
+current = {'초록': 12, '파랑': 3}
+increments = [
+    ('빨강', 5),
+    ('파랑', 17),
+    ('주황', 9)
+]
+
+res, cnt = increment_with_report(current, increments)
+print(res, cnt)
+# {'초록': 12, '파랑': 20, '빨강': 5, '주황': 9}) 2
+```
+
+- 상태를 저장하는 클래스를 정의하여 구현 (위 예제 다른 접근방법)
+    - 하지만 이 방법은 클래스 인스턴스를 어디에 만드는지에 대한 논란이 생길 수 있음.
+    - 클래스 매직메서드 `__call__`을 정의해 인스턴스 생성을 생략할 수 있음
+```python
+# 상태를 저장하는 클래스 (위 예제 다른 접근방법)
+class CountMissing:
+    def __init__(self):
+        self.added = 0
+    
+    def missing(self):
+        self.added += 1
+        return 0
+
+from collections import defaultdict
+
+current = {'초록': 12, '파랑': 3}
+increments = [
+    ('빨강', 5),
+    ('파랑', 17),
+    ('주황', 9)
+]
+
+counter = CountMissing()
+result = defaultdict(counter.missing, current)
+for key, amount in increments:
+    result[key] += amount
+
+assert counter.added == 2 
+```
+
+- 상태를 저장하는 클래스에 __call__정의하여 구현
+    - 위 인스턴스를 생성하는 방법보다 훨씬 깔끔하다.
+    - 
+```python
+class BetterCountMissing:
+    def __init__(self):
+        self.added = 0
+    
+    def __call__(self):
+        self.added += 1
+        return 0
+
+from collections import defaultdict
+
+current = {'초록': 12, '파랑': 3}
+increments = [
+    ('빨강', 5),
+    ('파랑', 17),
+    ('주황', 9)
+]
+
+counter2 = BetterCountMissing()
+result = defaultdict(counter2, current)
+for key, amount in increments:
+    result[key] += amount
+
+assert counter2.added == 2 
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - python의 여러 컴포넌트 사이에 간단한 인터페이스가 필요할 때는 클래스를 정의하고 인스턴스를 생성하는 대신 간단히 함수를 사용할 수 있다.<br>
+> - python 함수나 메서드는 일급 시민이다. 따라서 함수나 함수 참조를 식에 사용할 수 있다.<br>
+> - __call__매직 메서드를 사용하면 클래스의 인스턴스인 객체를 일반 파이썬 함수처럼 호출할 수 있다.<br>
+> - 상태를 유지하기 위한 함수가 필요한 경우에는 상태가 있는 클로저를 정의하는 대신 __call__메서드가 있는 클래스를 정의할 지 고려해보자<br>
 
 <br>
 
