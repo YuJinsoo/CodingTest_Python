@@ -385,10 +385,163 @@ assert counter2.added == 2
 <br>
 
 ## BetterWay39. 객체를 제너릭하게 구성하려면 @classmethod를 통한 다형성을 활용하라
+- 객체 뿐 아니라 클래스도 다형성을 지원함
+- 다형성을 사용하면..
+    - 계층을 이루는 여러 클래스가 자신에게 맞는 유일한 메서드 버전을 구현할 수 있다.
+    - 같은 인터페이스를 만족하거나 같은 추상 기반 클래스를 공유하는 많은 클래스가 서로 다른 기능을 제공할 수 있다는 뜻입니다. (BetterWay43)
+
+- 맵리듀스(Map Reduce) 구현 예제
+    - 이 예제는 잘 동작할 것 처럼 보이지만, 객체를 생성해 활용해야만 이 모든 클래스가 쓸모있음
+    - 각 객체를 만들고 맵리듀스를 조화롭게 실행하는 책임은 누가 져야 할까??
+```python
+# 입력 데이터를 표현할 수 있는 공통 클래스가 필요해 구현
+class InputData:
+    def read(self):
+        raise NotImplementedError
+
+# 하위클래스
+class PathInputData(InputData):
+    def __init__(self, path):
+        super().__init__()
+        self.path = path
+
+    def read(self):
+        with open(self.path) as f:
+            return f.read()
+        
+
+# 위 입력 데이터를 소비하는 공통 방법을 제공하는 맵리듀스 작업자로 쓸 수 있는 추상 인터페이스를 정의
+class Worker:
+    def __init__(self, input_data):
+        self.input_data = input_data
+        self.result = None
+    
+    def map(self):
+        raise NotImplementedError
+    
+    def reduce(self, other):
+        raise NotImplementedError
+
+# worker의 하위 클래스
+# 새줄 문자의 개수를 세는 맵리듀스 기능 클래스
+class LineCountWorker(Worker):
+    def map(self):
+        data = self.input_data.read()
+        self.result = data.count('\n')
+        
+    def reduce(self, other):
+        self.result += other.result
+```
+
+- 이런 클래스를 인스턴스화 하고 실행을 책임지는 방법
+1. 도우미 함수를 활요해 객체를 직접 만들고 연결
+    - 이 방법의 문제가 뭘까?
+    - 함수가 전혀 제너릭 하지 않다.
+        - 다른 `InputData`나 `Worker` 하위 클래스를 사용하고 싶다면 그에 맞는 `generate_inputs`, `create_workers`, `mapreduce를` 작성해야 함
+        - 객체를 구성할 수 있는 제너릭한 방법이 필요함.
+        - 다른 언어에서는 다형성을 사용해 해결할 수 있는데, `InputData`의 모든 하위클래스는 맵리듀스를 처리하는 도우미 메서드들이 제너릭하게 사용할 수 있는 특별한 생성자(팩토리 메서드 같은)를 제공합니다.
+        - But, python에서는 생성자가 `__init__` 뿐...
+        - 이 문제를 해결하는 가장 좋은 방법은 `클래스 메서드`다형성을 이용하는 것!
+
+```python
+import os
+
+# 디렉터리 목록을 얻어 안에 들어있는 파일마다 pathInputData 인스턴스를 만듦
+def generate_inputs(data_dir):
+    for name in os.listdir(data_dir):
+        yield PathInputData(os.path.join(data_dir, name))
+
+# generate_inputs를 통해 만든 PathInputData 인스턴스들을 사용하는 LineCounterWorker인스턴스를 생성
+def create_workers(input_list):
+    workers = []
+    for input_data in input_list:
+        workers.append(LineCountWorker(input_data))
+    return workers
+
+# 이 Worker 인스턴스의 map 단계를 여러 스레드에 공급해서 실행할 수 있다.(better way 53)
+# 그후 reduce를 반복적으로 호출해서 견과를 최종 값으로 합칠 수 있다.
+
+from threading import Thread
+
+def execute(workers):
+    threads = [Thread(target=w.map) for w in workers]
+    for thread in threads: thread.start()
+    for thread in threads: thread.join()
+    
+    first, *rest = workers
+    for worker in rest:
+        first.reduce(worker)
+    return first.result
+
+# 마지막으로 지금까지 만든 모든 조각을 한 함수에 합쳐서 각 단계를 실행
+def mapreduce(data_dir):
+    inputs = generate_inputs(data_dir)
+    workers = create_workers(inputs)
+    return execute(workers)
+```
+
+2. `클래스 메서드`사용
+    - `GenericWorker`의 `create_workers`에서 `generate_inputs`를 호출하는 것이 이 예제에서 보여주고 싶은 다형성입니다.
+    - `create_worker`가 `__init__`을 통하지 않고 `cls()`를 호출함으로써 다른 방법으로 객체를 만들 수 있다.
+
+```python
+## 클래스메서드 사용
+
+class GenericInputData:
+    def read(self):
+        raise NotImplementedError
+    
+    # 객체를 생성하는 설정 정보가 들어 있는 딕셔너리르 파라미터로 받는다.
+    @classmethod
+    def generate_inputs(cls, config):
+        raise NotImplementedError
+
+
+class PathInputData(GenericInputData):
+    ...
+    
+    @classmethod
+    def generate_inputs(cls, config):
+        data_dir = config['data_dir']
+        for name in os.listdir(data_dir):
+            yield cls(os.path.join(data_dir, name))
+
+# 비슷한 방식으로 GenericWorker에 create_workes를 넣을 수 있따.
+
+class GenericWorker():
+    def __init__(self, input_data):
+        self.input_data = input_data
+        self.result = None
+    
+    def map(self):
+        raise NotImplementedError
+    
+    def reduce(self, other):
+        raise NotImplementedError
+    
+    @classmethod
+    def create_workers(cls, input_class, config):
+        workers = []
+        ## 이 부분이 다형성의 예.
+        for input_data in input_class.generate_inputs(config):
+            workers.append(cls(input_data))
+        return workers
+```
+
+- 마지막으로는 mapreduce 함수가 create_worker를 호출하게 변경하면 mapreduec를 완전하게 제너릭 함수로 만들 수 있습니다.
+
+```python
+def mapreduce(worker_class, input_class, config):
+    workers = worker_class.create_workers(input_class, config)
+    return execute(workers)
+```
+
+- 각 하위 클래스의 인스턴스 객체를 결합하는 코드를 변경하지 않아도, `GenericInput`과 `GenericWorker`의 하위 클래스를 내가 원하는 대로 작성할 수 있다.
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - python 클래스의 생성자는 `__init__`메서드 뿐이다.<br>
+> - `@classmethod`를 사용하면 클래스에 다른 생성자를 정의할 수 있다.<br>
+> - 클래스를 메서드 다형성을 활용하면 여러 구체적인 하위 클래스의 객체를 만들고 연결하는 제너릭한 방법을 제공할 수 있다.<br>
 
 <br>
 
