@@ -290,118 +290,231 @@
 # 39
 
 # 입력 데이터를 표현할 수 있는 공통 클래스가 필요해 구현
-class InputData:
-    def read(self):
-        raise NotImplementedError
+# class InputData:
+#     def read(self):
+#         raise NotImplementedError
 
-# 하위클래스
-class PathInputData(InputData):
-    def __init__(self, path):
-        super().__init__()
-        self.path = path
+# # 하위클래스
+# class PathInputData(InputData):
+#     def __init__(self, path):
+#         super().__init__()
+#         self.path = path
 
-    def read(self):
-        with open(self.path) as f:
-            return f.read()
+#     def read(self):
+#         with open(self.path) as f:
+#             return f.read()
         
 
-# 위 입력 데이터를 소비하는 공통 방법을 제공하는 맵리듀스 작업자로 쓸 수 있는 추상 인터페이스를 정의
-class Worker:
-    def __init__(self, input_data):
-        self.input_data = input_data
-        self.result = None
+# # 위 입력 데이터를 소비하는 공통 방법을 제공하는 맵리듀스 작업자로 쓸 수 있는 추상 인터페이스를 정의
+# class Worker:
+#     def __init__(self, input_data):
+#         self.input_data = input_data
+#         self.result = None
     
-    def map(self):
-        raise NotImplementedError
+#     def map(self):
+#         raise NotImplementedError
     
-    def reduce(self, other):
-        raise NotImplementedError
+#     def reduce(self, other):
+#         raise NotImplementedError
 
-# worker의 하위 클래스
-# 새줄 문자의 개수를 세는 맵리듀스 기능 클래스
-class LineCountWorker(Worker):
-    def map(self):
-        data = self.input_data.read()
-        self.result = data.count('\n')
+# # worker의 하위 클래스
+# # 새줄 문자의 개수를 세는 맵리듀스 기능 클래스
+# class LineCountWorker(Worker):
+#     def map(self):
+#         data = self.input_data.read()
+#         self.result = data.count('\n')
         
-    def reduce(self, other):
-        self.result += other.result
+#     def reduce(self, other):
+#         self.result += other.result
         
 
-import os
+# import os
 
-# 디렉터리 목록을 얻어 안에 들어있는 파일마다 pathInputData 인스턴스를 만듦
-def generate_inputs(data_dir):
-    for name in os.listdir(data_dir):
-        yield PathInputData(os.path.join(data_dir, name))
+# # 디렉터리 목록을 얻어 안에 들어있는 파일마다 pathInputData 인스턴스를 만듦
+# def generate_inputs(data_dir):
+#     for name in os.listdir(data_dir):
+#         yield PathInputData(os.path.join(data_dir, name))
 
-# generate_inputs를 통해 만든 PathInputData 인스턴스들을 사용하는 LineCounterWorker인스턴스를 생성
-def create_workers(input_list):
-    workers = []
-    for input_data in input_list:
-        workers.append(LineCountWorker(input_data))
-    return workers
+# # generate_inputs를 통해 만든 PathInputData 인스턴스들을 사용하는 LineCounterWorker인스턴스를 생성
+# def create_workers(input_list):
+#     workers = []
+#     for input_data in input_list:
+#         workers.append(LineCountWorker(input_data))
+#     return workers
 
-# 이 Worker 인스턴스의 map 단계를 여러 스레드에 공급해서 실행할 수 있다.(better way 53)
-# 그후 reduce를 반복적으로 호출해서 견과를 최종 값으로 합칠 수 있다.
+# # 이 Worker 인스턴스의 map 단계를 여러 스레드에 공급해서 실행할 수 있다.(better way 53)
+# # 그후 reduce를 반복적으로 호출해서 견과를 최종 값으로 합칠 수 있다.
 
-from threading import Thread
+# from threading import Thread
 
-def execute(workers):
-    threads = [Thread(target=w.map) for w in workers]
-    for thread in threads: thread.start()
-    for thread in threads: thread.join()
+# def execute(workers):
+#     threads = [Thread(target=w.map) for w in workers]
+#     for thread in threads: thread.start()
+#     for thread in threads: thread.join()
     
-    first, *rest = workers
-    for worker in rest:
-        first.reduce(worker)
-    return first.result
+#     first, *rest = workers
+#     for worker in rest:
+#         first.reduce(worker)
+#     return first.result
 
-# 마지막으로 지금까지 만든 모든 조각을 한 함수에 합쳐서 각 단계를 실행
-def mapreduce(data_dir):
-    inputs = generate_inputs(data_dir)
-    workers = create_workers(inputs)
-    return execute(workers)
+# # 마지막으로 지금까지 만든 모든 조각을 한 함수에 합쳐서 각 단계를 실행
+# def mapreduce(data_dir):
+#     inputs = generate_inputs(data_dir)
+#     workers = create_workers(inputs)
+#     return execute(workers)
 
 
-## 클래스메서드 사용
+# ## 클래스메서드 사용
 
-class GenericInputData:
-    def read(self):
-        raise NotImplementedError
+# class GenericInputData:
+#     def read(self):
+#         raise NotImplementedError
     
-    # 객체를 생성하는 설정 정보가 들어 있는 딕셔너리르 파라미터로 받는다.
-    @classmethod
-    def generate_inputs(cls, config):
-        raise NotImplementedError
+#     # 객체를 생성하는 설정 정보가 들어 있는 딕셔너리르 파라미터로 받는다.
+#     @classmethod
+#     def generate_inputs(cls, config):
+#         raise NotImplementedError
 
 
-class PathInputData(GenericInputData):
-    ...
+# class PathInputData(GenericInputData):
+#     ...
     
-    @classmethod
-    def generate_inputs(cls, config):
-        data_dir = config['data_dir']
-        for name in os.listdir(data_dir):
-            yield cls(os.path.join(data_dir, name))
+#     @classmethod
+#     def generate_inputs(cls, config):
+#         data_dir = config['data_dir']
+#         for name in os.listdir(data_dir):
+#             yield cls(os.path.join(data_dir, name))
 
-# 비슷한 방식으로 GenericWorker에 create_workes를 넣을 수 있따.
+# # 비슷한 방식으로 GenericWorker에 create_workes를 넣을 수 있따.
 
-class GenericWorker():
-    def __init__(self, input_data):
-        self.input_data = input_data
-        self.result = None
+# class GenericWorker():
+#     def __init__(self, input_data):
+#         self.input_data = input_data
+#         self.result = None
     
-    def map(self):
-        raise NotImplementedError
+#     def map(self):
+#         raise NotImplementedError
     
-    def reduce(self, other):
-        raise NotImplementedError
+#     def reduce(self, other):
+#         raise NotImplementedError
     
-    @classmethod
-    def create_workers(cls, input_class, config):
-        workers = []
-        for input_data in input_class.generate_inputs(config):
-            workers.append(cls(input_data))
-        return workers
+#     @classmethod
+#     def create_workers(cls, input_class, config):
+#         workers = []
+#         for input_data in input_class.generate_inputs(config):
+#             workers.append(cls(input_data))
+#         return workers
 
+# 40
+class MyBaseClass:
+    def __init__(self, value):
+        self.value = value
+
+class Child(MyBaseClass):
+    def __init__(self):
+        MyBaseClass.__init__(self, 5)
+        
+class TimesTwo:
+    def __init__(self):
+        self.value *= 2
+        
+class PlusFive:
+    def __init__(self):
+        self.value += 5
+
+class OneWay(MyBaseClass, TimesTwo, PlusFive):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        TimesTwo.__init__(self)
+        PlusFive.__init__(self)
+
+foo = OneWay(5)
+print(foo.value) # 15
+
+## 하지만 상속 순서와 초기화 순서가 다른 경우..
+class AnotherWay(MyBaseClass, PlusFive, TimesTwo):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        TimesTwo.__init__(self)
+        PlusFive.__init__(self)
+
+afoo = AnotherWay(5)
+print(afoo.value) # 15
+## 이때도 문제는 발생하지 않는다.
+
+
+
+##
+## 기본 클래스를 상속하는 두 클래스
+class TimesSeven(MyBaseClass):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        self.value *= 7
+
+class PlusNine(MyBaseClass):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        self.value += 9
+
+## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+class ThisWay(TimesSeven, PlusNine):
+    def __init__(self, value):
+        TimesSeven.__init__(self, value)
+        PlusNine.__init__(self, value)
+
+foo = ThisWay(5)
+print(foo.value) ## 14
+## 예상한 동작은 5 * 7 + 9 이기 때문에 44 이지만, 14가 출력됨
+
+## 기본 클래스를 상속하는 두 클래스
+class TimesSevenCorrect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value *= 7
+
+class PlusNineCorrect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value += 9
+
+## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+class GoodWay(TimesSevenCorrect, PlusNineCorrect):
+    def __init__(self, value):
+        super().__init__(value)
+
+foo = GoodWay(5)
+print(foo.value) ## 98
+# 7 * ( 5 + 9 ) 라서 98이 나옴
+
+mro_str = '\n'.join(repr(cls) for cls in GoodWay.mro())
+print(mro_str)
+# <class '__main__.GoodWay'>
+# <class '__main__.TimesSevenCorrect'>
+# <class '__main__.PlusNineCorrect'>
+# <class '__main__.MyBaseClass'>
+# <class 'object'>
+
+## super에 전달하는 인자
+class ExplictTrisect(MyBaseClass):
+    def __init__(self, value):
+        super(ExplictTrisect, self).__init__(value)
+        self.value /= 3
+        
+## 하지만 object 인스턴스를 초기화 할 때는 두 파라미터를 지정할 필요가 없음
+## 지정하지 않으면 컴파일러가 자동으로 올바른 파라미터르 ㄹ넣어준다.
+
+##동일한 결과
+class AutoTrisect(MyBaseClass):
+    def __init__(self, value):
+        super(__class__, self).__init__(value)
+        self.value /= 3
+        
+
+class ImplictTrisect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value /= 3
+
+assert ExplictTrisect(9).value == 3
+assert AutoTrisect(9).value == 3
+assert ImplictTrisect(9).value == 3

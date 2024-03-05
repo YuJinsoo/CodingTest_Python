@@ -538,6 +538,7 @@ def mapreduce(worker_class, input_class, config):
 
 - 각 하위 클래스의 인스턴스 객체를 결합하는 코드를 변경하지 않아도, `GenericInput`과 `GenericWorker`의 하위 클래스를 내가 원하는 대로 작성할 수 있다.
 
+
 ### 기억해야 할 Point
 > - python 클래스의 생성자는 `__init__`메서드 뿐이다.<br>
 > - `@classmethod`를 사용하면 클래스에 다른 생성자를 정의할 수 있다.<br>
@@ -547,11 +548,166 @@ def mapreduce(worker_class, input_class, config):
 
 
 ## BetterWay40. supser로 부모 클래스를 초기화하라
+- 자식 클래스에서 부모 클래스를 초기화하는 오래된 방법은 자식 인스턴스에서 부모 클래스의 `__init__`메서드를 직접 호출하는 것이다.
+    - 이 방법은 기본적인 클래스 계층의 경우 잘 동작
+    - 다른 경우에는 잘못 동작할 수 있음
+
+```python
+## 기본적인 형상에서는 문제 없이 동작한다.
+class Base:
+    def __init__(self, value):
+        self.value = value
+
+class Child(Base):
+    def __init__(self):
+        Base.__init__(self, 5)
+```
+
+- 다중 상속의 경우 위 방법은 문제가 발생할 수 있다. (사실 다중 상속은 피해야 하는 case)
+    - 모든 하위 클래스에서 `__init__` 호출의 순서가 정해져 있지 않는 것이 문제
+
+```python
+class MyBaseClass:
+    def __init__(self, value):
+        self.value = value
+
+class Child(MyBaseClass):
+    def __init__(self):
+        MyBaseClass.__init__(self, 5)
+        
+class TimesTwo:
+    def __init__(self):
+        self.value *= 2
+        
+class PlusFive:
+    def __init__(self):
+        self.value += 5
+
+class OneWay(MyBaseClass, TimesTwo, PlusFive):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        TimesTwo.__init__(self)
+        PlusFive.__init__(self)
+
+foo = OneWay(5)
+print(foo.value) # 15
+
+## 하지만 상속 순서와 초기화 순서가 다른 경우..
+class AnotherWay(MyBaseClass, PlusFive, TimesTwo):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        TimesTwo.__init__(self)
+        PlusFive.__init__(self)
+
+afoo = AnotherWay(5)
+print(afoo.value) # 15
+## 이때도 문제는 발생하지 않는다. __init__메서드 순서가 동일하기 때문.
+```
+
+- 다중 상속 중 다이아몬드 상속인 경우
+    - 예상했던 결과랑 다른 결과가 나옴(44가 나와야 하지만 14가 나옴)
+    - 왜냐하면 ThisWay의 `__init__`에서 PlusNine의 `__init__`이 호출되면서 value가 다시 5로 초기화 된 다음 9를 더하기 때문.
+    - 이런 경우 디버깅 하기 매우 어려워짐
+```python
+## 기본 클래스를 상속하는 두 클래스
+class TimesSeven(MyBaseClass):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        self.value *= 7
+
+class PlusNine(MyBaseClass):
+    def __init__(self, value):
+        MyBaseClass.__init__(self, value)
+        self.value += 9
+
+## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+class ThisWay(TimesSeven, PlusNine):
+    def __init__(self, value):
+        TimesSeven.__init__(self, value)
+        PlusNine.__init__(self, value)
+
+foo = ThisWay(5)
+print(foo.value) ## 14
+## 예상한 동작은 5 * 7 + 9 이기 때문에 44 이지만, 14가 출력됨
+```
+
+- 위와 같은 문제를 해결하기 위해 `super`라는 매장 함수와 표준 메서드 결정 순서(Method Resolution Order, MRO)가 있다.
+    - `super`를 사용하면 다이아몬드 계층의 공통 상위 클래스를 단 한 번만 호출하도록 보장합니다. (Betterway 48)
+    - MRO는 상위 클래스를 초기화하는 순서를 정의합니다.
+        - 이때 C3 선형화 라는 알고리즘을 사용한다.
+    
+   
+
+- 다이아몬드 상속 구조이지만 super를 활용한 예제
+    - `mro()` 메서드 로 출력한 순서에서 위에서 아래로 호출됨
+    - 하지만 스택구조이므로, 역순으로 연산이 진행되어서 리턴됨(5+9 먼저인 이유)
+```python
+## 기본 클래스를 상속하는 두 클래스
+class TimesSevenCorrect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value *= 7
+
+class PlusNineCorrect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value += 9
+
+## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+class GoodWay(TimesSevenCorrect, PlusNineCorrect):
+    def __init__(self, value):
+        super().__init__(value)
+
+foo = GoodWay(5)
+print(foo.value) ## 98
+# 7 * ( 5 + 9 ) 라서 98이 나옴
+
+mro_str = '\n'.join(repr(cls) for cls in GoodWay.mro())
+print(mro_str)
+# <class '__main__.GoodWay'>
+# <class '__main__.TimesSevenCorrect'>
+# <class '__main__.PlusNineCorrect'>
+# <class '__main__.MyBaseClass'>
+# <class 'object'>
+
+```
+- `super().__init__` 호출은 다중 상속을 튼튼하게 해주며, 하위 클래스에서 상위 클래스의 `__init__`을 직접 호출하는 것 보다 유지보수를 더 편하게 해준다.
+- super()함수에 두 파라미터를 넘길 수 있다.
+    1. 접근하고 싶은 MRO 뷰를 제공할 부모 타입
+    2. 첫 파라미터로 지정한 타입의 MRO 뷰에 접근할 때 사용할 인스턴스
+
+> super에 파라미터를 넘겨야 하는 유일한 경우는 자식 클래스에서 상위 클래스의 특정 기능에 접근해야 하는 경우 뿐이다. (특정 기능을 감싸거나 재사용해야 하는 경우)
+
+```python
+## super에 전달하는 인자
+class ExplictTrisect(MyBaseClass):
+    def __init__(self, value):
+        super(ExplictTrisect, self).__init__(value)
+        self.value /= 3
+        
+## 하지만 object 인스턴스를 초기화 할 때는 두 파라미터를 지정할 필요가 없음
+## 지정하지 않으면 컴파일러가 자동으로 올바른 파라미터르 ㄹ넣어준다.
+
+##동일한 결과
+class AutoTrisect(MyBaseClass):
+    def __init__(self, value):
+        super(__class__, self).__init__(value)
+        self.value /= 3
+        
+
+class ImplictTrisect(MyBaseClass):
+    def __init__(self, value):
+        super().__init__(value)
+        self.value /= 3
+
+assert ExplictTrisect(9).value == 3
+assert AutoTrisect(9).value == 3
+assert ImplictTrisect(9).value == 3
+```
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 파이선은 표준 메서드 결정 순서(MRO)를 활용해 상위 클래스 초기화 순서와 다이아몬드 상속 문제를 해결한다.<br>
+> - 부모 클래스를 초기화할 때는 super 내장 함수를 아무 인자 없이 호출한다. (파이썬 컴파일러가 자동으로 올바른 파라미터를 전달한다.)<br>
 
 <br>
 
