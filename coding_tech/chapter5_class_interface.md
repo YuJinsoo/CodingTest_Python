@@ -711,12 +711,195 @@ assert ImplictTrisect(9).value == 3
 
 <br>
 
-## BetterWay41. 기능을 합성할 때는 믹스인 클래스를 사용하라
+## BetterWay41. 기능을 합성할 때는 믹스인 클래스를 사용하라 --TODO
+- Python은 다중상속을 지원하는 객체지향 언어
+    - 다중상속은 될 수 있으면 피하는 것이 좋다.
+    - 다중 상속이 제공하는 편의와 캡슐화가 필요하지만, 다중 상속으로 인해 발생할 수 있는 골치 아픈 경우를 피하고 싶다면 `믹스인(mix in)`을 사용할지 고려하자. (어떤 경우가 있지?)
 
+- 믹스인
+    - 자식 클래스가 사용할 메서드 몇 개만 정의하는 클래스
+    - 자체 애트리뷰트 정의가 없어 `__init__` 호출도 필요가 없다.
+    - 믹스인을 합성하거나 계층화하여 반복적인 코드를 최소화하고 재사용성을 최대화할 수 있다.
+
+- 메모리에 있는 파이썬 객체 직렬화에 사용할 수 있도록 딕셔너리로 바꾸는 예
+    - `_traverse_dict()` 메서드를 `hasattr`을 통한 동적 애트리뷰트 접근과 `isinstance`를 사용한 타입 검사, `__dict__`를 통한 인스턴스 딕셔너리 접근을 활용해 간단히 구현할 수 있다.
+
+```python
+## dictionary로 직렬화하는 믹스인
+class ToDictMixin:
+    def to_dict(self):
+        return self._traverse_dict(self.__dict__)
+
+    def _traverse_dict(self, instance_dict):
+        output = dict()
+        for k, v in instance_dict.items():
+            output[k] = self._traverse(k, v)
+        return output
+
+    def _traverse(self, key, value):
+        if isinstance(value, ToDictMixin):
+            return value.to_dict()
+        elif isinstance(value, dict):
+            return self._traverse_dict(value)
+        elif isinstance(value, list):
+            return [self._traverse(key, i) for i in value]
+        elif hasattr(value, '__dict__'):
+            return self._traverse_dict(value.__dict__)
+        else:
+            return value
+```
+
+-  위 믹스인을 사용해 이진트리를 딕셔너리 표현으로 변경하는 예제
+```python
+## 믹스인을 사용해 이진 트리를 딕셔너리 표현으로 변경하는 예제
+class BinaryTree(ToDictMixin):
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+tree = BinaryTree(10, left=BinaryTree(7, right=BinaryTree(9)),
+                  right=BinaryTree(13,left=BinaryTree(11)))
+print(tree.to_dict())
+# {
+#     'value': 10, 
+#     'left': 
+#         {
+#             'value': 7, 
+#             'left': None, 
+#             'right': 
+#                 {
+#                     'value': 9, 
+#                     'left': None, 
+#                     'right': None
+#                 }
+#             }, 
+#     'right': 
+#         {
+#             'value': 13, 'left': 
+#             {
+#                 'value': 11, 
+#                 'left': None, 
+#                 'right': None
+#             }, 
+#             'right': None
+#         }
+# }
+
+```
+
+- 믹스인의 큰 장점으로 제너릭 기능을 쉽게 연결할 수 있고, 필요할 때 기존 기능을 다른 기능으로 오버라이드해 변경할 수 있다.
+    - BinaryTree에 대한 참조를 저장하는 BinaryTree의 하위 클래스 예제를 보자.
+    - 이런 순환 참조가 있으면 `ToDictMixin.to_dict`구현은 무한 루프를 돈다.
+
+```python
+class BinaryTreeWithParent(BinaryTree):
+    def __init__(self, value, left=None, right=None, parent=None):
+        super().__init__(value, left=left, right=right)
+        self.parent = parent
+    
+    ## 무한루프 해결방법
+    ## Mixin에서 무한루프가 생길 함수를 오버라이드 함
+    def _traverse(self, key, value):
+        if (isinstance(value, BinaryTreeWithParent) and key == 'parent'):
+            return value.value # 순환참조 방지
+        else:
+            return super()._traverse(key, value)
+
+root = BinaryTreeWithParent(10)
+root.left = BinaryTreeWithParent(7, parent=root)
+root.left.right = BinaryTreeWithParent(9, parent=root.left)
+print(root.to_dict())
+# {
+#     'value': 10, 
+#     'left': 
+#         {
+#             'value': 7, 
+#             'left': None, 
+#             'right': 
+#                 {
+#                     'value': 9, 
+#                     'left': None, 
+#                     'right': None, 
+#                     'parent': 7
+#                 }, 
+#             'parent': 10
+#         }, 
+#     'right': None, 
+#     'parent': None
+# }
+```
+
+- 믹스인을 서로 합성할 수 있다.
+- 임의 클래스를 JSON으로 직렬화하는 제너릭 믹스인 예제
+    - 여기서 `JsonMixin`클래스 안에 인스턴스 메서드와 클래스 메서드가 함께 정의
+    - 이 예제에서 `JsonMixin`의 요구조건은 하위 클래스들은 `to_dict()`메서드를 제공해야한다는 점과 `__init__`메서드가 키워드 인자를 받아야 한다는 점뿐이다.
+
+```python
+import json
+
+class JsonMixin:
+    @classmethod
+    def from_json(cls, data):
+        kwargs = json.data(data)
+        return cls(**kwargs)
+    
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+```
+
+- 데이터 센터의 각 요소 간 연결(topology)를 표현하는 클래스 계층이 있다고 하자
+    - 직렬화, 역직렬화해서 검사하는 코드
+    - 이렇게 믹스인을 사용할 때 JsonMixin을 적용하려고 하는 클래스 상속 계층의 상위 클래스에 이미 JsonMixin을 적용한 클래스가 있어도 아무런 문제가 없다. 이런 경우에도 super가 동작하는 방식으로 인해 믹스인을 적용한 클래스가 제대로 작동한다.
+```python
+import json
+
+class JsonMixin:
+    @classmethod
+    def from_json(cls, data):
+        print("===========================")
+        kwargs = json.loads(data)
+        print(kwargs)
+        return cls(**kwargs)
+    
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+class DatacenterRack(ToDictMixin, JsonMixin):
+    def __init__(self, switch=None, machines=None):
+        self.switch = Switch(**switch)
+        self.machines = [Machine(**kwargs) for kwargs in machines]
+
+class Switch(ToDictMixin, JsonMixin):
+    def __init__(self, ports=None, speed=None):
+        self.ports = ports
+        self.speed =speed
+
+class Machine(ToDictMixin, JsonMixin):
+    def __init__(self, cores=None, ram=None, disk=None):
+        self.cores = cores
+        self.ram = ram
+        self.disk = disk
+
+serialized = """{
+    "switch": {"ports": 5, "speed": 1e9},
+    "machines": [
+        {"cores": 8, "ram": 32e9, "disk": 5e12},
+        {"cores": 4, "ram": 16e9, "disk": 1e12},
+        {"cores": 2, "ram": 4e9, "disk": 500e9}
+    ]
+}"""
+
+deserialized = DatacenterRack.from_json(serialized)
+roundtrip = deserialized.to_json()
+assert json.loads(serialized) == json.loads(roundtrip)
+```
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 믹스인을 사용해 구현할 수 있는 기능을 인스턴스 애트리뷰트와 `__init__`을 사용하는 다중 상속을 통해 구현하지 말라<br>
+> - 믹스인 클래스가 클래스별로 특화된 기능을 필요로 한다면 인스턴스 수전에서 끼워 넣을 수 있는 기능을 활용해라(정해진 메서드를 통해 해당 기능을 인스턴스가 제공하도록)<br>
+> - 믹스인에는 필요에 따라 인스턴스 메서드는 물론 클래스 메서드도 포함될 수 있다.<br>
+> - 믹스인을 합성하면 단순한 동작으로부터 더 복잡한 기능을 만들어낼 수 있다.<br>
 
 <br>
 

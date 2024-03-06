@@ -406,115 +406,253 @@
 #         return workers
 
 # 40
-class MyBaseClass:
-    def __init__(self, value):
+# class MyBaseClass:
+#     def __init__(self, value):
+#         self.value = value
+
+# class Child(MyBaseClass):
+#     def __init__(self):
+#         MyBaseClass.__init__(self, 5)
+        
+# class TimesTwo:
+#     def __init__(self):
+#         self.value *= 2
+        
+# class PlusFive:
+#     def __init__(self):
+#         self.value += 5
+
+# class OneWay(MyBaseClass, TimesTwo, PlusFive):
+#     def __init__(self, value):
+#         MyBaseClass.__init__(self, value)
+#         TimesTwo.__init__(self)
+#         PlusFive.__init__(self)
+
+# foo = OneWay(5)
+# print(foo.value) # 15
+
+# ## 하지만 상속 순서와 초기화 순서가 다른 경우..
+# class AnotherWay(MyBaseClass, PlusFive, TimesTwo):
+#     def __init__(self, value):
+#         MyBaseClass.__init__(self, value)
+#         TimesTwo.__init__(self)
+#         PlusFive.__init__(self)
+
+# afoo = AnotherWay(5)
+# print(afoo.value) # 15
+# ## 이때도 문제는 발생하지 않는다.
+
+
+
+# ##
+# ## 기본 클래스를 상속하는 두 클래스
+# class TimesSeven(MyBaseClass):
+#     def __init__(self, value):
+#         MyBaseClass.__init__(self, value)
+#         self.value *= 7
+
+# class PlusNine(MyBaseClass):
+#     def __init__(self, value):
+#         MyBaseClass.__init__(self, value)
+#         self.value += 9
+
+# ## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+# class ThisWay(TimesSeven, PlusNine):
+#     def __init__(self, value):
+#         TimesSeven.__init__(self, value)
+#         PlusNine.__init__(self, value)
+
+# foo = ThisWay(5)
+# print(foo.value) ## 14
+# ## 예상한 동작은 5 * 7 + 9 이기 때문에 44 이지만, 14가 출력됨
+
+# ## 기본 클래스를 상속하는 두 클래스
+# class TimesSevenCorrect(MyBaseClass):
+#     def __init__(self, value):
+#         super().__init__(value)
+#         self.value *= 7
+
+# class PlusNineCorrect(MyBaseClass):
+#     def __init__(self, value):
+#         super().__init__(value)
+#         self.value += 9
+
+# ## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
+# class GoodWay(TimesSevenCorrect, PlusNineCorrect):
+#     def __init__(self, value):
+#         super().__init__(value)
+
+# foo = GoodWay(5)
+# print(foo.value) ## 98
+# # 7 * ( 5 + 9 ) 라서 98이 나옴
+
+# mro_str = '\n'.join(repr(cls) for cls in GoodWay.mro())
+# print(mro_str)
+# # <class '__main__.GoodWay'>
+# # <class '__main__.TimesSevenCorrect'>
+# # <class '__main__.PlusNineCorrect'>
+# # <class '__main__.MyBaseClass'>
+# # <class 'object'>
+
+# ## super에 전달하는 인자
+# class ExplictTrisect(MyBaseClass):
+#     def __init__(self, value):
+#         super(ExplictTrisect, self).__init__(value)
+#         self.value /= 3
+        
+# ## 하지만 object 인스턴스를 초기화 할 때는 두 파라미터를 지정할 필요가 없음
+# ## 지정하지 않으면 컴파일러가 자동으로 올바른 파라미터르 ㄹ넣어준다.
+
+# ##동일한 결과
+# class AutoTrisect(MyBaseClass):
+#     def __init__(self, value):
+#         super(__class__, self).__init__(value)
+#         self.value /= 3
+        
+
+# class ImplictTrisect(MyBaseClass):
+#     def __init__(self, value):
+#         super().__init__(value)
+#         self.value /= 3
+
+# assert ExplictTrisect(9).value == 3
+# assert AutoTrisect(9).value == 3
+# assert ImplictTrisect(9).value == 3
+
+# 41
+
+class ToDictMixin:
+    def to_dict(self):
+        return self._traverse_dict(self.__dict__)
+
+    def _traverse_dict(self, instance_dict):
+        output = dict()
+        for k, v in instance_dict.items():
+            output[k] = self._traverse(k, v)
+        return output
+
+    def _traverse(self, key, value):
+        if isinstance(value, ToDictMixin):
+            return value.to_dict()
+        elif isinstance(value, dict):
+            return self._traverse_dict(value)
+        elif isinstance(value, list):
+            return [self._traverse(key, i) for i in value]
+        elif hasattr(value, '__dict__'):
+            return self._traverse_dict(value.__dict__)
+        else:
+            return value
+
+
+class BinaryTree(ToDictMixin):
+    def __init__(self, value, left=None, right=None):
         self.value = value
+        self.left = left
+        self.right = right
 
-class Child(MyBaseClass):
-    def __init__(self):
-        MyBaseClass.__init__(self, 5)
-        
-class TimesTwo:
-    def __init__(self):
-        self.value *= 2
-        
-class PlusFive:
-    def __init__(self):
-        self.value += 5
+tree = BinaryTree(10, left=BinaryTree(7, right=BinaryTree(9)),
+                  right=BinaryTree(13,left=BinaryTree(11)))
+print(tree.to_dict())
+# {
+#     'value': 10, 
+#     'left': 
+#         {
+#             'value': 7, 
+#             'left': None, 
+#             'right': 
+#                 {
+#                     'value': 9, 
+#                     'left': None, 
+#                     'right': None
+#                 }
+#             }, 
+#     'right': 
+#         {
+#             'value': 13, 'left': 
+#             {
+#                 'value': 11, 
+#                 'left': None, 
+#                 'right': None
+#             }, 
+#             'right': None
+#         }
+# }
 
-class OneWay(MyBaseClass, TimesTwo, PlusFive):
-    def __init__(self, value):
-        MyBaseClass.__init__(self, value)
-        TimesTwo.__init__(self)
-        PlusFive.__init__(self)
+class BinaryTreeWithParent(BinaryTree):
+    def __init__(self, value, left=None, right=None, parent=None):
+        super().__init__(value, left=left, right=right)
+        self.parent = parent
+    
+    ## 무한루프 해결방법
+    ## Mixin에서 무한루프가 생길 함수를 오버라이드 함
+    def _traverse(self, key, value):
+        if (isinstance(value, BinaryTreeWithParent) and key == 'parent'):
+            return value.value # 순환참조 방지
+        else:
+            return super()._traverse(key, value)
 
-foo = OneWay(5)
-print(foo.value) # 15
+root = BinaryTreeWithParent(10)
+root.left = BinaryTreeWithParent(7, parent=root)
+root.left.right = BinaryTreeWithParent(9, parent=root.left)
+print(root.to_dict())
+# {
+#     'value': 10, 
+#     'left': 
+#         {
+#             'value': 7, 
+#             'left': None, 
+#             'right': 
+#                 {
+#                     'value': 9, 
+#                     'left': None, 
+#                     'right': None, 
+#                     'parent': 7
+#                 }, 
+#             'parent': 10
+#         }, 
+#     'right': None, 
+#     'parent': None
+# }
 
-## 하지만 상속 순서와 초기화 순서가 다른 경우..
-class AnotherWay(MyBaseClass, PlusFive, TimesTwo):
-    def __init__(self, value):
-        MyBaseClass.__init__(self, value)
-        TimesTwo.__init__(self)
-        PlusFive.__init__(self)
 
-afoo = AnotherWay(5)
-print(afoo.value) # 15
-## 이때도 문제는 발생하지 않는다.
+import json
 
+class JsonMixin:
+    @classmethod
+    def from_json(cls, data):
+        print("===========================")
+        kwargs = json.loads(data)
+        print(kwargs)
+        return cls(**kwargs)
+    
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
+class DatacenterRack(ToDictMixin, JsonMixin):
+    def __init__(self, switch=None, machines=None):
+        self.switch = Switch(**switch)
+        self.machines = [Machine(**kwargs) for kwargs in machines]
 
-##
-## 기본 클래스를 상속하는 두 클래스
-class TimesSeven(MyBaseClass):
-    def __init__(self, value):
-        MyBaseClass.__init__(self, value)
-        self.value *= 7
+class Switch(ToDictMixin, JsonMixin):
+    def __init__(self, ports=None, speed=None):
+        self.ports = ports
+        self.speed =speed
 
-class PlusNine(MyBaseClass):
-    def __init__(self, value):
-        MyBaseClass.__init__(self, value)
-        self.value += 9
+class Machine(ToDictMixin, JsonMixin):
+    def __init__(self, cores=None, ram=None, disk=None):
+        self.cores = cores
+        self.ram = ram
+        self.disk = disk
 
-## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
-class ThisWay(TimesSeven, PlusNine):
-    def __init__(self, value):
-        TimesSeven.__init__(self, value)
-        PlusNine.__init__(self, value)
+serialized = """{
+    "switch": {"ports": 5, "speed": 1e9},
+    "machines": [
+        {"cores": 8, "ram": 32e9, "disk": 5e12},
+        {"cores": 4, "ram": 16e9, "disk": 1e12},
+        {"cores": 2, "ram": 4e9, "disk": 500e9}
+    ]
+}"""
 
-foo = ThisWay(5)
-print(foo.value) ## 14
-## 예상한 동작은 5 * 7 + 9 이기 때문에 44 이지만, 14가 출력됨
-
-## 기본 클래스를 상속하는 두 클래스
-class TimesSevenCorrect(MyBaseClass):
-    def __init__(self, value):
-        super().__init__(value)
-        self.value *= 7
-
-class PlusNineCorrect(MyBaseClass):
-    def __init__(self, value):
-        super().__init__(value)
-        self.value += 9
-
-## 기본 클래스의 두 자식 클래스를 상속하는 클래스(다이아몬드 상속)
-class GoodWay(TimesSevenCorrect, PlusNineCorrect):
-    def __init__(self, value):
-        super().__init__(value)
-
-foo = GoodWay(5)
-print(foo.value) ## 98
-# 7 * ( 5 + 9 ) 라서 98이 나옴
-
-mro_str = '\n'.join(repr(cls) for cls in GoodWay.mro())
-print(mro_str)
-# <class '__main__.GoodWay'>
-# <class '__main__.TimesSevenCorrect'>
-# <class '__main__.PlusNineCorrect'>
-# <class '__main__.MyBaseClass'>
-# <class 'object'>
-
-## super에 전달하는 인자
-class ExplictTrisect(MyBaseClass):
-    def __init__(self, value):
-        super(ExplictTrisect, self).__init__(value)
-        self.value /= 3
-        
-## 하지만 object 인스턴스를 초기화 할 때는 두 파라미터를 지정할 필요가 없음
-## 지정하지 않으면 컴파일러가 자동으로 올바른 파라미터르 ㄹ넣어준다.
-
-##동일한 결과
-class AutoTrisect(MyBaseClass):
-    def __init__(self, value):
-        super(__class__, self).__init__(value)
-        self.value /= 3
-        
-
-class ImplictTrisect(MyBaseClass):
-    def __init__(self, value):
-        super().__init__(value)
-        self.value /= 3
-
-assert ExplictTrisect(9).value == 3
-assert AutoTrisect(9).value == 3
-assert ImplictTrisect(9).value == 3
+deserialized = DatacenterRack.from_json(serialized)
+roundtrip = deserialized.to_json()
+assert json.loads(serialized) == json.loads(roundtrip)
