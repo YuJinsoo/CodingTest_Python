@@ -905,10 +905,191 @@ assert json.loads(serialized) == json.loads(roundtrip)
 
 ## BetterWay42. 비공개 애트리뷰트보다는 공개 애트리뷰트를 사용하라
 
+- python의 클래스 애트리뷰트는 `공개`와 `비공개` 만 있음
+    - 어트리뷰트 이름을 `__`로 시작하면 비공개 필드가 됨
+    - 비공개 어트리뷰트는 인스턴스의 dot(.)으로 어트리뷰트 이름에 접근 불가능
+    - 하지만, 메서드는 클래스 내부에 들어있기 때문에 비공개 어트리뷰트에 접근 가능 
+
+```python
+# 클래스 어트리뷰트
+class MyObject():
+    def __init__(self):
+        self.public_field = 5
+        self.__private_field = 10
+        
+    def get_private_field(self):
+        return self.__private_field
+    
+    ## 클래스 메서드로도 인스턴스를 전달하면 비공개 어트리뷰트를 가져올 수 다.
+    ## 왜냐하면 클래스메서드 또한 클래스 내부에 있는 것이기 때문    
+    @classmethod
+    def get_private_field_bycls(cls, instance):
+        return instance.__private_field
+
+foo = MyObject()
+assert foo.public_field == 5
+assert foo.get_private_field() == 10
+assert foo._MyObject__private_field == 10
+assert MyObject.get_private_field_bycls(foo) == 10
+
+# ERROR 발생: AttributeError: 'MyObject' object has no attribute '__private_field'
+# foo.__private_field
+```
+
+- 비공개 어트리뷰트는 상속을 한 자식 클래스의 메서드에서는 접근이 불가능합니다.
+    - 에러 내용을 보면 이름이 `_클래스이름__private_field` 인지 물어보는 구문이 있음
+    - 파이썬은 `__`으로 시작하는 필드의 이름을 위 형식으로 바꾸어 접근이 안되는 것 처럼 보인다.
+
+```python
+class MyParentObject:
+    def __init__(self):
+        self.__private_field = 71
+    
+
+class MyChildObject(MyParentObject):
+    def get_private_field(self):
+        return self.__private_field
+
+baz = MyChildObject()
+# 에러발생
+# AttributeError: 'MyChildObject' object has no attribute '_MyChildObject__priavet_field'. Did you mean: '_MyParentObject__priavet_field'?
+# baz.get_private_field()
+
+# 정상동작
+assert baz._MyParentObject__private_field == 71
+```
+
+- 이렇게 언어 자체에서 기능을 제한하지 않은 이유는 사용자의 자유도를 존중하고 그에 대한 책임을 질 것이기 때문이다. 이런 기능을 열어둔어 사용할 수 있게 함으로써 얻는 이득이 위험을 감수하는 것보다 더 크다고 판단하기 때문.(파이썬의 정신)
+    - 특히 `__getattr__`, `__getattribute__`, `__setattr__`같은 어트리뷰트를 자유롭게 조작하는 방법을 제공하기 때문에 위 기능을 막는 것이 큰 의미가 없다.
+
+
+- 그래서 명명규칙을 통해 피해를 줄이고자 노력합니다.
+    - 언더바 1개(`_`)로 시작하는 것은 관례쩍으로 보호필드를 의미한다.
+    - 보호필드는 클래스 외부에서 이 필드를 사용하는 경우 주의가 필요하다는 의미이다.
+
+
+- 하위 클래스나 클래스 외부에서 사용하면 안되는 내부 API를 표현하기 위해 비공개 필드를 사용하면 안됩니다.(아래 예제)
+    - sub클래스 작성시 비공개 어트리뷰트를 선언한 클래스를 확인해서 클래스 이름을 다 작성해줘야 함
+    - 또한 부모 클래스에 변경이 일어나면 참조가 더이상 일치하지 않을 수 있다.
+
+```python
+## 잘못된 예제.
+## 이렇게 짜면 상속할 때 __value 때문에 get_value동작을 계속 바꿔주어야 함
+class MyStringClass:
+    def __init__(self, value):
+        self.__value = value
+    
+    def get_value(self):
+        return str(self.__value)
+
+foo = MyStringClass(5)
+assert foo.get_value() == '5'
+
+## sub클래스 작성시 이렇게 다 작성해줘야 함
+class MyIntegerSubclass(MyStringClass):
+    def get_value(self):
+        return int(self._MyStringClass__value)
+    
+foo = MyIntegerSubclass(2)
+assert foo.get_value() == 2
+```
+
+- 부모 클래스에 변경이 일어난 경우
+    - 상속한 모든 클래스에 다 수정을 해주어야 하기 때문에 누락이 있을 수 있음.
+
+```python
+# 부모클래스가 추가된 경우
+class MyBaseClass:
+    def __init__(self, value):
+        self.__value = value
+    
+    def get_value(self):
+        return self.__value
+
+# 클래스 변경. 어떤 클래스를 상속하게 됨
+class MyStringClass(MyBaseClass):
+    def get_value(self):
+        return str(super().get_value()) # 변경됨
+
+foo = MyStringClass(5)
+assert foo.get_value() == '5'
+
+## sub클래스 작성시 이렇게 다 작성해줘야 함
+class MyIntegerSubclass(MyStringClass):
+    def get_value(self):
+        return int(self._MyStringClass__value) # 변경되지 않음
+    
+foo = MyIntegerSubclass(2)
+assert foo.get_value() == 2 ## 수정을 못해서 에러가 남
+# 'MyIntegerSubclass' object has no attribute
+```
+
+- 그래서 부모 클래스 쪽에서  `__비공개 애트리뷰트` 말고 `_보호 애트리뷰트`를 사용하고 에러를 내는게 낫다.
+    - 그리고 충분한 주석을 보호 어트리뷰트에 달아준다.
+    - 아래 는 예시
+
+```python
+# 보호 어트리뷰트를 사용하는 예
+class MyStringClase():
+    def __init__(self, value):
+        # 여기서 객체에게 사용자가 제공한 값을 저장
+        # 사용자가 제공하는 값은 문자열로 탕비 변환이 가능해야 하며
+        # 일단 한번 객체 내부에 설정되면 불변 값으로 취급해야 함
+        self._value = value
+
+```
+
+> 비공개 어트리뷰트를 사용해야 하는 때는 하위 클래스의 필드와 이름이 충돌할 수 있는 경우 뿐
+
+- 이름이 겹쳐서 원하는 값을 얻지 못하는 경우가 생김.
+    - 주로 공개 API에 속한 클래스의 경우 신경써야 하는 부분
+    - 공개 API클래스의 하위 클래스는 관리 밖의 영역이기 때문
+    - 이때 흔한 이름(value같은)일 때 충돌이 자주 발생합니다.
+
+``` python
+# 이름이 겹쳐서 원하는 값을 얻지 못하는 경우가 생김.
+class ApiClass:
+    def __init__(self):
+        self._value = 5
+    
+    def get(self):
+        return self._value
+
+class Child(ApiClass):
+    def __init__(self):
+        super().__init__()
+        self._value = 'hello' # 충돌
+        
+a = Child()
+print(f'{a.get()}와 {a._value}는 달라야 합니다.')
+# hello와 hello는 달라야 합니다.
+```
+
+- 이런 경우 비공개 어트리뷰트를 사용하여 이름 충돌을 막을 수 있습니다.
+
+```python
+class ApiClass:
+    def __init__(self):
+        self.__value = 5
+    
+    def get(self):
+        return self.__value
+
+class Child(ApiClass):
+    def __init__(self):
+        super().__init__()
+        self._value = 'hello' # 이름 충돌안함
+        
+a = Child()
+print(f'{a.get()}와 {a._value}는 달라야 합니다.')
+# 5와 hello는 달라야 합니다.
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 컴파일러는 비공개 어트리뷰트를 자식 클래스나 클래스 외부에서 사용하지 못하도록 엄격히 금지하지 않는다.<br>
+> - 내가 개발한 내부 API에 있는 클래스의 하위 클래스를 정의하는 사람들이 내가 제공하는 클래스의 어트리뷰트를 사용하지 못하도록 막기보다는 사용하여 더 많은 일을 할 수 있게 해라.<br>
+> - 비공개 어트리뷰트로 접근을 막으려고 시도하기 보다는 보호필드를 사용하면서 문서에 적절한 가이드를 작성하라<br>
+> - 내가 작성하지 않아 제어할 수 없는 하위 클래스에서 이름 충돌이 일어나는 경우를 막고 싶을 때에만 비공개 어트리뷰트를 사용하라<br>
 
 <br>
 

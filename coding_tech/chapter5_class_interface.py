@@ -521,38 +521,38 @@
 
 # 41
 
-class ToDictMixin:
-    def to_dict(self):
-        return self._traverse_dict(self.__dict__)
+# class ToDictMixin:
+#     def to_dict(self):
+#         return self._traverse_dict(self.__dict__)
 
-    def _traverse_dict(self, instance_dict):
-        output = dict()
-        for k, v in instance_dict.items():
-            output[k] = self._traverse(k, v)
-        return output
+#     def _traverse_dict(self, instance_dict):
+#         output = dict()
+#         for k, v in instance_dict.items():
+#             output[k] = self._traverse(k, v)
+#         return output
 
-    def _traverse(self, key, value):
-        if isinstance(value, ToDictMixin):
-            return value.to_dict()
-        elif isinstance(value, dict):
-            return self._traverse_dict(value)
-        elif isinstance(value, list):
-            return [self._traverse(key, i) for i in value]
-        elif hasattr(value, '__dict__'):
-            return self._traverse_dict(value.__dict__)
-        else:
-            return value
+#     def _traverse(self, key, value):
+#         if isinstance(value, ToDictMixin):
+#             return value.to_dict()
+#         elif isinstance(value, dict):
+#             return self._traverse_dict(value)
+#         elif isinstance(value, list):
+#             return [self._traverse(key, i) for i in value]
+#         elif hasattr(value, '__dict__'):
+#             return self._traverse_dict(value.__dict__)
+#         else:
+#             return value
 
 
-class BinaryTree(ToDictMixin):
-    def __init__(self, value, left=None, right=None):
-        self.value = value
-        self.left = left
-        self.right = right
+# class BinaryTree(ToDictMixin):
+#     def __init__(self, value, left=None, right=None):
+#         self.value = value
+#         self.left = left
+#         self.right = right
 
-tree = BinaryTree(10, left=BinaryTree(7, right=BinaryTree(9)),
-                  right=BinaryTree(13,left=BinaryTree(11)))
-print(tree.to_dict())
+# tree = BinaryTree(10, left=BinaryTree(7, right=BinaryTree(9)),
+#                   right=BinaryTree(13,left=BinaryTree(11)))
+# print(tree.to_dict())
 # {
 #     'value': 10, 
 #     'left': 
@@ -578,23 +578,23 @@ print(tree.to_dict())
 #         }
 # }
 
-class BinaryTreeWithParent(BinaryTree):
-    def __init__(self, value, left=None, right=None, parent=None):
-        super().__init__(value, left=left, right=right)
-        self.parent = parent
+# class BinaryTreeWithParent(BinaryTree):
+#     def __init__(self, value, left=None, right=None, parent=None):
+#         super().__init__(value, left=left, right=right)
+#         self.parent = parent
     
-    ## 무한루프 해결방법
-    ## Mixin에서 무한루프가 생길 함수를 오버라이드 함
-    def _traverse(self, key, value):
-        if (isinstance(value, BinaryTreeWithParent) and key == 'parent'):
-            return value.value # 순환참조 방지
-        else:
-            return super()._traverse(key, value)
+#     ## 무한루프 해결방법
+#     ## Mixin에서 무한루프가 생길 함수를 오버라이드 함
+#     def _traverse(self, key, value):
+#         if (isinstance(value, BinaryTreeWithParent) and key == 'parent'):
+#             return value.value # 순환참조 방지
+#         else:
+#             return super()._traverse(key, value)
 
-root = BinaryTreeWithParent(10)
-root.left = BinaryTreeWithParent(7, parent=root)
-root.left.right = BinaryTreeWithParent(9, parent=root.left)
-print(root.to_dict())
+# root = BinaryTreeWithParent(10)
+# root.left = BinaryTreeWithParent(7, parent=root)
+# root.left.right = BinaryTreeWithParent(9, parent=root.left)
+# print(root.to_dict())
 # {
 #     'value': 10, 
 #     'left': 
@@ -615,44 +615,131 @@ print(root.to_dict())
 # }
 
 
-import json
+# import json
 
-class JsonMixin:
-    @classmethod
-    def from_json(cls, data):
-        print("===========================")
-        kwargs = json.loads(data)
-        print(kwargs)
-        return cls(**kwargs)
+# class JsonMixin:
+#     @classmethod
+#     def from_json(cls, data):
+#         print("===========================")
+#         kwargs = json.loads(data)
+#         print(kwargs)
+#         return cls(**kwargs)
     
-    def to_json(self):
-        return json.dumps(self.to_dict())
+#     def to_json(self):
+#         return json.dumps(self.to_dict())
 
-class DatacenterRack(ToDictMixin, JsonMixin):
-    def __init__(self, switch=None, machines=None):
-        self.switch = Switch(**switch)
-        self.machines = [Machine(**kwargs) for kwargs in machines]
+# class DatacenterRack(ToDictMixin, JsonMixin):
+#     def __init__(self, switch=None, machines=None):
+#         self.switch = Switch(**switch)
+#         self.machines = [Machine(**kwargs) for kwargs in machines]
 
-class Switch(ToDictMixin, JsonMixin):
-    def __init__(self, ports=None, speed=None):
-        self.ports = ports
-        self.speed =speed
+# class Switch(ToDictMixin, JsonMixin):
+#     def __init__(self, ports=None, speed=None):
+#         self.ports = ports
+#         self.speed =speed
 
-class Machine(ToDictMixin, JsonMixin):
-    def __init__(self, cores=None, ram=None, disk=None):
-        self.cores = cores
-        self.ram = ram
-        self.disk = disk
+# class Machine(ToDictMixin, JsonMixin):
+#     def __init__(self, cores=None, ram=None, disk=None):
+#         self.cores = cores
+#         self.ram = ram
+#         self.disk = disk
 
-serialized = """{
-    "switch": {"ports": 5, "speed": 1e9},
-    "machines": [
-        {"cores": 8, "ram": 32e9, "disk": 5e12},
-        {"cores": 4, "ram": 16e9, "disk": 1e12},
-        {"cores": 2, "ram": 4e9, "disk": 500e9}
-    ]
-}"""
+# serialized = """{
+#     "switch": {"ports": 5, "speed": 1e9},
+#     "machines": [
+#         {"cores": 8, "ram": 32e9, "disk": 5e12},
+#         {"cores": 4, "ram": 16e9, "disk": 1e12},
+#         {"cores": 2, "ram": 4e9, "disk": 500e9}
+#     ]
+# }"""
 
-deserialized = DatacenterRack.from_json(serialized)
-roundtrip = deserialized.to_json()
-assert json.loads(serialized) == json.loads(roundtrip)
+# deserialized = DatacenterRack.from_json(serialized)
+# roundtrip = deserialized.to_json()
+# assert json.loads(serialized) == json.loads(roundtrip)
+
+# 42
+
+# 클래스 어트리뷰트
+class MyObject():
+    def __init__(self):
+        self.public_field = 5
+        self.__private_field = 10
+        
+    def get_private_field(self):
+        return self.__private_field
+    
+    ## 클래스 메서드로도 인스턴스를 전달하면 비공개 어트리뷰트를 가져올 수 다.
+    ## 왜냐하면 클래스메서드 또한 클래스 내부에 있는 것이기 때문    
+    @classmethod
+    def get_private_field_bycls(cls, instance):
+        return instance.__private_field
+
+foo = MyObject()
+assert foo.public_field == 5
+assert foo.get_private_field() == 10
+assert foo._MyObject__private_field == 10
+assert MyObject.get_private_field_bycls(foo) == 10
+
+# print(foo.__dir__())
+# ERROR 발생: AttributeError: 'MyObject' object has no attribute '__private_field'
+# foo.__private_field
+
+
+class MyParentObject:
+    def __init__(self):
+        self.__private_field = 71
+    
+
+class MyChildObject(MyParentObject):
+    def get_private_field(self):
+        return self.__private_field
+
+baz = MyChildObject()
+# 에러발생
+# AttributeError: 'MyChildObject' object has no attribute '_MyChildObject__priavet_field'. Did you mean: '_MyParentObject__priavet_field'?
+# baz.get_private_field()
+
+# 정상동작
+assert baz._MyParentObject__private_field == 71
+
+
+# 부모클래스가 추가된 경우
+class MyBaseClass:
+    def __init__(self, value):
+        self.__value = value
+    
+    def get_value(self):
+        return self.__value
+
+# 클래스 변경. 어떤 클래스를 상속하게 됨
+class MyStringClass(MyBaseClass):
+    def get_value(self):
+        return str(super().get_value()) # 변경됨
+
+foo = MyStringClass(5)
+assert foo.get_value() == '5'
+
+## sub클래스 작성시 이렇게 다 작성해줘야 함
+class MyIntegerSubclass(MyStringClass):
+    def get_value(self):
+        return int(self._MyStringClass__value) # 변경되지 않음
+    
+foo = MyIntegerSubclass(2)
+# assert foo.get_value() == 2 ## 수정을 c못해서 에러가 남
+
+
+class ApiClass:
+    def __init__(self):
+        self.__value = 5
+    
+    def get(self):
+        return self.__value
+
+class Child(ApiClass):
+    def __init__(self):
+        super().__init__()
+        self._value = 'hello' # 이름 충돌안함
+        
+a = Child()
+print(f'{a.get()}와 {a._value}는 달라야 합니다.')
+# 5와 hello는 달라야 합니다.
