@@ -1094,10 +1094,157 @@ print(f'{a.get()}와 {a._value}는 달라야 합니다.')
 <br>
 
 ## BetterWay43. 커스텀 컨테이너 타입은 collections.abc를 상속하라
+
+- 멤버 빈도 예제
+    - 기존에 존재하는 것을 상속하고 필요한 기능을 추가로 개발해서 사용할 수 있다.
+```python
+# 필요한 메서드를 추가해서 갑라핼수 있다.
+class FrequencyList(list):
+    def __init__(self, members):
+        super().__init__(members)
+    
+    def frequency(self):
+        counts = {}
+        for item in self:
+            counts[item] = counts.get(item, 0) + 1
+        return counts
+
+foo = FrequencyList(['a', 'b', 'c', 'd','e'])
+print('길이: ', len(foo)) # 길이:  5
+
+foo.pop()
+print('pop 한 다음:', repr(foo)) # pop 한 다음: ['a', 'b', 'c', 'd']
+print('빈도:', foo.frequency()) # 빈도: {'a': 1, 'b': 1, 'c': 1, 'd': 1}
+```
+
+- 리스트처럼 느껴지면서 인덱싱이 가능한 객체 예제
+    - 이진트리 클래스를 시퀀스(list, tuple)을 사용해 구현
+    - `__getitem__`메서드로 인덱스 연산이 가능해진다.
+    - 하지만 이 메서드만으로 모든 시퀀스 의미 구조를 제공할 수 는 없다.
+    - 커스텀 시퀀스 타입은 `__len__`이라는 메서드르 구현해야 제대로 작동함
+
+```python
+# 시퀀스를 이용해 이진트리 구현
+## 이걸 어떻게?
+class BinaryNode:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+## 인덱싱([]) 하는 기능은 __getitem__을 정의하면 된다.
+class IndexableNode(BinaryNode):
+    def _traverse(self):
+        if self.left is not None:
+            yield from self.left._traverse()
+        yield self
+        if self.right is not None:
+            yield from self.right._traverse()
+    
+    def __getitem__(self, index):
+        for i, item in enumerate(self._traverse()):
+            if i == index:
+                return item.value
+        
+        raise IndexError(f'인덱스 범위 초과: {index}')
+
+tree = IndexableNode(
+    10,
+    left = IndexableNode(
+        5,
+        left = IndexableNode(2),
+        right = IndexableNode(
+            6,
+            right = IndexableNode(7))),
+    right = IndexableNode(
+        15,
+        left = IndexableNode(11)))
+
+print('LRR:', tree.left.right.right.value)
+print('인덱스 0:', tree[0])
+print('인덱스 1:', tree[1])
+print('11이 안에 있나?: ', 11 in tree)
+print('17이 안에 있나?: ', 17 in tree)
+print('트리:', list(tree))
+# LRR: 7
+# 인덱스 0: 2
+# 인덱스 1: 5
+# 11이 안에 있나?:  True
+# 17이 안에 있나?:  False
+# 트리: [2, 5, 6, 7, 10, 11, 15]
+
+## __len__ 함수까지 정의해야 커스텀 시퀀스로 동작함
+class SequenceNode(IndexableNode):
+    def __len__(self):
+        for count, _ in enumerate(self._traverse(), 1):
+            pass
+        return count
+
+tree = SequenceNode(
+    10,
+    left = SequenceNode(
+        5,
+        left = SequenceNode(2),
+        right = SequenceNode(
+            6,
+            right = SequenceNode(7))),
+    right = SequenceNode(
+        15,
+        left = SequenceNode(11)))
+
+print('트리 길이: ', len(tree)) ## 트리 길이:  7
+```
+
+- 하지만 사실 `__getitem__`과 `__len__`으로는 충분하지 않음
+    - `count`나 `index`메서드를 지원하는 것도 필요함.
+    - 즉 커스텀 컨테이너 타입을 구현하는 것은 생각보다 어려움
+
+- 위의 어려움을 덜기 위해 `collections.abc`모듈을 사용함
+    - 추상 기반 클래스의 하위 클래스를 만들고 필요한 메서드 구현을 잊으면, 모듈이 실수한 부분을 알려준다.
+
+```python
+from collections import abc
+
+class BadType(abc.Sequence):
+    pass
+
+foo = BadType() # 에러발생
+## TypeError: Can't instantiate abstract class BadType without an implementation for abstract methods '__getitem__', '__len__'
+```
+
+- 그래서 위 SequenceNode에서 한 것처럼 collections.abc에서 가져온 추상 기반 클래스가 요구하는 모든 메서드를 구현하면, index나 count같은 추가 메서드 구현을 쉽게 할 수 있다.
+
+```python
+class BetterNode(SequenceNode, abc.Sequence):
+    pass
+
+
+tree = BetterNode(
+    10,
+    left = BetterNode(
+        5,
+        left = BetterNode(2),
+        right = BetterNode(
+            6,
+            right = BetterNode(7))),
+    right = BetterNode(
+        15,
+        left = BetterNode(11)))
+
+print('7의 인덱스: ', tree.index(7))  # 원소의 인덱스 반환하는 index함수
+print('10의 개수: ', tree.count(10)) # 원소 개수세는 count 함수
+# 7의 인덱스:  3
+# 10의 개수:  1
+```
+
+- `Set`이나 `MutableMapping`과 같이 더 복잡한 컨테이너 타입을 구현할 때는 큰 도움이 됨
+- `collections.abc`이외에도, 파이썬에는 객체 비교와 정렬에 사용하는 특별 메서드가 있음
+    - 컨테이너 클래스, 비 컨테이너 클래스에 모두 구현할 수 ㅣㅇㅆ다.
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 간편하게 사용하 경우에는 파이썬 컨테이너 타입을 직접 상속<br>
+> - 커스텀 컨테이너를 제대로 구현하려면 수많은 매직메서드를 직접 구현해야 함<br>
+> - 커스텀 컨테이너 타입이 `collections.abc`에 정의된 인터페이스를 상속하면, 커스텀 컨테이너 타입이 정상적으로 작동하기 위해 필요한 인터페이스와 기능을 제대로 구현하도록 보장한다.<br>
 
 <br>
 

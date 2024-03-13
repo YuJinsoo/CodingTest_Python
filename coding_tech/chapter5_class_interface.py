@@ -659,87 +659,209 @@
 
 # 42
 
-# 클래스 어트리뷰트
-class MyObject():
-    def __init__(self):
-        self.public_field = 5
-        self.__private_field = 10
+# # 클래스 어트리뷰트
+# class MyObject():
+#     def __init__(self):
+#         self.public_field = 5
+#         self.__private_field = 10
         
-    def get_private_field(self):
-        return self.__private_field
+#     def get_private_field(self):
+#         return self.__private_field
     
-    ## 클래스 메서드로도 인스턴스를 전달하면 비공개 어트리뷰트를 가져올 수 다.
-    ## 왜냐하면 클래스메서드 또한 클래스 내부에 있는 것이기 때문    
-    @classmethod
-    def get_private_field_bycls(cls, instance):
-        return instance.__private_field
+#     ## 클래스 메서드로도 인스턴스를 전달하면 비공개 어트리뷰트를 가져올 수 다.
+#     ## 왜냐하면 클래스메서드 또한 클래스 내부에 있는 것이기 때문    
+#     @classmethod
+#     def get_private_field_bycls(cls, instance):
+#         return instance.__private_field
 
-foo = MyObject()
-assert foo.public_field == 5
-assert foo.get_private_field() == 10
-assert foo._MyObject__private_field == 10
-assert MyObject.get_private_field_bycls(foo) == 10
+# foo = MyObject()
+# assert foo.public_field == 5
+# assert foo.get_private_field() == 10
+# assert foo._MyObject__private_field == 10
+# assert MyObject.get_private_field_bycls(foo) == 10
 
-# print(foo.__dir__())
-# ERROR 발생: AttributeError: 'MyObject' object has no attribute '__private_field'
-# foo.__private_field
+# # print(foo.__dir__())
+# # ERROR 발생: AttributeError: 'MyObject' object has no attribute '__private_field'
+# # foo.__private_field
 
 
-class MyParentObject:
-    def __init__(self):
-        self.__private_field = 71
+# class MyParentObject:
+#     def __init__(self):
+#         self.__private_field = 71
     
 
-class MyChildObject(MyParentObject):
-    def get_private_field(self):
-        return self.__private_field
+# class MyChildObject(MyParentObject):
+#     def get_private_field(self):
+#         return self.__private_field
 
-baz = MyChildObject()
-# 에러발생
-# AttributeError: 'MyChildObject' object has no attribute '_MyChildObject__priavet_field'. Did you mean: '_MyParentObject__priavet_field'?
-# baz.get_private_field()
+# baz = MyChildObject()
+# # 에러발생
+# # AttributeError: 'MyChildObject' object has no attribute '_MyChildObject__priavet_field'. Did you mean: '_MyParentObject__priavet_field'?
+# # baz.get_private_field()
 
-# 정상동작
-assert baz._MyParentObject__private_field == 71
+# # 정상동작
+# assert baz._MyParentObject__private_field == 71
 
 
-# 부모클래스가 추가된 경우
-class MyBaseClass:
-    def __init__(self, value):
-        self.__value = value
+# # 부모클래스가 추가된 경우
+# class MyBaseClass:
+#     def __init__(self, value):
+#         self.__value = value
     
-    def get_value(self):
-        return self.__value
+#     def get_value(self):
+#         return self.__value
 
-# 클래스 변경. 어떤 클래스를 상속하게 됨
-class MyStringClass(MyBaseClass):
-    def get_value(self):
-        return str(super().get_value()) # 변경됨
+# # 클래스 변경. 어떤 클래스를 상속하게 됨
+# class MyStringClass(MyBaseClass):
+#     def get_value(self):
+#         return str(super().get_value()) # 변경됨
 
-foo = MyStringClass(5)
-assert foo.get_value() == '5'
+# foo = MyStringClass(5)
+# assert foo.get_value() == '5'
 
-## sub클래스 작성시 이렇게 다 작성해줘야 함
-class MyIntegerSubclass(MyStringClass):
-    def get_value(self):
-        return int(self._MyStringClass__value) # 변경되지 않음
+# ## sub클래스 작성시 이렇게 다 작성해줘야 함
+# class MyIntegerSubclass(MyStringClass):
+#     def get_value(self):
+#         return int(self._MyStringClass__value) # 변경되지 않음
     
-foo = MyIntegerSubclass(2)
-# assert foo.get_value() == 2 ## 수정을 c못해서 에러가 남
+# foo = MyIntegerSubclass(2)
+# # assert foo.get_value() == 2 ## 수정을 c못해서 에러가 남
 
 
-class ApiClass:
-    def __init__(self):
-        self.__value = 5
+# class ApiClass:
+#     def __init__(self):
+#         self.__value = 5
     
-    def get(self):
-        return self.__value
+#     def get(self):
+#         return self.__value
 
-class Child(ApiClass):
-    def __init__(self):
-        super().__init__()
-        self._value = 'hello' # 이름 충돌안함
+# class Child(ApiClass):
+#     def __init__(self):
+#         super().__init__()
+#         self._value = 'hello' # 이름 충돌안함
         
-a = Child()
-print(f'{a.get()}와 {a._value}는 달라야 합니다.')
-# 5와 hello는 달라야 합니다.
+# a = Child()
+# print(f'{a.get()}와 {a._value}는 달라야 합니다.')
+# # 5와 hello는 달라야 합니다.
+
+# 43
+
+# 멤버 빈도 예제
+# 필요한 메서드를 추가해서 갑라핼수 있다.
+class FrequencyList(list):
+    def __init__(self, members):
+        super().__init__(members)
+    
+    def frequency(self):
+        counts = {}
+        for item in self:
+            counts[item] = counts.get(item, 0) + 1
+        return counts
+
+foo = FrequencyList(['a', 'b', 'c', 'd','e'])
+print('길이: ', len(foo)) # 길이:  5
+
+foo.pop()
+print('pop 한 다음:', repr(foo)) # pop 한 다음: ['a', 'b', 'c', 'd']
+print('빈도:', foo.frequency()) # 빈도: {'a': 1, 'b': 1, 'c': 1, 'd': 1}
+
+
+class BinaryNode:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+    
+    # 시퀀스에 접근하는 메서드(인덱스연산 [])
+
+class IndexableNode(BinaryNode):
+    def _traverse(self):
+        if self.left is not None:
+            yield from self.left._traverse()
+        yield self
+        if self.right is not None:
+            yield from self.right._traverse()
+    
+    def __getitem__(self, index):
+        for i, item in enumerate(self._traverse()):
+            if i == index:
+                return item.value
+        
+        raise IndexError(f'인덱스 범위 초과: {index}')
+
+tree = IndexableNode(
+    10,
+    left = IndexableNode(
+        5,
+        left = IndexableNode(2),
+        right = IndexableNode(
+            6,
+            right = IndexableNode(7))),
+    right = IndexableNode(
+        15,
+        left = IndexableNode(11)))
+
+print('LRR:', tree.left.right.right.value)
+print('인덱스 0:', tree[0])
+print('인덱스 1:', tree[1])
+print('11이 안에 있나?: ', 11 in tree)
+print('17이 안에 있나?: ', 17 in tree)
+print('트리:', list(tree))
+# LRR: 7
+# 인덱스 0: 2
+# 인덱스 1: 5
+# 11이 안에 있나?:  True
+# 17이 안에 있나?:  False
+# 트리: [2, 5, 6, 7, 10, 11, 15]
+
+
+#
+class SequenceNode(IndexableNode):
+    def __len__(self):
+        for count, _ in enumerate(self._traverse(), 1):
+            pass
+        return count
+
+tree = SequenceNode(
+    10,
+    left = SequenceNode(
+        5,
+        left = SequenceNode(2),
+        right = SequenceNode(
+            6,
+            right = SequenceNode(7))),
+    right = SequenceNode(
+        15,
+        left = SequenceNode(11)))
+
+print('트리 길이: ', len(tree)) ## 트리 길이:  7
+
+from collections import abc
+
+class BadType(abc.Sequence):
+    pass
+
+# foo = BadType() # 에러발생
+## TypeError: Can't instantiate abstract class BadType without an implementation for abstract methods '__getitem__', '__len__'
+
+
+class BetterNode(SequenceNode, abc.Sequence):
+    pass
+
+
+tree = BetterNode(
+    10,
+    left = BetterNode(
+        5,
+        left = BetterNode(2),
+        right = BetterNode(
+            6,
+            right = BetterNode(7))),
+    right = BetterNode(
+        15,
+        left = BetterNode(11)))
+
+print('7의 인덱스: ', tree.index(7))  # 원소의 인덱스 반환하는 index함수
+print('10의 개수: ', tree.count(10)) # 원소 개수세는 count 함수
+# 7의 인덱스:  3
+# 10의 개수:  1
