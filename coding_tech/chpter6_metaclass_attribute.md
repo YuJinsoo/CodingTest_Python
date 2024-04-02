@@ -174,11 +174,170 @@ print(f'이후: {r7.voltage: .2f}')   # 이전:  0.00
 
 ## BetterWay45. 애트리뷰트를 리팩터릴하는 대신 @property를 사용해라
 
+- `@property` 데코레이터
+    - 지능적인 로직을 수행하는 애트리뷰트 정의할 수 있음 (getter, setter)
+    - 기존 클래스를 호출하는 부분을 수정하지 않고도 동작을 변경할 수 있음
+
+- leaky bucket 흐름 제어 알고리즘 예제
+    - 남은 가용 용량(quota)과 가용 용량의 잔존 시간을 표현한다.
+    - 시간을 일정한 간격으로 구분하고 가용 용량을 소비할 때마다 시간을 검사해 주기가 달라질 경우에 이전 주기에 미사용한 가용 용량이 새로운 주기로 넘어오지 못하게 함
+    - 가용 용량을 소비하는 쪽에서 어떤 작업을 하고 싶을 때마다 먼저 리키 버킷으로부터 자신의 작업에 필요한 용량을 할당받아야 한다.
+
+```python
+from datetime import datetime, timedelta
+
+class Bucket:
+    def __init__(self, period):
+        self.period_delta = timedelta(seconds=period)
+        self.reset_time = datetime.now()
+        self.quote = 0
+        
+    def __repr__(self):
+        return f'Bucket(quota={self.quote})'
+
+def fill(bucket, amount):
+    now = datetime.now()
+    
+    if (now - bucket.reset_time) > bucket.period_delta :
+        bucket.quote = 0
+        bucket.reset_time = now
+    
+    bucket.quote += amount
+
+def deduct(bucket, amount):
+        now = datetime.now()
+        
+        if (now - bucket.reset_time) > bucket.period_delta:
+            return False # 새 주기가 시작됐는데 아직 버킷 할당량이 재설정 되지 않음
+        
+        if bucket.quote - amount < 0:
+            return False # 버킷의 가용 용량이 충분하지 못함
+        else:
+            bucket.quote -= amount
+            return True # 버킷의 가용 욜야이 충분하므로 필요한 분량을 사용
+        
+
+bucket = Bucket(60)
+fill(bucket, 100)
+print(bucket) # Bucket(quota=100)
+
+## 그 후 사용할 때마다 필요한 용량을 버킷에서 빼야 함
+
+if deduct(bucket, 99):
+    print('99 용량 사용') # 이게 출력됨
+else:
+    print('가용 용량이 작아서 99 용량을 처리할 수 없음')
+    
+print(bucket) # Bucket(quota=1)
+
+if deduct(bucket, 3):
+    print('3 용량 사용')
+else:
+    print('가용 용량이 작아서 3 용량을 처리할 수 없음') ## 이게 출력됨
+print(bucket) # Bucket(quota=1)
+```
+
+- 위 예제의 문제는 가용 용량이 얼마인지 알 수 없다는 문제가 있음
+    - 만야 `deduct()`함수가 실패했을 때, 용량이 부족한지, 주기에 따른 양을 초기화하지 않았는지 원인을 알 수 없음
+    - `max_qoute`와 `quota_consumed`를 추적하도록 기능 추가
+    - 원래 `Bucket` 클래스와 인터페이스르 동일하게 제공하기 위해 `@property`가 붙은 메서드를 사용해 클래스의 두 애트리뷰트(`max_quota`, `qouta_consumed`)에서 현재 사용 용량 수준을 그때그때 계산하게 한다.
+
+```python
+from datetime import datetime, timedelta
+
+class NewBucket:
+    def __init__(self, period):
+        self.period_delta = timedelta(seconds=period)
+        self.reset_time = datetime.now()
+        self.max_quota = 0
+        self.quota_consumed = 0
+        
+    def __repr__(self):
+        return (f'NewBucket(max_quota={self.max_quota}), ' 
+                f'quota_consumed={self.quota_consumed}')
+        
+    @property
+    def quota(self):
+        return self.max_quota - self.quota_consumed
+
+    @quota.setter
+    def quota(self, amount):
+        delta = self.max_quota - amount
+        
+        if amount == 0:
+            # 새로운 주기가 되고 가용 용량을 재설정 하는 경우
+            self.quota_consumed = 0
+            self.max_quota = 0
+        elif delta < 0:
+            # 새로운 주기가 되고 가용 용량을 추가하는 경우
+            assert self.quota_consumed == 0
+            self.max_quota = amount
+        else:
+            # 어떤 주기 안에서 가용 용량을 소비하는 경우
+            assert self.max_quota >= self.quota_consumed
+            self.quota_consumed += delta
+
+
+def fill(bucket, amount):
+    now = datetime.now()
+    
+    if (now - bucket.reset_time) > bucket.period_delta :
+        bucket.quota = 0
+        bucket.reset_time = now
+    
+    bucket.quota += amount
+
+def deduct(bucket, amount):
+        now = datetime.now()
+        
+        if (now - bucket.reset_time) > bucket.period_delta:
+            return False # 새 주기가 시작됐는데 아직 버킷 할당량이 재설정 되지 않음
+        
+        if bucket.quota - amount < 0:
+            return False # 버킷의 가용 용량이 충분하지 못함
+        else:
+            bucket.quota -= amount
+            return True # 버킷의 가용 욜야이 충분하므로 필요한 분량을 사용
+
+
+bucket = NewBucket(60)
+print('최초', bucket)
+fill(bucket, 100)
+print('보충 후', bucket)
+
+if deduct(bucket, 99):
+    print('99 용량 사용') # 이게 출력됨
+else:
+    print('가용 용량이 작아서 99 용량을 처리할 수 없음')
+    
+print('사용 후', bucket) 
+
+if deduct(bucket, 3):
+    print('3 용량 사용')
+else:
+    print('가용 용량이 작아서 3 용량을 처리할 수 없음')  # 이게 출력됨
+print('여전히', bucket)
+
+# 최초 NewBucket(max_quota=0), quota_consumed=0
+# 보충 후 NewBucket(max_quota=100), quota_consumed=0
+# 99 용량 사용
+# 사용 후 NewBucket(max_quota=100), quota_consumed=99
+# 가용 용량이 작아서 3 용량을 처리할 수 없음
+# 여전히 NewBucket(max_quota=100), quota_consumed=99
+```
+
+- `@property`활용의 좋은점
+    - `Bucket.quota`를 사용하는 코드 변경이 필요 없음
+    - 새로운 `NewBucket`은 기존 `Bucket`과 똑같이 잘 동작함
+    - 
+
+- 하지만 `@property`를 남용하면 안됨.
+    - 과도하게 사용하게 된다면 클래스를 리팩토링 하는 선택지를 고려해야 함.
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - `@property`를 사용해 기존 인스턴스 애트리뷰트에 새료운 기능을 제공할 수 있다.<br>
+> - `@property`를 사용해 데이터 모델을 점진적으로 개선하라.<br>
+> - `@property` 메서드를 과하게 쓰고 있다면 클래스와 클래스를 사용하는 모든 코드를 리팩터링하는 것을 고려하자 <br>
 
 <br>
 
