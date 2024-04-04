@@ -172,7 +172,7 @@ print(f'이후: {r7.voltage: .2f}')   # 이전:  0.00
 
 <br>
 
-## BetterWay45. 애트리뷰트를 리팩터릴하는 대신 @property를 사용해라
+## BetterWay45. 애트리뷰트를 리팩터링하는 대신 @property를 사용해라
 
 - `@property` 데코레이터
     - 지능적인 로직을 수행하는 애트리뷰트 정의할 수 있음 (getter, setter)
@@ -341,12 +341,185 @@ print('여전히', bucket)
 
 <br>
 
-## BetterWay46. 재사용 가능한 @property 메서드를 만들려면 디스크립터를 사용해라.
+## BetterWay46. 재사용 가능한 @property 메서드를 만들려면 디스크립터를 사용해라
+
+- `@property`의 가장 큰 문제점은 재사용성이 떨어지는 것이다.
+    - `@property`로 데코레이션하는 메서드를 같은 크래스에 속하는 여러 애트리뷰트로 사용할 수 없다.
+    - 무관한 클래스 사이에서 `@property` 데코레이터를 적용한 메서드를 재사용 할 수 없다.
+
+- 학생 숙제 점수가 백뷸율 값인지 검증하는 예제
+    - Homework는 편리하게 사용할 수 있음
+    - 하지만 Exam같이 확장하고자 한다면
+        - 각 카테고리 점수마다 `@propert`와 세터를 통해 검증을 구형해줘야 함.
+        - 코드 반복이 너무 많아진다.
+```python
+class Homework:
+    def __init__(self):
+        self._grade = 0
+    
+    @property
+    def grade(self):
+        return self._grade
+    
+    @grade.setter
+    def grade(self, value):
+        if not (0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+        
+        self._grade = value
+
+## @property를 사용해서 이 클래스를 쉽게 사용가능
+galileo = Homework()
+galileo.grade = 95
+
+
+class Exam:
+    def __init__(self):
+        self._writing_grade = 0
+        self._math_grade = 0
+    
+    @staticmethod
+    def _check_grade(value):
+        if not (0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+    
+    @property
+    def writing_grade(self):
+        return self._writing_grade
+    
+    @writing_grade.setter
+    def writing_grade(self, value):
+        if not (0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+    
+    @property
+    def math_grade(self):
+        return self._math_grade
+    
+    @math_grade.setter
+    def math_grade(self, value):
+        if not (0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+```
+
+- 위의 번거로운 작업에서 적용할 수 있는 방법은 `디스크립터`를 사용하는 것입니다.
+- `디스크립터 프로토콜`
+    - 파이썬에서 애트리뷰트 접근을 해석하는 방법을 정의
+    - `__get__`과 `__set__`메서들르 제공
+    - 위 두 메서드를 사용하면 별다른 준비 코드 없이 원하는 동작을 재사용할 수 있다.
+    - 같은 로직을 한 클래스 안에 속한 여러 애트리뷰트에 적용할 수 있다. (믹스인 보다 나음)
+
+- grade 디스트립터를 구현한 사용 예제
+    - Exam 클래스 인트턴스에서 각 클래스 애트리뷰트에 접근할 때 다음과 같이 접근됨
+        `Exam.__dict__['wirting_grade'].__set__(exam, 40)`,
+        `Exam.__dict__['wirting_grade'].__get__(exam, Exam)`,
+    - `__get__`과 `__set__`메서드가 정의된 객체라면 파이썬은 디스크립터프로토콜을 따라야 한다고 결정한다.
+
+```python
+class Grade:
+    def __init__(self):
+        self._value = 0
+        
+    def __get__(self, instance, instance_type):
+        return self._value
+    
+    def __set__(self, instance, value):
+        if not(0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+        self._value = value
+        
+        
+class Exam:
+    # 클래스 애트리뷰트
+    math_grade = Grade()
+    writing_grade = Grade()
+    science_grade = Grade()
+
+first_exma = Exam()
+first_exma.writing_grade = 82
+first_exma.science_grade = 99
+print('쓰기', first_exma.writing_grade) # 쓰기 82
+print('과학', first_exma.science_grade) # 과학 99
+```
+
+- 하지만 여러 Exam 인스턴스 객체에 대해 애트리뷰트 접근을 시도하면 예상하지 못한 동작을 볼 수 있다.
+    - first인데도 second에 넣은 값이 불려와짐.
+    - 문제는 writing_grade 클래스 애트리뷰트로 한 Grade 인스턴스를 모든 Exam 인스턴스가 공유한다는 점이다.
+    - 프로그램이 실행되는 동아 Exam 클래스가 처음 정의될 때 이 애트리뷰트에 대한 Grade 인스턴스가 단 한 번만 생성된다.( 매번 생성되지 않아 모두 같음.. )
+```python
+second_exam = Exam()
+second_exam.writing_grade = 75
+print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
+print(f'첫 번째 쓰기 점수 {first_exma.writing_grade} 틀림; '
+      f'82점이어야 함')
+# 두 번째 쓰기 점수 75 맞음
+# 첫 번째 쓰기 점수 75 틀림; 82점이어야 함
+```
+
+- Grade 클래스가 각가 유일한 Exam 인스턴으세 대해 따로 값을 추적하게 해야함.
+    - 인스턴스별 상태를 딕셔너리에 저장하면 구현이 가능
+    - 하지만 아래 방식은 `메모리 누수`가 발생함
+        - values에서 모든 생성된 인스턴스를 참조하므로 GC가 정리하지 못함.
+
+```python
+## _values에 등록한 instance들이 모두 참조되어 GC로 삭제되지 않음
+class Grade:
+    def __init__(self):
+        self._values = {}
+        
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return self._values.get(instance, 0)
+    
+    def __set__(self, instance, value):
+        if not(0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+        self._values[instance] = value
+```
+
+- 메모리 누수 문제를 해결하기 위해 `weakref` 내장 모듈 사용
+    - `WeakKeyDictionary`는 딕셔너리에 객체를 저장할 때 강한참조 대신 약한참조를 사용함.
+    - 파이썬 GC는 약한 참조로만 된 객체가 사용 중인 메모리를 언제든지 재활용 할 수 있음 >> 누수 해결
+
+```python
+from weakref import WeakKeyDictionary
+
+class Grade:
+    def __init__(self):
+        ## 약한 참조로 이 참조만 있다면 GC로 정리가능
+        self._values = WeakKeyDictionary() 
+        
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return self._values.get(instance, 0)
+    
+    def __set__(self, instance, value):
+        if not(0 <= value <= 100):
+            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+        self._values[instance] = value
+
+
+class Exam:
+    # 클래스 애트리뷰트
+    math_grade = Grade()
+    writing_grade = Grade()
+    science_grade = Grade()
+
+first_exam = Exam()
+first_exam.writing_grade = 82
+second_exam = Exam()
+second_exam.writing_grade = 75
+print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
+print(f'첫 번째 쓰기 점수 {first_exam.writing_grade} 맞음')
+
+```
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `@property` 메서드의 동작과 검증 기능을 재사용 하고 싶다면 디스크립터 클래스를 만들자<br>
+> - 디스크립터 클래스를 만들 때에는 메모리 누수를 방지하기 위해 `WeakKeyDictionary`를 사용하자<br>
+> - `__getattribute__`가 디스크립터 프로토콜을 사용해 애트리뷰트 값을 읽거나 설정하는 방식을 이해하자.<br>
 > - <br>
 
 <br>
