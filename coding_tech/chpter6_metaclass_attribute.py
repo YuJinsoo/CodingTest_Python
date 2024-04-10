@@ -305,85 +305,238 @@
 #             raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
 
 
-class Grade:
-    def __init__(self):
-        self._value = 0
+# class Grade:
+#     def __init__(self):
+#         self._value = 0
         
-    def __get__(self, instance, instance_type):
-        return self._value
+#     def __get__(self, instance, instance_type):
+#         return self._value
     
-    def __set__(self, instance, value):
-        if not(0 <= value <= 100):
-            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
-        self._value = value
+#     def __set__(self, instance, value):
+#         if not(0 <= value <= 100):
+#             raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+#         self._value = value
         
         
-class Exam:
-    # 클래스 애트리뷰트
-    math_grade = Grade()
-    writing_grade = Grade()
-    science_grade = Grade()
+# class Exam:
+#     # 클래스 애트리뷰트
+#     math_grade = Grade()
+#     writing_grade = Grade()
+#     science_grade = Grade()
 
-first_exma = Exam()
-first_exma.writing_grade = 82
-first_exma.science_grade = 99
-print('쓰기', first_exma.writing_grade) # 쓰기 82
-print('과학', first_exma.science_grade) # 과학 99
-
-
-second_exam = Exam()
-second_exam.writing_grade = 75
-print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
-print(f'첫 번째 쓰기 점수 {first_exma.writing_grade} 틀림; '
-      f'82점이어야 함')
-# 두 번째 쓰기 점수 75 맞음
-# 첫 번째 쓰기 점수 75 틀림; 82점이어야 함
+# first_exma = Exam()
+# first_exma.writing_grade = 82
+# first_exma.science_grade = 99
+# print('쓰기', first_exma.writing_grade) # 쓰기 82
+# print('과학', first_exma.science_grade) # 과학 99
 
 
+# second_exam = Exam()
+# second_exam.writing_grade = 75
+# print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
+# print(f'첫 번째 쓰기 점수 {first_exma.writing_grade} 틀림; '
+#       f'82점이어야 함')
+# # 두 번째 쓰기 점수 75 맞음
+# # 첫 번째 쓰기 점수 75 틀림; 82점이어야 함
 
-## _values에 등록한 instance들이 모두 참조되어 GC로 삭제되지 않음
-class Grade:
-    def __init__(self):
-        self._values = {}
+
+
+# ## _values에 등록한 instance들이 모두 참조되어 GC로 삭제되지 않음
+# class Grade:
+#     def __init__(self):
+#         self._values = {}
         
-    def __get__(self, instance, instance_type):
-        if instance is None:
-            return self
-        return self._values.get(instance, 0)
+#     def __get__(self, instance, instance_type):
+#         if instance is None:
+#             return self
+#         return self._values.get(instance, 0)
     
-    def __set__(self, instance, value):
-        if not(0 <= value <= 100):
-            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
-        self._values[instance] = value
+#     def __set__(self, instance, value):
+#         if not(0 <= value <= 100):
+#             raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+#         self._values[instance] = value
         
         
-from weakref import WeakKeyDictionary
+# from weakref import WeakKeyDictionary
 
-class Grade:
-    def __init__(self):
-        ## 약한 참조로 이 참조만 있다면 GC로 정리가능
-        self._values = WeakKeyDictionary() 
+# class Grade:
+#     def __init__(self):
+#         ## 약한 참조로 이 참조만 있다면 GC로 정리가능
+#         self._values = WeakKeyDictionary() 
         
-    def __get__(self, instance, instance_type):
-        if instance is None:
-            return self
-        return self._values.get(instance, 0)
+#     def __get__(self, instance, instance_type):
+#         if instance is None:
+#             return self
+#         return self._values.get(instance, 0)
     
-    def __set__(self, instance, value):
-        if not(0 <= value <= 100):
-            raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
-        self._values[instance] = value
+#     def __set__(self, instance, value):
+#         if not(0 <= value <= 100):
+#             raise ValueError('점수는 0과 100 사이의 값이어야 합니다.')
+#         self._values[instance] = value
 
 
-class Exam:
-    # 클래스 애트리뷰트
-    math_grade = Grade()
-    writing_grade = Grade()
-    science_grade = Grade()
+# class Exam:
+#     # 클래스 애트리뷰트
+#     math_grade = Grade()
+#     writing_grade = Grade()
+#     science_grade = Grade()
 
-first_exam = Exam()
-first_exam.writing_grade = 82
-second_exam = Exam()
-second_exam.writing_grade = 75
-print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
-print(f'첫 번째 쓰기 점수 {first_exam.writing_grade} 맞음')
+# first_exam = Exam()
+# first_exam.writing_grade = 82
+# second_exam = Exam()
+# second_exam.writing_grade = 75
+# print(f'두 번째 쓰기 점수 {second_exam.writing_grade} 맞음')
+# print(f'첫 번째 쓰기 점수 {first_exam.writing_grade} 맞음')
+
+# 47
+
+from typing import Any
+
+
+class LazyRecord:
+    def __init__(self):
+        self.exists = 5
+        
+    def __getattr__(self, name):
+        value = f'{name}를 위한 값'
+        setattr(self, name, value)
+        return value
+    
+
+data = LazyRecord()
+print('이전: ', data.__dict__)  # 이전:  {'exists': 5}
+print('foo: ', data.foo)        # foo:  foo를 위한 값
+print('이후: ', data.__dict__)  # 이후:  {'exists': 5, 'foo': 'foo를 위한 값'}
+
+
+
+class LoggingLazyRecord(LazyRecord):
+    def __getattr__(self, name):
+        print(f'* 호출: __getattr__({name!r}), '
+              f'인스턴스 딕셔너리 채워 넣음')
+        result = super().__getattr__(name)
+        print(f'* 반환: {result!r}')
+        return result
+    
+data = LoggingLazyRecord()
+print('exists: ', data.exists)
+print('첫 번째 foo: ', data.foo)
+print('두 번째 foo: ', data.foo)
+
+# exists:  5
+# * 호출: __getattr__('foo'), 인스턴스 딕셔너리 채워 넣음
+# * 반환: 'foo를 위한 값'
+# 첫 번째 foo:  foo를 위한 값
+# 두 번째 foo:  foo를 위한 값
+    
+
+
+class ValidatingRecord:
+    def __init__(self):
+        self.exists = 5
+    
+    def __getattribute__(self, name: str) -> Any:
+        print(f'* 호출: __getattribute__({name!r})')
+        try:
+            value = super().__getattribute__(name)
+            print(f'* {name!r} 찾음, {value!r} 반환')
+            return value
+        except AttributeError:
+            value = f'{name}을 위한 값'
+            print(f'* {name!r}를 {value!r}로 설정')
+            setattr(self, name, value)
+            return value
+
+data = ValidatingRecord()
+print('exists: ', data.exists)
+print('첫 번째 foo: ', data.foo)
+print('두 번째 foo: ', data.foo)
+
+# exists:  5
+# * 호출: __getattribute__('foo')
+# * 'foo'를 'foo을 위한 값'로 설정
+# 첫 번째 foo:  foo을 위한 값
+# * 호출: __getattribute__('foo')
+# * 'foo' 찾음, 'foo을 위한 값' 반환
+# 두 번째 foo:  foo을 위한 값
+
+print('===============================')
+## getattr 구현
+data1 = LoggingLazyRecord()
+print('이전: ', data1.__dict__)
+print('최초에  foo가 있나: ', hasattr(data1, 'foo'))
+print('이후: ', data1.__dict__)
+print('두 번째 foo가 있나: ', hasattr(data1, 'foo'))
+
+# 이전:  {'exists': 5}
+# * 호출: __getattr__('foo'), 인스턴스 딕셔너리 채워 넣음
+# * 반환: 'foo를 위한 값'
+# 최초에  foo가 있나:  True
+# 이후:  {'exists': 5, 'foo': 'foo를 위한 값'}
+# 두 번째 foo가 있나:  True
+# * 호출: __getattribute__('__dict__')
+# * '__dict__' 찾음, {'exists': 5} 반환
+
+
+
+## getattribute 구현
+data2 = ValidatingRecord()
+print('이전: ', data2.__dict__)
+print('최초에  foo가 있나: ', hasattr(data1, 'foo'))
+print('두 번째 foo가 있나: ', hasattr(data1, 'foo'))
+
+# 이전:  {'exists': 5}
+# 최초에  foo가 있나:  True
+# 두 번째 foo가 있나:  True
+
+
+
+class SavingRecord():
+    def __seattr__(self, name, value):
+        # 데이터를 db에 저장
+        super().__setattr__(name, value)
+
+
+class LoggingSavingRecord(SavingRecord):
+    def __setattr__(self, name, value):
+        print(f'* 호출: __setattr__({name!r}, {value!r})')
+        super().__setattr__(name, value)
+        
+data = LoggingSavingRecord()
+print('이전:', data.__dict__)
+data.foo = 5
+print('이후:', data.__dict__)
+data.foo = 7
+print('최후:', data.__dict__)
+
+# 이전: {}
+# * 호출: __setattr__('foo', 5)
+# 이후: {'foo': 5}
+# * 호출: __setattr__('foo', 7)
+# 최후: {'foo': 7}
+
+
+# class BrokenDictionaryRecord:
+#     def __init__(self, data):
+#         self._data = {}
+    
+#     def __getattribute__(self, name):
+#         print(f'* 호출: __getattribute__({name!r})')
+#         return self._data[name]
+
+# data = Brokedata = BrokenDictionaryRecord({'foo': 3})
+# data.foo # RecursionError: maximum recursion depth exceeded
+
+class DictionaryRecord:
+    def __init__(self, data):
+        self._data = data
+    
+    def __getattribute__(self, name):
+        print(f'* 호출: __getattribute__({name!r})')
+        data_dict = super().__getattribute__('_data')
+        return data_dict[name]
+
+data = DictionaryRecord({'foo': 3})
+print('foo: ', data.foo)
+# * 호출: __getattribute__('foo')
+# foo:  3

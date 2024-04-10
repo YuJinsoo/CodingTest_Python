@@ -524,15 +524,218 @@ print(f'첫 번째 쓰기 점수 {first_exam.writing_grade} 맞음')
 
 <br>
 
+
+
 ## BetterWay47. 지연 계산 애트리뷰트가 필요하면 __getattr__, __getattribute__, __setattr__ 을 사용하라.
 
+- python object 훅 을 사용하면 시스템을 서로 접합하는 제너릭 코드를 쉽게 작성할 수 있다.
+
+- DB 레코드를 객체로 표현하는 예제에서...
+    - DB와 python object를 이어주는 클래스를 일반적으로 만들어야 모든 스키마에 적용할 수 있다.
+    - 그러기 위해서 어떻게 해야할까?
+        - `@property`, 디스크립터 등은 미리 정의해야 해서 사용 불가.
+        - `__getattr__`를 이용해 위와 같은 동적 기능을 사용 가능
+            (객체에 없는 애트리뷰트에 접근할 때 호출되는 매직메서드)
+
+```python
+## DB 레코드를 객체로 표현하는 기본 예제
+class LazyRecord:
+    def __init__(self):
+        self.exists = 5
+        
+    def __getattr__(self, name):
+        value = f'{name}를 위한 값'
+        setattr(self, name, value)
+        return value
+    
+
+data = LazyRecord()
+print('이전: ', data.__dict__)  # 이전:  {'exists': 5}
+print('foo: ', data.foo)        # foo:  foo를 위한 값
+print('이후: ', data.__dict__)  # 이후:  {'exists': 5, 'foo': 'foo를 위한 값'}
+```
+
+- 기본 예제에 로그를 추가해서 `__getattr__`이 실제 언제 호출되는지 확인해보자.
+    - LazyRecord 클래스에 exists 애트리뷰트가 있으니 `__getattr__` 호출 X
+    - 첫 번째 foo 호출 `__getattr__` 호출 O
+    - 두 번째 foo 호출 `__getattr__` 호출 X
+```python
+class LoggingLazyRecord(LazyRecord):
+    def __getattr__(self, name):
+        print(f'* 호출: __getattr__({name!r}), '
+              f'인스턴스 딕셔너리 채워 넣음')
+        result = super().__getattr__(name)
+        print(f'* 반환: {result!r}')
+        return result
+    
+data = LoggingLazyRecord()
+print('exists: ', data.exists)
+print('첫 번째 foo: ', data.foo)
+print('두 번째 foo: ', data.foo)
+
+# exists:  5
+# * 호출: __getattr__('foo'), 인스턴스 딕셔너리 채워 넣음
+# * 반환: 'foo를 위한 값'
+# 첫 번째 foo:  foo를 위한 값
+# 두 번째 foo:  foo를 위한 값
+```
+
+- 이런 기능은 스키마가 없는 데이터에 지연 계산으로 접근하는 등의 활용에 유용.
+    - 스키마가 없으면 `__getattr__`이 실행되어 프로퍼티를 적재하는 힘든 작업을 모두 처리
+    - 이후에는 데이터를 읽어오는 동작으로 실행됨
+
+- 이 DB 안에서 트랜잭션이 필요하다고 한다면
+    - 프로퍼티에 접근시 레코드가 유효한지, 트랜잭션이 유효한지 판단해야 함.
+    - 위 기능을 `__getattr__` 훅 으로 이런 기능을 안정적으로 사용할 수 있음.
+
+- `__getattribute__` 매직메서드
+    - 애트리뷰트에 접근할 때마다 호출됨
+    - 프로퍼티에 접근할 때 항상 전역 트랜잭션 상태를 검사하는 등의 작업 수행 가능
+    - 비용이 많이 들고 성능에 부정적인 영향을 줄 수 있기도 하지만, 비용을 감수해야 하는 경우도 있다.
+
+- 프로퍼티 호출 시 로그를 남기는 예제
+    - 존재하지 않는 프로퍼티에 동적으로 접근하는 경우 `AttributeError` 예외 발생
+    - `__getattr__`과 `__getattribute__`에서 존재하지 않은 프로퍼티를 사용할 때 `AttributeError` 발생.
+
+```python
+## __getattribute__예제
+
+class ValidatingRecord:
+    def __init__(self):
+        self.exists = 5
+    
+    def __getattribute__(self, name: str) -> Any:
+        print(f'* 호출: __getattribute__({name!r})')
+        try:
+            value = super().__getattribute__(name)
+            print(f'* {name!r} 찾음, {value!r} 반환')
+            return value
+        except AttributeError:
+            value = f'{name}을 위한 값'
+            print(f'* {name!r}를 {value!r}로 설정')
+            setattr(self, name, value)
+            return value
+
+data = ValidatingRecord()
+print('exists: ', data.exists)
+print('첫 번째 foo: ', data.foo)
+print('두 번째 foo: ', data.foo)
+
+# exists:  5
+# * 호출: __getattribute__('foo')
+# * 'foo'를 'foo을 위한 값'로 설정
+# 첫 번째 foo:  foo을 위한 값
+# * 호출: __getattribute__('foo')
+# * 'foo' 찾음, 'foo을 위한 값' 반환
+# 두 번째 foo:  foo을 위한 값
+```
+
+- `__getattr__`과 `__getattribute__`의 차이
+    - `hasattr()`과 `getattr()`메서드에서 차이가 발생합니다.
+    - `__getattr__`은 한 번만 호출되만 `__getattribute__`는 `getattr()`이든 `hasattr()`이든 호출 될 때마다 호출됩니다.
+```python
+## getattr 구현
+data1 = LoggingLazyRecord()
+print('이전: ', data1.__dict__)
+print('최초에  foo가 있나: ', hasattr(data1, 'foo'))
+print('이후: ', data1.__dict__)
+print('두 번째 foo가 있나: ', hasattr(data1, 'foo'))
+
+# 이전:  {'exists': 5}
+# * 호출: __getattr__('foo'), 인스턴스 딕셔너리 채워 넣음
+# * 반환: 'foo를 위한 값'
+# 최초에  foo가 있나:  True
+# 이후:  {'exists': 5, 'foo': 'foo를 위한 값'}
+# 두 번째 foo가 있나:  True
+# * 호출: __getattribute__('__dict__')
+# * '__dict__' 찾음, {'exists': 5} 반환
+
+## getattribute 구현
+data2 = ValidatingRecord()
+print('이전: ', data2.__dict__)
+print('최초에  foo가 있나: ', hasattr(data1, 'foo'))
+print('두 번째 foo가 있나: ', hasattr(data1, 'foo'))
+
+# 이전:  {'exists': 5}
+# 최초에  foo가 있나:  True
+# 두 번째 foo가 있나:  True
+```
+
+- DB 예제에서, 파이썬 객체에 값이 대입된 경우, 나중에 데이터베이스에 다시 저장하고 싶은 경우
+    - 임의 애트리뷰트에 값을 설정할 때마다 호출되는 `__setattr__`을 사용
+    - `setattr()` 함수를 통해 입력되든 직접 입력되든 호출됨
+
+```python
+class SavingRecord():
+    def __seattr__(self, name, value):
+        # 데이터를 db에 저장
+        super().__setattr__(name, value)
+
+
+class LoggingSavingRecord(SavingRecord):
+    def __setattr__(self, name, value):
+        print(f'* 호출: __setattr__({name!r}, {value!r})')
+        super().__setattr__(name, value)
+        
+data = LoggingSavingRecord()
+print('이전:', data.__dict__)
+data.foo = 5
+print('이후:', data.__dict__)
+data.foo = 7
+print('최후:', data.__dict__)
+
+# 이전: {}
+# * 호출: __setattr__('foo', 5)
+# 이후: {'foo': 5}
+# * 호출: __setattr__('foo', 7)
+# 최후: {'foo': 7}
+```
+
+- `__getattr__` 이나 `__setattr__`은 모든 애트리뷰트에서 접근된다는 단점이 있음
+    - 무한 재귀에 걸릴 가능성이 있음
+    - 무한재귀를 피하기 위해서는 `super().__getattribute__`를 호출해 인스턴스 애트리뷰트 딕셔너리에서 값을 가져오는 것이다.
+    - `__setattr__`도 같은 문제를 가지는데 `super().__setattr__`를 호출해서 해결한다.
+```python
+## 무한재귀
+class BrokenDictionaryRecord:
+    def __init__(self, data):
+        self._data = {}
+    
+    def __getattribute__(self, name):
+        print(f'* 호출: __getattribute__({name!r})')
+        return self._data[name]
+
+data = Brokedata = BrokenDictionaryRecord({'foo': 3})
+data.foo # RecursionError: maximum recursion depth exceeded
+
+## 재귀 피하는 법
+## 인스턴스 애트리뷰트 딕셔너리에서 값을 가져옴
+class DictionaryRecord:
+    def __init__(self, data):
+        self._data = data
+    
+    def __getattribute__(self, name):
+        print(f'* 호출: __getattribute__({name!r})')
+        data_dict = super().__getattribute__('_data')
+        return data_dict[name]
+
+data = DictionaryRecord({'foo': 3})
+print('foo: ', data.foo)
+# * 호출: __getattribute__('foo')
+# foo:  3
+
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - `__getattr__`, `__setattr__`를 사요해 객체의 애트리뷰트를 지연해 가져오거나 저장할 수 있다<br>
+> - `__getattr__`은 애트리뷰트가 존재하지 않을 때만 호출.<br>
+> - `__getattribute__`는 애트리뷰트를 읽을 때 항상 호출<br>
+> - `__getattribute__`와 `__setattr__`에서 무한 재귀를 피하려면 `super()`(object 클래스)에 있는 메서드를 사용해 인스턴스 애트리뷰트에 접근한다<br>
 
 <br>
+
+
+
 
 ## BetterWay48. __init_subclass__를 사용해 하위 클래스를 검증하라.
 
