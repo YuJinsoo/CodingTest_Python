@@ -739,11 +739,276 @@ print('foo: ', data.foo)
 
 ## BetterWay48. __init_subclass__를 사용해 하위 클래스를 검증하라.
 
+- 메타클래스 활용방법
+    - 클래스가 제대로 구현되었는지 검증
+    - 복잡한 클래스 계층을 설계할 때 스타일을 강제
+    - 메서드를 오버라이드하도록 요청
+    - 클래스 애트리뷰트 사이에 엄격한 관계를 가지도록 설계
+
+-  클래스 생성 시 검증 로직을 `__init__`에 구현하는 경우가 종종 있음
+- 메타클래스를 사용하면 import 시점에 검증이 이뤄지기 때문에 예외가 훨씬 빨리 발생한다.
+
+
+- 일반적인 객체에 대해 메타클래스가 작동하는 원리 예제
+    - 메타클래스는 `type`를 상속해 정의됨
+    - 기본적인 경우 `__new__` 메서드를 통해 자신과 연관된 클래스 내용을 받음
+    - 어떤 타입이 구성되기 전 클래스 정보를 살펴보고 변경하는 예제
+    - 연관퇸 클래스가 정의되기 전에 클래스의 모든 파라미터를 검증하려면 `Meta.__new__`에 기능을 추가해야 한다.
+
+```python
+class Meta(type):
+    def __new__(meta, name, bases, class_dict):
+        print(f'* 실행: {name}dml apxk {meta}.__new__')
+        print('기반 클래스들:', bases)
+        print(class_dict)
+        return type.__new__(meta, name, bases, class_dict)
+
+
+class MyClass(metaclass=Meta):
+    stuff = 123
+    
+    def foo(self):
+        pass
+
+
+class MYSubclass(MyClass):
+    other = 567
+    
+    def bar(Self):
+        pass
+    
+
+# * 실행: MyClass의 메타 <class '__main__.Meta'>.__new__
+# 기반 클래스들: ()
+# {'__module__': '__main__', '__qualname__': 'MyClass', 'stuff': 123, 'foo': <function MyClass.foo at 0x000002DCD0928FE0>}      
+# * 실행: MYSubclass의 메타 <class '__main__.Meta'>.__new__
+# 기반 클래스들: (<class '__main__.MyClass'>,)
+# {'__module__': '__main__', '__qualname__': 'MYSubclass', 'other': 567, 'bar': <function MYSubclass.bar at 0x000002DCD0929080>}
+```
+
+- 검증 수행 메타클래스 구현
+    - 모든 다각형 클래스 계층 구조의 기반 클래스로 사용
+    - 이 검증은 class 문에서 변 개수가 3보다 작은 경우에 해당 class 본문이 실행된 직후 예외를 발생시킨다.
+    - 하지만, 동적으로 임포트되는 모듈에서는 시작되지 않음
+```python
+class ValidatePolygon(type):
+    def __new__(meta, name, bases, class_dict):
+        # Polygon 클래스의 하위 클래스만 검증
+        if bases:
+            if class_dict['sides'] < 3:
+                raise ValueError('다각형의 변은 3개 이상이어야 함')
+        
+        return type.__new__(meta, name, bases, class_dict)
+    
+
+class Polygon(metaclass=ValidatePolygon):
+    sides = None
+    
+    @classmethod
+    def interior_angles(cls):
+        return (cls.sides -2) * 180
+    
+
+class Triangle(Polygon):
+    sides = 3
+    
+
+class Rectangel(Polygon):
+    sides = 4
+
+
+class Nonagon(Polygon):
+    sides = 9
+
+## 무사히 통과
+assert Triangle.interior_angles() == 180
+assert Rectangel.interior_angles() == 360
+assert Nonagon.interior_angles() == 1260
+
+
+print('class 이전')
+class Line(Polygon):
+    print('sides 이전')
+    sides = 2
+    print('sides 이후')
+    
+print('class 이후')
+
+# class 이전
+# sides 이전
+# sides 이후
+# ValueError: 다각형의 변은 3개 이상이어야 함
+```
+
+- 위 예제는 다소 복잡해보임. 기본적인 작업인데 너무 복잡한 코드를 짜야 되는 것처럼 보임
+    - 파이썬 3.6 부터는 메타클래스를 정의하지 않고 같은 동작 구현 가능 ( `__init_subclass__` 메서드 정의 )
+    - Validation metaclass를 정의하지 않아도 되서 코드가 훨씬 짧아졌다.
+```python
+### __init_subclass__ 예제
+class BetterPolygon:
+    sides = None
+    
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        
+        if cls.sides < 3:
+            raise ValueError('다각형 변은 3개 이상이어야 함')
+        
+    @classmethod
+    def interior_angles(cls):
+        return (cls.sides - 2) * 180
+
+
+class Hexagon(BetterPolygon):
+    sides = 6
+    
+assert Hexagon.interior_angles() == 720
+```
+
+- 표준 메타클래스의 또 다른 문제점은
+    - 클래스 정의마다 메카틀리스를 단 하나만 지정할 수 있음.
+    - (앞에서 말한 하나) 코드가 길어짐
+    - polygon 과 filled 를 같이 상속하는 클래스에서 에러남ㅇ
+
+```python
+class ValidateFilled(type):
+    def __new__(meta, name, bases, class_dict):
+        # Filled 클래스의 하위 클래스만 검증
+        if bases:
+            if class_dict['color'] not in ('red', 'green'):
+                raise ValueError('지원하지 않는 color 값')
+        
+        return type.__new__(meta, name, bases, class_dict)
+
+class Filled(metaclass=ValidateFilled):
+    color = None
+
+class RedPentagon(Filled, Polygon):
+    color = 'red'
+    sides = 5
+
+# TypeError: metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases
+```
+
+- 검증을 여러 단계로 만들기 위해 복잡한 메타클래스 type 정의를 복잡한 계층으로 설계함으로써 문제 해결 가능
+    - 하지만 이런 방식은 합성성(composability)를 해침
+    - type을 통한 구현이 이런 방법이 필요함에도 코드 재사용성을 해침
+```python
+class ValidatePolygon(type):
+    def __new__(meta, name, bases, class_dict):
+        # 루트 클래스가 아닌 경우만 검증
+        if not class_dict.get('is_root'):
+            if class_dict['sides'] < 3:
+                raise ValueError('다각형은 변의 개수가 3개 이상이어야 함')
+        return type.__new__(meta, name, bases, class_dict)
+
+
+class Polygon(metaclass=ValidatePolygon):
+    is_root = True
+    sides = None
+
+
+class ValidateFilledPolygon(ValidatePolygon):
+    def __new__(meta, name, bases, class_dict):
+        # 루트 클래스가 아닌 경우만 검증
+        if not class_dict.get('is_root'):
+            if class_dict['color'] not in ('red', 'green'):
+                raise ValueError('지원하지 않는 color 값')
+        return type.__new__(meta, name, bases, class_dict)
+    
+
+class FilledPolygon(Polygon, metaclass=ValidateFilledPolygon):
+    is_root = True
+    color = None
+
+
+class GreenPentagon(FilledPolygon):
+    color = 'green'
+    sides = 5
+
+greenie = GreenPentagon()
+assert isinstance(greenie, Polygon) ## 성공
+
+ 
+## ValueError: 지원하지 않는 color 값
+# class OrangePentagon(FilledPolygon):
+#     color = 'orange'
+#     sides = 5
+
+## validatepolygon 에러가 발생해야 하는데 안함... 왜지?
+class RedLine(FilledPolygon):
+    color = 'red'
+    sides = 1
+``` 
+
+- 위 예제의 복잡성도 `__init_subclass__` 구현을 통해 해결할 수 있음
+    - 훨씬 간단해진다. 
+```python
+class Filled:
+    color = None
+    
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        if cls.color not in ('red', 'green', 'blue'):
+            raise ValueError('지원하지 않는 color')
+
+
+class RedTriangle(Filled, Polygon):
+    color = 'red'
+    sides = 3
+
+ruddy = RedTriangle()
+assert isinstance(ruddy, Filled)
+assert isinstance(ruddy, Polygon)
+
+# class BlueLine(Filled, Polygon):
+#     color = 'blue'
+#     sides = 2
+# ValueError: 다각형은 변의 개수가 3개 이상이어야 함
+
+# class BeigeTriangle(Filled, Polygon):
+#     color = 'beige'
+#     sides = 3
+# ValueError: 지원하지 않는 color
+```
+
+- 심지어 `__init__subclass__`를 다이아몬드 상속 같은 복잡한 경우에도 사용할 수 있다.
+    - Bottom 클래스에서 Top에 이르는 상속 경로가 2개 지만, 각 클래스마다 `Top.__ini_subclass__`는 단 한 번만 호출된다.
+
+```python
+class Top:
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        print(f'{cls}의 Top')
+
+class Left:
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        print(f'{cls}의 Left')
+
+class Right:
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        print(f'{cls}의 Right')
+
+class Bottom:
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        print(f'{cls}의 Bottom')
+        
+
+# <class '__main__.Left'>의 Top
+# <class '__main__.Right'>의 Top
+# <class '__main__.Bottom'>의 Top
+# <class '__main__.Bottom'>의 Right
+# <class '__main__.Bottom'>의 Left
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 메타클래스의 `__new__` 메서드는 class문의 모든 본문이 처리된 직후 호출<br>
+> - 메타클래스를 사용해 클래스가 정의된 지후이면서 클래스가 생성되지 직전인 시점에 클래스 정의를 변경할 수 있다.  하지만 메타클래스 구현은 코드가 너무 복잡해진다.<br>
+> - `__init_subclass__`를 사용해 하위클래스가 정의된 직후, 하위 클래스 타입이 만들어 지기 직전에 해당 클래스가 가진 조건을 잘 갖췄는지 확인하자<br>
+> - `__init_subclass__`정의 안에서 `super().__init_usbclass__`를 호출해 여러 계층에 걸쳐 클래스를 검증하고 다중 상혹을 제대로 처리할 수 있다.<br>
 
 <br>
 
