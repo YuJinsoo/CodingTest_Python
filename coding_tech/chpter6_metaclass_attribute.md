@@ -1012,13 +1012,199 @@ class Bottom:
 
 <br>
 
+
 ## BetterWay49. __init_subclass__를 사용해 클래스 확장을 등록하라.
 
+- 메타클래스로 프로그램이 자동으로 타입 등록 프로그램이 자동으로 타입 등록이 가능
+    - 간단한 식별자로 그에 해당하는 클래스를 찾는 역검색 기능에 효과적임
+- 파이썬 `object`를 JSON으로 직렬화하하는 표현 방식을 구현하는 예제
+    - `object`를 JSON문자열로 변환할 방법이 필요
+    - 생성자 파라미터를 기록 
+    - JSON 딕셔너리로 변환
+```python
+import json
+
+class Serializable:
+    def __init__(self, *args):
+        self.args = args
+    
+    def serialize(self):
+        return json.dumps({'args': self.args})
+
+## 위 클래스를 사용하면 Point 같은 간단한 불변 데이터 구조를 쉽게 직렬화 할 수 있음
+
+class Point2D(Serializable):
+    def __init__(self, x, y):
+        super().__init__(x,y)
+        self.x = x
+        self.y = y
+    
+    def __repr__(self):
+        return f'Point2D({self.x}, {self.y})'
+    
+point = Point2D(5, 3)
+print('객체: ', point)
+print('직렬화: ', point.serialize())
+# 객체:  Point2D(5, 3)
+# 직렬화:  {"args": [5, 3]}
+```
+
+- 이제 이 JSON 문자열을 역직렬화해서 문자열이 표현하는 Point2D 객체를 구성해야 함
+    - Serializable을 부모 클래스로 하며, 부모 클래스를 활용해 데이터를 역직렬화 하는 다른 클래스를 개발
+    - 이 방법은 직렬/역직렬 할 데이터의 타입을 알고 있을 때에만 가능
+    - 직렬ㅗ하할 클래스가 아누 많더라도 JSON 문자열을 적당한 파이썬 object로 역직렬화하는 함수는 공통으로 하나만 있는 것이 이상적
+
+```python
+class Deserializable(Serializable):
+    @classmethod
+    def deserialize(cls, json_data):
+        params = json.loads(json_data)
+        return cls(*params['args'])
+    
+## Deserializable을 활용하면 간단한 불변 객체를 쉽게 직렬/역직렬 가능
+
+class BetterPoint2D(Deserializable):
+    def __init__(self, x, y):
+        super().__init__(x,y)
+        self.x = x
+        self.y = y
+    
+    def __repr__(self):
+        return f'BetterPoint2D({self.x}, {self.y})'
+
+
+before = BetterPoint2D(5, 3)
+print('이전: ', before)
+data = before.serialize()
+print('직렬화 :', data)
+after = BetterPoint2D.deserialize(data)
+print('이후: ', after)
+# 이전:  BetterPoint2D(5, 3)
+# 직렬화 : {"args": [5, 3]}
+# 이후:  BetterPoint2D(5, 3)
+
+```
+
+- 역직렬화 하는 공통의 함수
+    - 클래스 이름을 객체 생성자로 다시 연결해주는 매핑을 유지
+    - `deserializer()`가 항상 제대로 작동하려면 나중에 역직렬화할 모든 클래스에서 `register_class()`를 호출해야 함
+
+```python
+class BetterSerializable:
+    def __init__(self, *args):
+        self.args = args
+    
+    def serialize(self):
+        return json.dumps({
+            'class': self.__class__.__name__,
+            'args': self.args,
+        })
+    
+    def __repr__(self):
+        name = self.__class__.__name__
+        args_str = ', '.join(str(x) for x in self.args)
+        return f'{name}({args_str})'
+    
+
+registry = {}
+
+def register_class(target_class):
+    registry[target_class.__name__] = target_class
+    
+def deserialize(data):
+    params = json.loads(data)
+    name = params['class']
+    target_class = registry[name]
+    return target_class(*params['args'])
+
+class EvenBetterPoint2D(BetterSerializable):
+    def __init__(self, x, y):
+        super().__init__(x,y)
+        self.x = x
+        self.y = y
+        
+register_class(EvenBetterPoint2D)
+
+before = EvenBetterPoint2D(5, 3)
+print('이전: ', before)
+data = before.serialize()
+print('직렬화한 값: ', data)
+after = deserialize(data)
+print('이후: ', after)
+# 이전:  EvenBetterPoint2D(5, 3)
+# 직렬화한 값:  {"class": "EvenBetterPoint2D", "args": [5, 3]}
+# 이후:  EvenBetterPoint2D(5, 3)
+```
+
+- 위 방식의 문제점은 `register_class()` 호출을 잊어버릴 수도 있다는 점이 있음
+    - 등록을 잊어버린 클래스 인스턴스를 역직렬화하려고 시도하면 프로그램이 깨짐
+    - `BetterSerializable`을 상속하더라도 함수 호출을 까먹으면 기능을 활용할 수 없음
+    - `클래스 데코레이터`도 호출을 까먹는 실수를 할 수 있다. (뭔소리래)
+
+- 클래스가 정의될 때 `register_class()`를 호출 하는 방법은?
+- 메타클래스는 하위 클래스가 정의될 때 class 문을 가로채서 가능함
+    - 메타 클래스를 사용해서 클래스 본문을 처리 후 새로운 타입을 등록
+
+```python
+class Meta(type):
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
+        register_class(cls) ## 여기서 호출해줌
+        return cls
+    
+
+class RegisteredSerializable(BetterSerializable, metaclass=Meta):
+    pass
+
+class Vector3D(RegisteredSerializable):
+    def __init__(self, x, y, z):
+        super().__init__(x, y, z)
+        self.x, self.y, self.z = x, y, z
+    
+before = Vector3D(10, -7, 3)
+data = before.serialize()
+print('이전: ', before)
+data = before.serialize()
+print('직렬화한 값: ', data)
+print('이후: ', deserialize(data))
+# 이전:  Vector3D(10, -7, 3)
+# 직렬화한 값:  {"class": "Vector3D", "args": [10, -7, 3]}
+# 이후:  Vector3D(10, -7, 3)
+
+```
+
+- 더 좋은 방법은 `__init__subclass__` 클래스를 사용
+    - python 3.6 부터 적용
+    - 클래스를 정의할 때 커스텀 로직을 제공할 수 있음
+    - 복잡한 메타클래스 구문을 혼동하기 쉬운 점을 개선
+
+```python
+### 동작을 안함... 확인필요
+class BetterRegisterdSerializable(BetterSerializable):
+    def __init__subclass__(cls):
+        super().__init_subclass__()
+        register_class(cls) ## 여기서 호출해줌
+    
+    
+class Vector1D(BetterRegisterdSerializable):
+    def __init__(self, magnitude):
+        super().__init__(magnitude)
+        self.magnitude = magnitude
+    
+    
+before = Vector1D(6)
+data = before.serialize()
+print('이전: ', before)
+data = before.serialize()
+print('직렬화한 값: ', data)
+print('이후: ', deserialize(data))
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 클래스 등록은 파이썬 프로그램을 모듈화할 때 유용한 패턴<br>
+> - 메타클래스를 사용하면, 프로그램 안에서 기반 클래스를 상혹한 하위 클래스가 정의될 때 등록 코스를 자동으로 실행할 수 있다.<br>
+> - 메타클래스를 클래스 등록에 사용하면 클래스 등록 함수를 호출하지 않아서 생기는 오류를 피할 수 있다.<br>
+> - 메타클래스 방식보다 `__init_subclass__`가 코드가 깔끔하고 이해하기 쉽다.<br>
 
 <br>
 
