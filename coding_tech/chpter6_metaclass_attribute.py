@@ -772,162 +772,264 @@
 
 ## 49
 
-import json
+# import json
 
-class Serializable:
-    def __init__(self, *args):
-        self.args = args
+# class Serializable:
+#     def __init__(self, *args):
+#         self.args = args
     
-    def serialize(self):
-        return json.dumps({'args': self.args})
+#     def serialize(self):
+#         return json.dumps({'args': self.args})
 
 
-## 위 클래스를 사용하면 Point 같은 간단한 불변 데이터 구조를 쉽게 직렬화 할 수 있음
+# ## 위 클래스를 사용하면 Point 같은 간단한 불변 데이터 구조를 쉽게 직렬화 할 수 있음
 
-class Point2D(Serializable):
-    def __init__(self, x, y):
-        super().__init__(x,y)
-        self.x = x
-        self.y = y
+# class Point2D(Serializable):
+#     def __init__(self, x, y):
+#         super().__init__(x,y)
+#         self.x = x
+#         self.y = y
     
-    def __repr__(self):
-        return f'Point2D({self.x}, {self.y})'
+#     def __repr__(self):
+#         return f'Point2D({self.x}, {self.y})'
     
-point = Point2D(5, 3)
-print('객체: ', point)
-print('직렬화: ', point.serialize())
-# 객체:  Point2D(5, 3)
-# 직렬화:  {"args": [5, 3]}
+# point = Point2D(5, 3)
+# print('객체: ', point)
+# print('직렬화: ', point.serialize())
+# # 객체:  Point2D(5, 3)
+# # 직렬화:  {"args": [5, 3]}
 
-class Deserializable(Serializable):
-    @classmethod
-    def deserialize(cls, json_data):
-        params = json.loads(json_data)
-        return cls(*params['args'])
+# class Deserializable(Serializable):
+#     @classmethod
+#     def deserialize(cls, json_data):
+#         params = json.loads(json_data)
+#         return cls(*params['args'])
     
-## Deserializable을 활용하면 간단한 불변 객체를 쉽게 직렬/역직렬 가능
+# ## Deserializable을 활용하면 간단한 불변 객체를 쉽게 직렬/역직렬 가능
 
-class BetterPoint2D(Deserializable):
-    def __init__(self, x, y):
-        super().__init__(x,y)
-        self.x = x
-        self.y = y
+# class BetterPoint2D(Deserializable):
+#     def __init__(self, x, y):
+#         super().__init__(x,y)
+#         self.x = x
+#         self.y = y
     
-    def __repr__(self):
-        return f'BetterPoint2D({self.x}, {self.y})'
+#     def __repr__(self):
+#         return f'BetterPoint2D({self.x}, {self.y})'
 
 
-before = BetterPoint2D(5, 3)
-print('이전: ', before)
-data = before.serialize()
-print('직렬화 :', data)
-after = BetterPoint2D.deserialize(data)
-print('이후: ', after)
-# 이전:  BetterPoint2D(5, 3)
-# 직렬화 : {"args": [5, 3]}
-# 이후:  BetterPoint2D(5, 3)
+# before = BetterPoint2D(5, 3)
+# print('이전: ', before)
+# data = before.serialize()
+# print('직렬화 :', data)
+# after = BetterPoint2D.deserialize(data)
+# print('이후: ', after)
+# # 이전:  BetterPoint2D(5, 3)
+# # 직렬화 : {"args": [5, 3]}
+# # 이후:  BetterPoint2D(5, 3)
 
 
-class BetterSerializable:
-    def __init__(self, *args):
-        self.args = args
+# class BetterSerializable:
+#     def __init__(self, *args):
+#         self.args = args
     
-    def serialize(self):
-        return json.dumps({
-            'class': self.__class__.__name__,
-            'args': self.args,
-        })
+#     def serialize(self):
+#         return json.dumps({
+#             'class': self.__class__.__name__,
+#             'args': self.args,
+#         })
     
-    def __repr__(self):
-        name = self.__class__.__name__
-        args_str = ', '.join(str(x) for x in self.args)
-        return f'{name}({args_str})'
+#     def __repr__(self):
+#         name = self.__class__.__name__
+#         args_str = ', '.join(str(x) for x in self.args)
+#         return f'{name}({args_str})'
     
 
-registry = {}
+# registry = {}
 
-def register_class(target_class):
-    registry[target_class.__name__] = target_class
+# def register_class(target_class):
+#     registry[target_class.__name__] = target_class
     
-def deserialize(data):
-    params = json.loads(data)
-    name = params['class']
-    target_class = registry[name]
-    return target_class(*params['args'])
+# def deserialize(data):
+#     params = json.loads(data)
+#     name = params['class']
+#     target_class = registry[name]
+#     return target_class(*params['args'])
 
-class EvenBetterPoint2D(BetterSerializable):
-    def __init__(self, x, y):
-        super().__init__(x,y)
-        self.x = x
-        self.y = y
+# class EvenBetterPoint2D(BetterSerializable):
+#     def __init__(self, x, y):
+#         super().__init__(x,y)
+#         self.x = x
+#         self.y = y
         
-register_class(EvenBetterPoint2D)
+# register_class(EvenBetterPoint2D)
 
-before = EvenBetterPoint2D(5, 3)
-print('이전: ', before)
-data = before.serialize()
-print('직렬화한 값: ', data)
-after = deserialize(data)
-print('이후: ', after)
-# 이전:  EvenBetterPoint2D(5, 3)
-# 직렬화한 값:  {"class": "EvenBetterPoint2D", "args": [5, 3]}
-# 이후:  EvenBetterPoint2D(5, 3)
+# before = EvenBetterPoint2D(5, 3)
+# print('이전: ', before)
+# data = before.serialize()
+# print('직렬화한 값: ', data)
+# after = deserialize(data)
+# print('이후: ', after)
+# # 이전:  EvenBetterPoint2D(5, 3)
+# # 직렬화한 값:  {"class": "EvenBetterPoint2D", "args": [5, 3]}
+# # 이후:  EvenBetterPoint2D(5, 3)
+
+
+# class Meta(type):
+#     def __new__(meta, name, bases, class_dict):
+#         cls = type.__new__(meta, name, bases, class_dict)
+#         register_class(cls) ## 여기서 호출해줌
+#         return cls
+    
+
+# class RegisteredSerializable(BetterSerializable, metaclass=Meta):
+#     pass
+
+# class Vector3D(RegisteredSerializable):
+#     def __init__(self, x, y, z):
+#         super().__init__(x, y, z)
+#         self.x, self.y, self.z = x, y, z
+    
+# before = Vector3D(10, -7, 3)
+# data = before.serialize()
+# print('이전: ', before)
+# data = before.serialize()
+# print('직렬화한 값: ', data)
+# print('이후: ', deserialize(data))
+# # 이전:  Vector3D(10, -7, 3)
+# # 직렬화한 값:  {"class": "Vector3D", "args": [10, -7, 3]}
+# # 이후:  Vector3D(10, -7, 3)
+
+
+
+# registry = {}
+
+# def register_class(target_class):
+#     registry[target_class.__name__] = target_class
+    
+# def deserialize(data):
+#     params = json.loads(data)
+#     name = params['class']
+#     target_class = registry[name]
+#     return target_class(*params['args'])
+
+
+# class BetterRegisterdSerializable(BetterSerializable):
+#     def __init_subclass__(cls):
+#         super().__init_subclass__()
+#         register_class(cls) ## 여기서 호출해줌
+    
+    
+# class Vector1D(BetterRegisterdSerializable):
+#     def __init__(self, magnitude):
+#         super().__init__(magnitude)
+#         self.magnitude = magnitude
+    
+    
+# before = Vector1D(6)
+# data = before.serialize()
+# print('이전: ', before)
+# data = before.serialize()
+# print('직렬화한 값: ', data)
+# print('이후: ', deserialize(data))
+# # 이전:  Vector1D(6)
+# # 직렬화한 값:  {"class": "Vector1D", "args": [6]}
+# # 이후:  Vector1D(6)
+
+# 50
+
+## 디스크립터는 __get__, __set__ 또는 __delete__ 를 정의한 모든 객체.
+## 선택적으로 __set_name__을 가지기도 함
+class Field:
+    def __init__(self, name):
+        self.name = name
+        self.internal_name = '_' + name
+    
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+
+class Customer:
+    first_name = Field('first_name')
+    last_name = Field('last_name')
+    prefix = Field('prefix')
+    suffix = Field('suffix')
+    
+cust = Customer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '유클리드'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '유클리드' {'_first_name': '유클리드'}
+
 
 
 class Meta(type):
     def __new__(meta, name, bases, class_dict):
+        for key, value in class_dict.items():
+            if isinstance(value, Field):
+                value.name = key
+                value.internal_name = '_' + key
+        
         cls = type.__new__(meta, name, bases, class_dict)
-        register_class(cls) ## 여기서 호출해줌
         return cls
     
-
-class RegisteredSerializable(BetterSerializable, metaclass=Meta):
+class DatabaseRow(metaclass=Meta):
     pass
 
-class Vector3D(RegisteredSerializable):
-    def __init__(self, x, y, z):
-        super().__init__(x, y, z)
-        self.x, self.y, self.z = x, y, z
+class Field:
+    def __init__(self):
+        self.name = None
+        self.internal_name = None
     
-before = Vector3D(10, -7, 3)
-data = before.serialize()
-print('이전: ', before)
-data = before.serialize()
-print('직렬화한 값: ', data)
-print('이후: ', deserialize(data))
-# 이전:  Vector3D(10, -7, 3)
-# 직렬화한 값:  {"class": "Vector3D", "args": [10, -7, 3]}
-# 이후:  Vector3D(10, -7, 3)
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+        
+
+class BetterCustomer(DatabaseRow):
+    first_name = Field()
+    last_name = Field()
+    prefix = Field()
+    suffix = Field()
+    
+cust = BetterCustomer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '오일러'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '오일러' {'_first_name': '오일러'}
 
 
 
-registry = {}
+class Field:
+    def __init__(self):
+        self.name = None
+        self.internal_name = None
+        
+    def __set_name__(self, owner, name):
+        # 클래스가 생성될 때 모든 스크립터에 대해 이 메서드가 호출
+        self.name = name
+        self.internal_name = '_' + name
+    
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+        
+class FixedCustomer:
+    first_name = Field()
+    last_name = Field()
+    prefix = Field()
+    suffix = Field()
 
-def register_class(target_class):
-    registry[target_class.__name__] = target_class
-    
-def deserialize(data):
-    params = json.loads(data)
-    name = params['class']
-    target_class = registry[name]
-    return target_class(*params['args'])
-
-
-class BetterRegisterdSerializable(BetterSerializable):
-    def __init__subclass__(cls):
-        super().__init_subclass__()
-        register_class(cls) ## 여기서 호출해줌
-    
-    
-class Vector1D(BetterRegisterdSerializable):
-    def __init__(self, magnitude):
-        super().__init__(magnitude)
-        self.magnitude = magnitude
-    
-    
-before = Vector1D(6)
-data = before.serialize()
-print('이전: ', before)
-data = before.serialize()
-print('직렬화한 값: ', data)
-print('이후: ', deserialize(data))
+cust = FixedCustomer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '메르센'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '메르센' {'_first_name': '메르센'}

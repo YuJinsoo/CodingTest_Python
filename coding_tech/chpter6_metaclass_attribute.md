@@ -1,7 +1,7 @@
 # 목록
 1. [BetterWay44. ]()
 2. [BetterWay45. 애트리뷰트를 리팩터릴하는 대신 @property를 사용해라](#betterway45-애트리뷰트를-리팩터릴하는-대신-property를-사용해라)
-3. [BetterWay46. 재사용 가능한 @property 메서드를 만들려면 디스크립터를 사용해라.](#betterway45-애트리뷰트를-리팩터릴하는-대신-property를-사용해라)
+3. [BetterWay46. 재사용 가능한 @property 메서드를 만들려면 디스크립터를 사용해라.](#betterway46-재사용-가능한-property-메서드를-만들려면-디스크립터를-사용해라)
 4. [BetterWay47. 지연 계산 애트리뷰트가 필요하면 __getattr__, __getattribute__, __setattr__ 을 사용하라.](#betterway47-지연-계산-애트리뷰트가-필요하면-getattr-getattribute-setattr-을-사용하라)
 5. [BetterWay48. __init_subclass__를 사용해 하위 클래스를 검증하라.](#betterway48-__init_subclass__를-사용해-하위-클래스를-검증하라)
 6. [BetterWay49. __init_subclass__를 사용해 클래스 확장을 등록하라.](#betterway49-__init_subclass__를-사용해-클래스-확장을-등록하라)
@@ -350,7 +350,7 @@ print('여전히', bucket)
 - 학생 숙제 점수가 백뷸율 값인지 검증하는 예제
     - Homework는 편리하게 사용할 수 있음
     - 하지만 Exam같이 확장하고자 한다면
-        - 각 카테고리 점수마다 `@propert`와 세터를 통해 검증을 구형해줘야 함.
+        - 각 카테고리 점수마다 `@property`와 세터를 통해 검증을 구형해줘야 함.
         - 코드 반복이 너무 많아진다.
 ```python
 class Homework:
@@ -526,7 +526,7 @@ print(f'첫 번째 쓰기 점수 {first_exam.writing_grade} 맞음')
 
 
 
-## BetterWay47. 지연 계산 애트리뷰트가 필요하면 __getattr__, __getattribute__, __setattr__ 을 사용하라.
+## BetterWay47. 지연 계산 애트리뷰트가 필요하면 `__getattr__`, `__getattribute__`, `__setattr__` 을 사용하라.
 
 - python object 훅 을 사용하면 시스템을 서로 접합하는 제너릭 코드를 쉽게 작성할 수 있다.
 
@@ -737,7 +737,7 @@ print('foo: ', data.foo)
 
 
 
-## BetterWay48. __init_subclass__를 사용해 하위 클래스를 검증하라.
+## BetterWay48. `__init_subclass__`를 사용해 하위 클래스를 검증하라.
 
 - 메타클래스 활용방법
     - 클래스가 제대로 구현되었는지 검증
@@ -1013,7 +1013,7 @@ class Bottom:
 <br>
 
 
-## BetterWay49. __init_subclass__를 사용해 클래스 확장을 등록하라.
+## BetterWay49. `__init_subclass__`를 사용해 클래스 확장을 등록하라.
 
 - 메타클래스로 프로그램이 자동으로 타입 등록 프로그램이 자동으로 타입 등록이 가능
     - 간단한 식별자로 그에 해당하는 클래스를 찾는 역검색 기능에 효과적임
@@ -1179,9 +1179,8 @@ print('이후: ', deserialize(data))
     - 복잡한 메타클래스 구문을 혼동하기 쉬운 점을 개선
 
 ```python
-### 동작을 안함... 확인필요
 class BetterRegisterdSerializable(BetterSerializable):
-    def __init__subclass__(cls):
+    def __init_subclass__(cls):
         super().__init_subclass__()
         register_class(cls) ## 여기서 호출해줌
     
@@ -1198,6 +1197,9 @@ print('이전: ', before)
 data = before.serialize()
 print('직렬화한 값: ', data)
 print('이후: ', deserialize(data))
+# 이전:  Vector1D(6)
+# 직렬화한 값:  {"class": "Vector1D", "args": [6]}
+# 이후:  Vector1D(6)
 ```
 
 ### 기억해야 할 Point
@@ -1208,13 +1210,135 @@ print('이후: ', deserialize(data))
 
 <br>
 
-## BetterWay50. __set_name__으로 클래스 애트리뷰트를 표시하라.
+
+## BetterWay50. `__set_name__`으로 클래스 애트리뷰트를 표시하라.
+
+- 매타클래스 유용한 기능
+    - 클래스가 정의된 후 클래스가 실제로 사용되기 이전인 시점에 프로퍼티를 변경하거나 표시할 수 있는 기능
+    - 애트리뷰트가 포함된 클래스 내부에서 애트리뷰트의 사용을 자세히 관찰하고자 `디스크립터`를 쓸 때 이런 접근 방법을 사용함.(Betterway46)
+    
+
+- 데이터베이스의 로우를 표현하는 새클래스 정의 예제
+    - 디스크립터 Field 클래스
+    - Field를 이용해 데이터베이스 테이블 정의
+    - Field 디스크립터가 `__dict__`인스턴스 딕셔너리를 변화시킴
+    - 이 예제는 중복이 많음
+        - 테이블에서 애트리뷰트 이름을 정했는데 또 Field에 지정해줘야함.
+```python
+## 디스크립터는 __get__, __set__ 또는 __delete__ 를 정의한 모든 객체.
+## 선택적으로 __set_name__을 가지기도 함
+class Field:
+    def __init__(self, name):
+        self.name = name
+        self.internal_name = '_' + name
+    
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+    
+
+class Customer:
+    first_name = Field('first_name')
+    last_name = Field('last_name')
+    prefix = Field('prefix')
+    suffix = Field('suffix')
+    
+cust = Customer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '유클리드'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '유클리드' {'first_name': '유클리드'}
+```
+
+- 위의 중복을 줄이기 위해 메타클래스를 사용
+    - 하지만 이 방식의 문제점
+    - DatabaseRow를 상속하는 것을 잊어버리거나, 클래스 계층 구조러 인한 제약 때문에 상속할 수 없는 경우, Field 클래스를 프로퍼티에 사용할 수 없음
+
+```python
+class Meta(type):
+    def __new__(meta, name, bases, class_dict):
+        for key, value in class_dict.items():
+            if isinstance(value, Field):
+                value.name = key
+                value.internal_name = '_' + key
+        
+        cls = type.__new__(meta, name, bases, class_dict)
+        return cls
+    
+class DatabaseRow(metaclass=Meta):
+    pass
+
+class Field:
+    def __init__(self):
+        self.name = None
+        self.internal_name = None
+    
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+        
+
+class BetterCustomer(DatabaseRow):
+    first_name = Field()
+    last_name = Field()
+    prefix = Field()
+    suffix = Field()
+    
+cust = BetterCustomer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '오일러'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '오일러' {'_first_name': '오일러'}
+```
+
+- 상속을 잊는 경우나 상속할 수 없는 경우를 보완하는 방법은, 디스크립터에 `__set_name__`메서드를 사용하는 것
+    - 클래스가 정의될 때 마다 파이썬은 해당 클래스 안의 디스크립터 인스턴스의 `__set_name__`을 호출함
+    - `__set_name__`은 디스크립터 인스턴스를 소유 중인 클래스와 디스크립터 인스턴스가 대입될 애트리뷰트 이름을 인자로 받음
+    
+- 메타클래스 정의(`__new__`)를 피하고 `__set_name__`으로 전환 예제
+    - 메타클래스를 정의하고 기반 클래스를 상속하지 않아도 디스크립터가 제공하는 기능을 모두 사용할 수 있음
+```python
+class Field:
+    def __init__(self):
+        self.name = None
+        self.internal_name = None
+        
+    def __set_name__(self, owner, name):
+        # 클래스가 생성될 때 모든 스크립터에 대해 이 메서드가 호출
+        self.name = name
+        self.internal_name = '_' + name
+    
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            return self
+        return getattr(instance, self.internal_name, '')
+    
+    def __set__(self, instance, value):
+        setattr(instance, self.internal_name, value)
+        
+class FixedCustomer:
+    first_name = Field()
+    last_name = Field()
+    prefix = Field()
+    suffix = Field()
+
+cust = FixedCustomer()
+print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+cust.first_name = '메르센'
+print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '메르센' {'_first_name': '메르센'}
+```
 
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 메타클래스를 사용하면 어떤 클래스가 완전히 정의되기 전에 클래스 애트리뷰트를 변경할 수 있다.<br>
+> - 디스크립터와 메타클래스를 조합하면 강력한 실행 시점 코드 검사와 선언적인 동작을 만들 수 있다.<br>
+> - `__set_name__` 메서드를 디스크립터 클래스에 정의하면 디스크립터가 포함된 클래스의 프로퍼티 이름을 처리할 수 있다.<br>
+> - 디스크립터가 변경한 클래스의 인스턴스 딕셔너리에 데이터를 저장하게 만들면 메모리 누수를 피할 수 있고, `weakref`내장 메서드를 사용하지 않아도 된다.<br>
 
 <br>
 
