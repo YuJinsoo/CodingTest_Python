@@ -939,97 +939,258 @@
 
 ## 디스크립터는 __get__, __set__ 또는 __delete__ 를 정의한 모든 객체.
 ## 선택적으로 __set_name__을 가지기도 함
-class Field:
-    def __init__(self, name):
-        self.name = name
-        self.internal_name = '_' + name
+# class Field:
+#     def __init__(self, name):
+#         self.name = name
+#         self.internal_name = '_' + name
     
-    def __get__(self, instance, instance_type):
-        if instance is None:
-            return self
-        return getattr(instance, self.internal_name, '')
+#     def __get__(self, instance, instance_type):
+#         if instance is None:
+#             return self
+#         return getattr(instance, self.internal_name, '')
     
-    def __set__(self, instance, value):
-        setattr(instance, self.internal_name, value)
+#     def __set__(self, instance, value):
+#         setattr(instance, self.internal_name, value)
 
-class Customer:
-    first_name = Field('first_name')
-    last_name = Field('last_name')
-    prefix = Field('prefix')
-    suffix = Field('suffix')
+# class Customer:
+#     first_name = Field('first_name')
+#     last_name = Field('last_name')
+#     prefix = Field('prefix')
+#     suffix = Field('suffix')
     
-cust = Customer()
-print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
-cust.first_name = '유클리드'
-print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '유클리드' {'_first_name': '유클리드'}
+# cust = Customer()
+# print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+# cust.first_name = '유클리드'
+# print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '유클리드' {'_first_name': '유클리드'}
 
 
 
-class Meta(type):
-    def __new__(meta, name, bases, class_dict):
-        for key, value in class_dict.items():
-            if isinstance(value, Field):
-                value.name = key
-                value.internal_name = '_' + key
+# class Meta(type):
+#     def __new__(meta, name, bases, class_dict):
+#         for key, value in class_dict.items():
+#             if isinstance(value, Field):
+#                 value.name = key
+#                 value.internal_name = '_' + key
         
-        cls = type.__new__(meta, name, bases, class_dict)
-        return cls
+#         cls = type.__new__(meta, name, bases, class_dict)
+#         return cls
     
-class DatabaseRow(metaclass=Meta):
+# class DatabaseRow(metaclass=Meta):
+#     pass
+
+# class Field:
+#     def __init__(self):
+#         self.name = None
+#         self.internal_name = None
+    
+#     def __get__(self, instance, instance_type):
+#         if instance is None:
+#             return self
+#         return getattr(instance, self.internal_name, '')
+    
+#     def __set__(self, instance, value):
+#         setattr(instance, self.internal_name, value)
+        
+
+# class BetterCustomer(DatabaseRow):
+#     first_name = Field()
+#     last_name = Field()
+#     prefix = Field()
+#     suffix = Field()
+    
+# cust = BetterCustomer()
+# print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+# cust.first_name = '오일러'
+# print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '오일러' {'_first_name': '오일러'}
+
+
+
+# class Field:
+#     def __init__(self):
+#         self.name = None
+#         self.internal_name = None
+        
+#     def __set_name__(self, owner, name):
+#         # 클래스가 생성될 때 모든 스크립터에 대해 이 메서드가 호출
+#         self.name = name
+#         self.internal_name = '_' + name
+    
+#     def __get__(self, instance, instance_type):
+#         if instance is None:
+#             return self
+#         return getattr(instance, self.internal_name, '')
+    
+#     def __set__(self, instance, value):
+#         setattr(instance, self.internal_name, value)
+        
+# class FixedCustomer:
+#     first_name = Field()
+#     last_name = Field()
+#     prefix = Field()
+#     suffix = Field()
+
+# cust = FixedCustomer()
+# print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
+# cust.first_name = '메르센'
+# print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '메르센' {'_first_name': '메르센'}
+
+# 51
+
+# 클래스의 메서드에 전달되는 인자, 반환값, 예외를 출력하는 기능을 예제
+
+from functools import wraps
+
+## 디버깅 데코레이터 정의
+def trace_func(func):
+    if hasattr(func, 'tracing'):
+        return func
+    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = None
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            result = e
+            return e
+        finally:
+            print(f'{func.__name__}({args!r}, {kwargs!r} -> {result!r})')
+
+    wrapper.tracing = True
+    return wrapper
+
+
+class TraceDict(dict):
+    @trace_func
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    @trace_func
+    def __setitem__(self, *args, **kwargs):
+        return super().__setitem__(*args, **kwargs)
+    
+    @trace_func
+    def __getitem__(self, *args, **kwargs):
+        return super().__getitem__(*args, **kwargs)
+
+
+trace_dict = TraceDict([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
     pass
 
-class Field:
-    def __init__(self):
-        self.name = None
-        self.internal_name = None
-    
-    def __get__(self, instance, instance_type):
-        if instance is None:
-            return self
-        return getattr(instance, self.internal_name, '')
-    
-    def __set__(self, instance, value):
-        setattr(instance, self.internal_name, value)
+# __init__(({'안녕': 1}, [('안녕', 1)]), {} -> None)
+# __setitem__(({'안녕': 1, '거기': 2}, '거기', 2), {} -> None)
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))
+
+
+
+import types
+
+trace_types = (
+    types.MethodType,
+    types.FunctionType,
+    types.BuiltinFunctionType,
+    types.BuiltinMethodType,
+    types.MethodDescriptorType,
+    types.ClassMethodDescriptorType
+)
+
+## 메타클래스 정의
+class TraceMeta(type):
+    def __new__(meta, name, bases, class_dict):
+        klass = super().__new__(meta, name, bases, class_dict)
         
-
-class BetterCustomer(DatabaseRow):
-    first_name = Field()
-    last_name = Field()
-    prefix = Field()
-    suffix = Field()
-    
-cust = BetterCustomer()
-print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
-cust.first_name = '오일러'
-print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '오일러' {'_first_name': '오일러'}
-
-
-
-class Field:
-    def __init__(self):
-        self.name = None
-        self.internal_name = None
+        for key in dir(klass):
+            value = getattr(klass, key)
+            if isinstance(value, trace_types):
+                wrapped = trace_func(value)
+                setattr(klass, key, wrapped)
         
-    def __set_name__(self, owner, name):
-        # 클래스가 생성될 때 모든 스크립터에 대해 이 메서드가 호출
-        self.name = name
-        self.internal_name = '_' + name
+        return klass
     
-    def __get__(self, instance, instance_type):
-        if instance is None:
-            return self
-        return getattr(instance, self.internal_name, '')
-    
-    def __set__(self, instance, value):
-        setattr(instance, self.internal_name, value)
-        
-class FixedCustomer:
-    first_name = Field()
-    last_name = Field()
-    prefix = Field()
-    suffix = Field()
 
-cust = FixedCustomer()
-print(f'이전: {cust.first_name!r} {cust.__dict__}') # 이전: '' {}
-cust.first_name = '메르센'
-print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '메르센' {'_first_name': '메르센'}
+## 메타클래스 적용된 클래스 정의
+class TraceDict(dict, metaclass=TraceMeta):
+    pass
+
+
+trace_dict = TraceDict([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
+    pass
+# __new__((<class '__main__.TraceDict'>, [('안녕', 1)]), {} -> {})
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))
+
+
+
+# class OtherMeta(TraceMeta):
+#     pass
+
+# class SimpleDict(dict, metaclass=OtherMeta):
+#     pass
+
+# class TraceDict(SimpleDict, metaclass=TraceMeta):
+#     pass
+
+
+
+def my_class_decorator(klass):
+    klass.extra_param = '안녕'
+    return klass
+
+@my_class_decorator
+class MyClass:
+    pass
+
+print(MyClass)              # <class '__main__.MyClass'>
+print(MyClass.extra_param)  # 안녕
+
+print('=============\n\n')
+
+
+
+import types
+
+trace_types = (
+    types.MethodType,
+    types.FunctionType,
+    types.BuiltinFunctionType,
+    types.BuiltinMethodType,
+    types.MethodDescriptorType,
+    types.ClassMethodDescriptorType
+)
+
+## 클래스 데코레이터
+def trace(klass):
+    for key in dir(klass):
+        value = getattr(klass, key)
+        if isinstance(value, trace_types):
+            wrapped = trace_func(value)
+            setattr(klass, key, wrapped)
+    return klass
+
+@trace
+class TraceDict_2(dict):
+    pass
+
+trace_dict = TraceDict_2([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
+    pass
+
+# __new__((<class '__main__.TraceDict_2'>, [('안녕', 1)]), {} -> {})
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))

@@ -1342,12 +1342,208 @@ print(f'이후: {cust.first_name!r} {cust.__dict__}') # 이후: '메르센' {'_f
 
 <br>
 
+
 ## BetterWay51. 합성 가능한 클래스 확장이 필요하면 메타클래스보다는 클래스 데코레이터를 사용하라.
 
+- 메타클래스를 활용한 클래스 인스턴스 생성방법 커스텀
+    - `__init_subclass__()` 메서드 정의.
+    - 이 방법으로 처리 불가능한 경우도 있음
+
+- 클래스에 모든 메서드의 인자 반환값, 예외를 출력하는 기능을 예제
+    - 문제점
+        - 모든 메서드를 `@trace_func`데코레이터를 써서 재정의 해야 함 (코드중복, 가독성 저하)
+        - `dict`상위 클래스에 메서드를 추가하면 추가해줘야 함
+    - 해결책
+        - 메타클래스를 사용해 모든 메서드를 자동으로 감싸기
+```python
+# 클래스의 메서드에 전달되는 인자, 반환값, 예외를 출력하는 기능을 예제
+
+from functools import wraps
+
+## 디버깅 데코레이터 정의
+def trace_func(func):
+    if hasattr(func, 'tracing'):
+        return func
+    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = None
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            result = e
+            return e
+        finally:
+            print(f'{func.__name__}({args!r}, {kwargs!r} -> {result!r})')
+
+    wrapper.tracing = True
+    return wrapper
+
+
+class TraceDict(dict):
+    @trace_func
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    @trace_func
+    def __setitem__(self, *args, **kwargs):
+        return super().__setitem__(*args, **kwargs)
+    
+    @trace_func
+    def __getitem__(self, *args, **kwargs):
+        return super().__getitem__(*args, **kwargs)
+
+
+trace_dict = TraceDict([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
+    pass
+
+# __init__(({'안녕': 1}, [('안녕', 1)]), {} -> None)
+# __setitem__(({'안녕': 1, '거기': 2}, '거기', 2), {} -> None)
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))
+```
+
+
+- 클래스에 모든 메서드의 인자 반환값, 예외를 출력하는 기능을 예제
+    - 메타클래스로 단점 극복한 버전
+    - 잘 작동함. 단, 생성자는 `__init__` 대신 `__new__`가 호출됨
+    - 문제점
+        - 상위클래스에서 이미 다른 메타클래스를 적용한 경우 오류 발생함.
+        - 클래스 상속을 이용해 두 메타클래스를 상속 형태로 만들면 되지만,
+        - 라리브러리에 있는 메타클래스는 코드를 변경할 수 없음...
+
+```python
+import types
+
+trace_types = (
+    types.MethodType,
+    types.FunctionType,
+    types.BuiltinFunctionType,
+    types.BuiltinMethodType,
+    types.MethodDescriptorType,
+    types.ClassMethodDescriptorType
+)
+
+## 메타클래스 정의
+class TraceMeta(type):
+    def __new__(meta, name, bases, class_dict):
+        klass = super().__new__(meta, name, bases, class_dict)
+        
+        for key in dir(klass):
+            value = getattr(klass, key)
+            if isinstance(value, trace_types):
+                wrapped = trace_func(value)
+                setattr(klass, key, wrapped)
+        
+        return klass
+    
+
+## 메타클래스 적용된 클래스 정의
+class TraceDict(dict, metaclass=TraceMeta):
+    pass
+
+
+trace_dict = TraceDict([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
+    pass
+# __new__((<class '__main__.TraceDict'>, [('안녕', 1)]), {} -> {})
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))
+```
+
+- 상위에서 이미 메타클래스를 사용하는 경우
+    - 수정이 불가능한 경우가 있어서 메타클래스로는 한계가 있음
+```python
+class OtherMeta(type):
+    pass
+
+class SimpleDict(dict, metaclass=OtherMeta):
+    pass
+
+class TraceDict(SimpleDict, metaclass=TraceMeta):
+    pass
+
+# TypeError: metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases
+
+
+## 문제없음..
+## 하지만 OtherMeta 클래스가 다른 라리브러리 코드라 수정이 불가능하다면???
+class OtherMeta(TraceMeta):
+    pass
+
+class SimpleDict(dict, metaclass=OtherMeta):
+    pass
+
+class TraceDict(SimpleDict, metaclass=TraceMeta):
+    pass
+
+```
+
+
+- `클래스 테코레이터`를 사용해서 문제를 해결할 수 있음
+    - 클래스에 사용하는 데코레이터 라는 의미
+    - 클래스를 인자로 전달받아 인자로 받은 클래스를 적절히 변경해서 재생성.
+```python
+def my_class_decorator(klass):
+    klass.extra_param = '안녕'
+    return klass
+
+@my_class_decorator
+class MyClass:
+    pass
+
+print(MyClass)              # <class '__main__.MyClass'>
+print(MyClass.extra_param)  # 안녕
+```
+
+- 클래스 데코레이터를 사용해서 첫 번째 예제 구현
+    - 클래스의 모든 메서드의 인자, 에러, 반환값 출력하는 기능
+
+- 이렇게 개발을 하면 데코레이터를 적용할 클래스에 이미 메타클래스가 적용되어 있어도 데코레이터를 사용할 수 있음
+- 클래스를 확장하면서 합성이 가능한 방법을 찾는다면,
+    - 클래스 데코레이트가 가장 적합한 도구.
+
+```python
+## 클래스 데코레이터
+# trace_func(), trace_types 는 위에서 정의됨
+def trace(klass):
+    for key in dir(klass):
+        value = getattr(klass, key)
+        if isinstance(value, trace_types):
+            wrapped = trace_func(value)
+            setattr(klass, key, wrapped)
+    return klass
+
+@trace
+class TraceDict_2(dict):
+    pass
+
+trace_dict = TraceDict_2([('안녕', 1)])
+trace_dict['거기'] = 2
+trace_dict['안녕']
+try:
+    trace_dict['존재하지 않음']
+except KeyError:
+    pass
+
+# __new__((<class '__main__.TraceDict_2'>, [('안녕', 1)]), {} -> {})
+# __getitem__(({'안녕': 1, '거기': 2}, '안녕'), {} -> 1)
+# __getitem__(({'안녕': 1, '거기': 2}, '존재하지 않음'), {} -> KeyError('존재하지 않음'))
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
-> - <br>
+> - 클래스 데코레이터는 class 인스턴스를 파라미터로 받아서 이 클래스를 변경하 ㄴ클래스나 새로운 클래스를 반환해주는 간단한 함수이다.<br>
+> - 준비 코드를 최소화하면서 클래스 내부의 모든 메서드나 애트리뷰트를 변경하고 싶을 때 클래스 데코레이터가 유용하다.<br>
+> - 메타클래슨느 서로 쉽게 합성할 수 없지만, 여러 클래스 데코레이터를 충돌 없이 사용해 똑같은 클래스를 확장할 수 있다. <br>
 
 <br>
