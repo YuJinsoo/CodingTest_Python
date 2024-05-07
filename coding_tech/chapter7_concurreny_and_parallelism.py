@@ -139,92 +139,182 @@ print(result.stdout)
 # 54
 
 ## 계산량이 많은 작업. 인수찾기 알고리즘
-import time
+# import time
 
 
-def factorize(number):
-    for i in range(1, number+1):
-        if number % i == 0:
-            yield i
+# def factorize(number):
+#     for i in range(1, number+1):
+#         if number % i == 0:
+#             yield i
             
-numbers = [2139079, 1214759, 1516637, 1852285]
-start = time.time()
+# numbers = [2139079, 1214759, 1516637, 1852285]
+# start = time.time()
 
-for number in numbers:
-    list(factorize(number))
+# for number in numbers:
+#     list(factorize(number))
 
-end = time.time()
-print(f'총 {end-start:.3f} 초 걸림') # 총 0.192 초 걸림
+# end = time.time()
+# print(f'총 {end-start:.3f} 초 걸림') # 총 0.192 초 걸림
 
 
-## 위 코드를 멀티스레드로
+# ## 위 코드를 멀티스레드로
 
-from threading import Thread
+# from threading import Thread
 
-class FactorizeThread(Thread):
-    def __init__(self, number):
-        super().__init__()
-        self.number = number
+# class FactorizeThread(Thread):
+#     def __init__(self, number):
+#         super().__init__()
+#         self.number = number
     
-    def run(self):
-        self.factors = list(factorize(self.number))
+#     def run(self):
+#         self.factors = list(factorize(self.number))
     
-start = time.time()
+# start = time.time()
+# threads = []
+
+# for number in numbers:
+#     thread = FactorizeThread(number)
+#     thread.start()
+#     threads.append(thread)
+
+# for th in threads:
+#     th.join()
+    
+# end = time.time()
+# print(f'총 {end-start:.3f} 초 걸림') # 총 0.184 초 걸림
+
+
+# import select
+# import socket
+
+# ## 이것을 순차적으로 실행하면 시간이 0.1초씩 늘어난다.
+# def slow_systemcall():
+#     select.select([socket.socket()], [], [], 0.1)
+
+# start = time.time()
+
+# for _ in range(5):
+#     slow_systemcall()
+    
+# end = time.time()
+# print(f'총 {end-start:.3f} 초 걸림') # 총 0.531 초 걸림
+
+
+
+# ## 위를 멀티스레드로 실행
+
+# def slow_systemcall():
+#     select.select([socket.socket()], [], [], 0.1)
+
+# def another_cal():
+#     sum = 0
+#     for i in range(100):
+#         sum += i
+#     print('sum : ', sum)
+    
+# start = time.time()
+# thread_list = []
+
+# for _ in range(5):
+#     thread = Thread(target=slow_systemcall)
+#     thread.start()
+#     thread_list.append(thread)
+
+# ## 모종의 다른 계산 작업~~
+# another_cal() # sum :  4950
+
+# for thread in thread_list:
+#     thread.join()
+
+# end = time.time()
+# print(f'총 {end-start:.3f} 초 걸림') # 0.108 초 걸림
+
+
+
+# import time
+
+
+# class Counter:
+#     def __init__(self):
+#         self.count = 0
+    
+#     def increment(self, offset):
+#         self.count += offset
+
+
+# def read_sensor(number):
+#     pass
+#     # print(f'Reading sensor... {number}')
+#     # time.sleep(1)
+
+# def worker(sensor_index, how_many, counter):
+#     for _ in range(how_many):
+#         ## 센서를 읽는다.
+#         read_sensor(sensor_index)
+#         counter.increment(1)
+        
+
+# from threading import Thread
+
+# how_many = 10**5
+# counter = Counter()
+# threads = []
+
+# for i in range(5):
+#     thread = Thread(target=worker,
+#                     args=(i, how_many, counter))
+#     threads.append(thread)
+#     thread.start()
+
+# for thread in threads:
+#     thread.join()
+
+# expected = how_many * 5
+# found = counter.count
+
+
+# ## 책 예제는 두 숫자가 다르게 나오던데....
+# # 카운터 값은 500000여야 하는데 실제로는 500000 입니다
+# print(f'카운터 값은 {expected}여야 하는데 실제로는 {found} 입니다.')
+
+
+
+from threading import Lock, Thread
+
+class LockCounter:
+    def __init__(self):
+        self.lock = Lock()
+        self.count = 0
+        
+    def increment(self, offset):
+        with self.lock:
+            self.count += offset
+
+
+def read_sensor(number):
+    pass
+    # print(f'Reading sensor... {number}')
+    # time.sleep(1)
+
+def worker(sensor_index, how_many, counter):
+    for _ in range(how_many):
+        ## 센서를 읽는다.
+        read_sensor(sensor_index)
+        counter.increment(1)
+
+counter = LockCounter()
+how_many = 10**5
 threads = []
 
-for number in numbers:
-    thread = FactorizeThread(number)
-    thread.start()
+for i in range(5):
+    thread = Thread(target=worker,
+                    args=(i, how_many, counter))
     threads.append(thread)
-
-for th in threads:
-    th.join()
-    
-end = time.time()
-print(f'총 {end-start:.3f} 초 걸림') # 총 0.184 초 걸림
-
-
-import select
-import socket
-
-## 이것을 순차적으로 실행하면 시간이 0.1초씩 늘어난다.
-def slow_systemcall():
-    select.select([socket.socket()], [], [], 0.1)
-
-start = time.time()
-
-for _ in range(5):
-    slow_systemcall()
-    
-end = time.time()
-print(f'총 {end-start:.3f} 초 걸림') # 총 0.531 초 걸림
-
-
-
-## 위를 멀티스레드로 실행
-
-def slow_systemcall():
-    select.select([socket.socket()], [], [], 0.1)
-
-def another_cal():
-    sum = 0
-    for i in range(100):
-        sum += i
-    print('sum : ', sum)
-    
-start = time.time()
-thread_list = []
-
-for _ in range(5):
-    thread = Thread(target=slow_systemcall)
     thread.start()
-    thread_list.append(thread)
 
-## 모종의 다른 계산 작업~~
-another_cal() # sum :  4950
-
-for thread in thread_list:
+for thread in threads:
     thread.join()
 
-end = time.time()
-print(f'총 {end-start:.3f} 초 걸림') # 0.108 초 걸림
+expected = how_many * 5
+found = counter.count
+print(f'카운터 값은 {expected}여야 하는데 실제로는 {found} 입니다.')

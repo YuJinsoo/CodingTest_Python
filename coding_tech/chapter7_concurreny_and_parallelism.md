@@ -333,10 +333,119 @@ print(f'총 {end-start:.3f} 초 걸림') # 0.108 초 걸림
 <br>
 
 ## BetterWay54. 스레드에서 데이터 경합을 피가히 위해 Lock을 사용하라
+
+
+- GIL이 동시 접근을 보장해주는 락 역할을 하는 것처럼 보이지만, 실제로는 전혀 그렇지 않음
+    - 파이썬 쓰레드는 하나의 하나만 실행될 수 있지만, 
+    - 스레드가 어떤 데이터 구조에 대해 수행하는 연산은 연속된 두 바이트코드 사이에 언제든 인터럽트 될수 있음
+    - 그래서 여러 스레드에서 같은 데이터 구조에 동시에 접근하면 위험
+
+- 병렬적으로 여러 가지 개수를 세는 프로그램 예제
+    - 네트워크에서 광센서를 통해 빛이 들어온 경우를 샘플링하는 예제
+
+    - `Count`클래스에서 `increment()` 메서드 동작은 atomic 하지 않음
+        - 실제로는 세 단계로 작업됨
+            1. value = getattr(counter, 'count')
+            2. result = value + 1
+            3. setattr(count, 'count', result)
+        - 세 단계 사이에 인터럽트가 발생하면 +1 연산 동작이 무시되는 경우가 생김
+```python
+class Counter:
+    def __init__(self):
+        self.count = 0
+    
+    def increment(self, offset):
+        self.count += offset
+
+
+def read_sensor(number):
+    pass
+    # print(f'Reading sensor... {number}')
+    # time.sleep(1)
+
+def worker(sensor_index, how_many, counter):
+    for _ in range(how_many):
+        ## 센서를 읽는다.
+        read_sensor(sensor_index)
+        counter.increment(1)
+        
+
+from threading import Thread
+
+how_many = 10**5
+counter = Counter()
+threads = []
+
+for i in range(5):
+    thread = Thread(target=worker,
+                    args=(i, how_many, counter))
+    threads.append(thread)
+    thread.start()
+
+for thread in threads:
+    thread.join()
+
+expected = how_many * 5
+found = counter.count
+
+
+## 책 예제는 두 숫자가 다르게 나오던데....
+# 카운터 값은 500000여야 하는데 실제로는 500000 입니다
+print(f'카운터 값은 {expected}여야 하는데 실제로는 {found} 입니다.')
+```
+
+- 이렇게 같은 자료구조에 접근해야 하는 경우, 오염을 해결하기 위한 기능 제공
+    - `Lock` 클래스 (상호 배제 Lock 클래스: Mutex)
+    - `with`문을 사용한 `Lock` 예제
+
+```python
+from threading import Lock, Thread
+
+class LockCounter:
+    def __init__(self):
+        self.lock = Lock()
+        self.count = 0
+        
+    def increment(self, offset):
+        ## with 문을 활용해 lock을 획득함하고 해제함
+        with self.lock:
+            self.count += offset
+
+
+def read_sensor(number):
+    pass
+    # print(f'Reading sensor... {number}')
+    # time.sleep(1)
+
+def worker(sensor_index, how_many, counter):
+    for _ in range(how_many):
+        ## 센서를 읽는다.
+        read_sensor(sensor_index)
+        counter.increment(1)
+
+counter = LockCounter()
+how_many = 10**5
+threads = []
+
+for i in range(5):
+    thread = Thread(target=worker,
+                    args=(i, how_many, counter))
+    threads.append(thread)
+    thread.start()
+
+for thread in threads:
+    thread.join()
+
+expected = how_many * 5
+found = counter.count
+print(f'카운터 값은 {expected}여야 하는데 실제로는 {found} 입니다.')
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 파이썬 GIL이 있지만, 스레드 사이에서 발생하는 데이터 경합으로부터 보호해야 함 </br>
+> - 코드에서 여러 스레드가 상호 배제 락(뮤텍스) 없이 같은 객체를 변경하도록 허용하면 코드가 데이터 구조를 오염시킴</br>
+> - 여러 스레드 사이에서 데이터 경합을 막아 무결서을 유지하려면 `Lock`클래스를 활용하자</br>
+
 
 <br>
 
