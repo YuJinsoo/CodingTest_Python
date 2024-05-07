@@ -186,10 +186,149 @@ print('종료상태', proc.poll()) # 종료상태 1
 <br>
 
 ## BetterWay53. 블로킹 I/O의 경우 스레드를 사용하고 병렬성을 피하라
+- 파이썬 표준 구현체 : CPython
+
+- 파이썬 프로그램 실행 단계
+    - 1단계
+        - 소스코드를 구문 분석해서 바이트코드(bytecode)로 변환
+        - 바이트코드는 8비트 명령어를 사용하는 저수준 프로그램 표현(3.6 부터는 16비트 멸영어)
+
+    - 2단계
+        - 바이트코드를 스택 기반 인터프리터를 통해 실행
+        - 바이트코드 인터프리터에는 파이썬 프로그램이 실행되는 동안 일관성 있게 유지해야 하는 상태가 존재함
+        - GIL이라는 방법을 사용해 일관성을 유지함
+
+- GIL
+    - 상호 배제 Lock(뮤텍스)
+    - CPython이 선점형 멀티스레드로 인해 영향받는 것을 방지함
+        - 선점형에서는 다른 스레드 실행을 중간에 인터럽트 시키고 제어를 가져올 수 ㅣㅆ음
+        - 이때 예상치 못한 인터럽트라면 참조카운터가 오염될 수 있음
+    - GIL 때문에 스레드로 cpu bound 작업을 분산화하면 속도가 빨라지지 않는다.
+
+```python
+## 계산량이 많은 작업. 인수찾기 알고리즘
+import time
+
+
+def factorize(number):
+    for i in range(1, number+1):
+        if number % i == 0:
+            yield i
+            
+numbers = [2139079, 1214759, 1516637, 1852285]
+start = time.time()
+
+for number in numbers:
+    list(factorize(number))
+
+end = time.time()
+print(f'총 {end-start:.3f} 초 걸림') # 총 0.192 초 걸림
+```
+
+
+- 다른 언어에서는 컴퓨터의 모든 CPU 코어를 사용할 수 있으므로, 다중 스레드를 사용해 계산을 수행하는 것이 타당함
+- 이를 파이썬으로 시도한다면, 아래와 같다
+    - 속도 측면에서 별로 차이가 나지 않는다. (0.01 초 차이)
+
+```python
+## 위 코드를 멀티스레드로
+from threading import Thread
+
+class FactorizeThread(Thread):
+    def __init__(self, number):
+        super().__init__()
+        self.number = number
+    
+    def run(self):
+        self.factors = list(factorize(self.number))
+    
+start = time.time()
+threads = []
+
+for number in numbers:
+    thread = FactorizeThread(number)
+    thread.start()
+    threads.append(thread)
+
+for th in threads:
+    th.join()
+    
+end = time.time()
+print(f'총 {end-start:.3f} 초 걸림') # 총 0.184 초 걸림
+```
+
+- 성능 향상이 없는데도 멀티스레딩을 지원하는 이유
+    - 동시에 여러 일을 하는 것처럼 코딩하기 쉽다.
+    - 블로킹 I/O 를 다루기 위해서
+        - 파일 쓰기, 네트워크 상호작용, 디스플레이 장치와 통신 등
+        - 운영체제가 시스템 콜 요청에 응답하는 시간 동안 파이썬 프로그램이 다른 일을 할 수 있음
+
+- 직렬포트를 통해 원격 제어 헬리콥터 신호를 보내는 예제
+    - 이 동작을 대신해 느린 시스템 콜(select)를 사용할 것
+    - 이것은 운영체제에게 0.1초 동안 블록한 뒤 제어를 돌려달라고 요청하는데, 동기적으로 직렬 포트를 사용할 때와 같은 상황임
+
+```python
+import select
+import socket
+
+## 느린 시스템 콜 함수
+## 이것을 순차적으로 실행하면 시간이 0.1초씩 늘어난다.
+def slow_systemcall():
+    select.select([socket.socket()], [], [], 0.1)
+
+start = time.time()
+
+for _ in range(5):
+    slow_systemcall()
+    
+end = time.time()
+print(f'총 {end-start:.3f} 초 걸림') # 총 0.531 초 걸림
+```
+
+- 위 예제를 멀티스레드로 실행
+    - 0.5 초 >> 0.1 초 (심지어 중간에 다른 계산을 추가했는데도 시간이 줄어들었음)
+    - GIL은 CPython 코드를 하나만 실행하도록 막지만, 시스템 콜을 막지는 못함.
+    - 파이썬 스레드가 시스템 콜을 하기 전에 GIL을 해제하고 시스템 콜에서 반환되자마자 GIL을 다시 획득하기 때문
+```python
+## 위를 멀티스레드로 실행
+
+def slow_systemcall():
+    select.select([socket.socket()], [], [], 0.1)
+
+def another_cal():
+    sum = 0
+    for i in range(100):
+        sum += i
+    print('sum : ', sum)
+    
+start = time.time()
+thread_list = []
+
+for _ in range(5):
+    thread = Thread(target=slow_systemcall)
+    thread.start()
+    thread_list.append(thread)
+
+## 모종의 다른 계산 작업~~
+another_cal() # sum :  4950
+
+for thread in thread_list:
+    thread.join()
+
+end = time.time()
+print(f'총 {end-start:.3f} 초 걸림') # 0.108 초 걸림
+
+```
+
+- 스레드 외에도 `asyncio`내장 모듈 등 블로킹 I/O 처리하는 방법이 많이 있음
+- 대안마다 중요한 장점이 존재
+- 코드를 가급적 손보지 않고 블로킹 I/O를 병렬로 실행하고 싶을 때에는 스레드를 사용하는 것이 편리함
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 파이썬 쓰레드는 GIL로 인해 다중 CPU 코어에서 병렬로 실행될 수 없다. </br>
+> - GIL이 있음에도 불구하고 파이썬 스레드는 여전히 유용함</br>
+> - 파이썬 스레드를 사용해 여러 시스템 콜을 병렬로 할 수 있음. 이를 이용하면 블로킹 I/O 와 계산을 동시에 수행할 수 있음</br>
+
 
 <br>
 
