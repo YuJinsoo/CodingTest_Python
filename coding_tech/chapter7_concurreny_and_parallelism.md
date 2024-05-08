@@ -450,10 +450,334 @@ print(f'카운터 값은 {expected}여야 하는데 실제로는 {found} 입니�
 <br>
 
 ## BetterWay55. Queue를 사용해 스레드 사이의 작업을 조율하라
+
+
+- 프로그램이 동시에 여러 일을 수행한다면 작업 조율하는 것이 중요
+- 동시성 작업을 처리할 때 가장 유용한 방식은 함수 파이프라인
+
+- 파이프라인
+    - 순차적으로 실행해야 하는 여러 단계가 있음
+    - 단계벌로 실행할 구체적인 함수가 정해짐
+    - 파이프라인 한쪽 끝에서 새로운 작업이 계속 추가됨
+    - 각 함수는 동시에 실행될 수 있고, 각 단계에서 처리해야 하는 일을 담당
+    - 함수가 완료되면 다음 단계로 전달되면, 더이상 실행할 것이 없으면 종료됨
+
+- 이런 방법은 블로킹 IO나 하위 프로세스가 포함되는 경우에 좋음
+    - 쉽게 병렬화 할 수 있기 때문
+
+- 디지털 카메라에서 이미지 스트림을 가져와 크기를 변경하고 온라인 포토 갤러리에 저장하는 예제
+    - 파이프라인 을 3단계로 구성
+        - 저장 - 조작 - 업로드
+
+```python
+## 각 단계에서 처리하는 함수
+def download(item):
+    pass
+
+def resize(item):
+    pass
+
+def upload(item):
+    pass
+
+## deque에 이미지를 put으로 추가하고 get을 통해 순차적으로 처리되도록 할 수 있다.
+## 데이터 경합을 피하기 위해 Lock을 사용해서 deque에 접근
+from collections import deque
+from threading import Lock
+
+class MyQueue:
+    def __init__(self):
+        self.items = deque()
+        self.lock = Lock()
+        
+    def put(self, item):
+        with self.lock:
+            self.items.append(item)
+            
+    def get(self):
+        with self.lock:
+            return self.items.popleft()
+```
+
+- 가져온 작업에 함수를 적용하고, 결과를 다른 큐에 넣는 스레드를 통해 파이프라인의 각 단계를 구성
+    - 까다로운 점: 입력 큐가 비어있는 경우(이전 단계 자업 미완성)의 처리
+        - 아래 예제에서는 IndexError 예외를 잡아내어 일시 중단하는 것으로 처리함
+```python
+import time
+from threading import Thread
+
+class Worker(Thread):
+    def __init__(self, func, in_queue, out_queue):
+        super().__init__()
+        self.func = func
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+        self.polled_count = 0
+        self.work_done = 0
+
+    def run(self):
+        while True:
+            self.polled_count += 1
+            try:
+                item = self.in_queue.get()
+            except IndexError:
+                # print('index error occur, polled count: ', self.polled_count)
+                time.sleep(0.01) # 할 일이 없음
+            else:
+                result = self.func(item)
+                self.out_queue.put(result)
+                self.work_done += 1
+
+## 각 단계마다 큐를 생성하고 
+# 각 단계에 맞는 작업 스레드를 만들어서 서로 연결할 수 있음                
+download_queue = MyQueue()
+resize_queue = MyQueue()
+upload_queue = MyQueue()
+
+done_queue = MyQueue()
+threads = [
+    Worker(download, download_queue, resize_queue),
+    Worker(resize, resize_queue, upload_queue),
+    Worker(upload, upload_queue, done_queue),
+]
+        
+for thread in threads:
+    thread.start()
+
+for _ in range(1000):
+    download_queue.put(object())
+    
+# print(len(done_queue.items))
+
+while len(done_queue.items) < 1000:
+    ## 다른 작업
+    print('length of done_queue: ', len(done_queue.items))
+
+processed = len(done_queue.items)
+
+polled = sum(t.polled_count for t  in threads)
+# 1000 개의 아에템을 처리했습니다. 이때 폴링을3006회 했습니다.
+print(f'{processed} 개의 아에템을 처리했습니다. 이때 폴링을{polled}회 했습니다.')
+```
+
+- 위 구조는 문제점이 있음
+- 작업자(Worker) 함수의 속도가 달라지면 앞에 있는 단계가 그보다 더 뒤에있는 단계의 진행을 방해함
+    - 뒤에 있는 단계는 작업을 받지 못해 기아 상태가 되어 처리할 작업이없음
+    - 그럼 쓸데없이 계속 polling을 해서 `IndexError`를 발생시킴 >> 리소스 낭비
+
+- 피해야 할 세 가지 문제점
+    1. 모든 작업이 끝났는지 검사하기 위해 `done_queue`에 추가로 바쁜 대기를 수행해야 함.
+    2. Worker의 run 메서드가 루프를 무한히 반복함.(루프를 중단할 방법이 없음)
+    3. 파이프라인 진행이 막히면 프로그램이 임의로 종료될 수 있음
+        (Worker별 속도 차이에 의해 메모리 과부하로 이런 일이 생길 수 있음)
+
+### 대안: Queue
+- 내장 `Queue`를 사용해서 위 문제를 해결할 수 있음
+- `Queue`는 새로운 데이터가 나타날 때까지 get메서드가 블록되게 만들어 작업자의 바쁜 대기문제를 해결
+    - 스레드가 먼저 실행되지만, `Queue`인스턴스에 원소가 `put`되서 `get`메서드가 반환할 원소가 생기기 전까지 쓰레드가 끝나지 않음
+```python
+from queue import Queue
+import time
+from threading import Thread
+
+my_queue = Queue()
+
+def consumer():
+    print('소비자 대기')
+    my_queue.get()    # 아래의 put이 실행된 다음에 실행됨
+    print('소비자 완료')
+
+thread = Thread(target=consumer)
+thread.start()
+
+print('생산자 데이터 추가')
+my_queue.put(object())
+print('생산자 완료')
+thread.join()
+
+# 소비자 대기
+# 생산자 데이터 추가
+# 생산자 완료
+# 소비자 완료
+```
+
+- 파이프라인 중간임 가히는 경우를 해결하기 위해 `Queue` 클래스에 단 두 단계 사이에 허용할 수 있는 미완성 작업 최대 개수를 지정
+    - 즉 Queue를 버퍼처럼 사용하고 버퍼 크기를 지정함
+    - 그럼 위에서 본 Queue 동작 방식처럼 가득 차면 대기하는 스레드가 됨
+```python
+my_queue = Queue(1) ## 최대 버퍼 크기 1 
+
+def consumer():
+    time.sleep(0.1)
+    my_queue.get()
+    print('소비자 1')
+    my_queue.get()
+    print('소비자 2')
+    print('소비자 완료')
+    
+thread = Thread(target=consumer)
+thread.start()
+
+my_queue.put(object())
+print('생산자1')
+my_queue.put(object())
+print('생산자2')
+print('생산자 완료')
+thread.join()
+
+# 생산자1
+# 소비자 1
+# 생산자2
+# 소비자 2
+# 생산자 완료
+# 소비자 완료
+```
+
+- `Queue`클래스의 `task_done`을 통해 작업 진행 추적 가능
+```python
+from queue import Queue
+from threading import Thread
+
+
+in_queue = Queue()
+def consumer():
+    print('소비자 대기')
+    work = in_queue.get()
+    print('소비자 작업 중')
+    print('소비자 완료')
+    in_queue.task_done() ## queue가 완료되었다고 알려줌
+
+thread = Thread(target=consumer)
+thread.start()
+
+## 스레드를 join 하거나 폴링할 필요가 없음
+## Queue 인스턴스의 join 메서드를 호출함해서 in_queue가 끝나길 기다림
+
+print('생산자 데이터 추가')
+in_queue.put(object())
+print('생산자 대기')
+in_queue.join()
+print('생산자 완료')
+thread.join()
+
+# 소비자 대기
+# 생산자 데이터 추가
+# 생산자 대기
+# 소비자 작업 중
+# 소비자 완료
+# 생산자 완료
+```
+
+- Queue의 하위 클래스에 구현해보자.
+    - 큐에 다른 입력이 없음을 표시하는 `센티넬`원소를 추가하는 close 메서드 정의
+```python
+class ClosableQueue(Queue):
+    SENTINEL = object()
+    
+    def close(self):
+        self.put(self.SENTINEL)
+    
+    def __iter__(self):
+        while True:
+            item = self.get()
+            try:
+                if item is self.SENTINEL:
+                    return # 스레드 종료
+                yield item
+            finally:
+                self.task_done()
+
+
+class StoppableWorker(Thread):
+    def __init__(self, func, in_queue, out_queue):
+        super().__init__()
+        self.func = func
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+    
+    def run(self):
+        for item in self.in_queue:
+            result = self.func(item)
+            self.out_queue.put(result)
+
+
+download_queue = ClosableQueue()
+resize_queue = ClosableQueue()
+upload_queue = ClosableQueue()
+done_queue = ClosableQueue()
+
+threads = [
+    StoppableWorker(download, download_queue, resize_queue),
+    StoppableWorker(resize, resize_queue, upload_queue),
+    StoppableWorker(upload, upload_queue, done_queue),
+]
+
+for thread in threads:
+    thread.start()
+
+for _ in range(1000):
+    download_queue.put(object())
+
+
+download_queue.close() # 1000 개 이후 마지막에 SENTINEL 넣어줌
+download_queue.join()  # SENTINEL 만나면 료됨! (return)
+resize_queue.close()
+resize_queue.join()
+upload_queue.close()
+upload_queue.join()
+
+print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
+
+for thread in threads:
+    thread.join()
+```
+
+- Queue를 활용한 것을 확장해 각 단계마다 여러 작업자를 사용할 수 있다.
+    - IO병렬성을 높일 수 있음 (속도증가)
+    - 이를 위해 다중 스레드를 시작하고 끝내는 도우미 함수를 제작
+    - 선형적인 파이프라인의 경우 `Queue`가 효과적이지만, I/O를 할 때에는 코루틴을 사용하면 더 좋다.
+```python
+def start_thread(count, *args):
+    threads = [StoppableWorker(*args) for _ in range(count)]
+    for thread in threads:
+        thread.start()
+    return threads
+
+def stop_thread(closable_queue, threads):
+    for _ in threads:
+        closable_queue.close()
+    
+    closable_queue.join()
+    
+    for thread in threads:
+        thread.join()
+
+
+download_queue = ClosableQueue()
+resize_queue = ClosableQueue()
+upload_queue = ClosableQueue()
+done_queue = ClosableQueue()
+
+download_threads = start_thread(3, download, download_queue, resize_queue)
+resize_threads = start_thread(4, resize, resize_queue, upload_queue)
+upload_threads = start_thread(5, upload, upload_queue, done_queue)
+
+for _ in range(1000):
+    download_queue.put(object())
+
+
+stop_thread(download_queue, download_threads)
+stop_thread(resize_queue, resize_threads)
+stop_thread(upload_queue, upload_threads)
+
+print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 순차적인 작업을 동시에 여러 파이썬 스레드에서 실행되도록 구성하고 싶다면, 특히 I/O 위주의 프로그램이라면 파이프라인이 매우 유용하다</br>
+> - 동시성 파이프라인을 만들 때 발생할 수 있는 문제를 잘 알아두자(바쁜 대기, 종료 알림, 메모리 사용량 폭발 등)</br>
+> - `Queue`클래스를 튼튼한 파이프라인을 구축할 때 필요한 기능인 블로킹 연산, 버퍼크기, join을 통한 완료 대기 등을 모두 지원</br>
+
 
 <br>
 
