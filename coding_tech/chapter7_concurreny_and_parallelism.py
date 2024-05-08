@@ -322,280 +322,371 @@ print(result.stdout)
 
 # 55
 
-## 각 단계에서 처리하는 함수
-def download(item):
-    return 1
+# ## 각 단계에서 처리하는 함수
+# def download(item):
+#     return 1
 
-def resize(item):
-    return 2
+# def resize(item):
+#     return 2
 
-def upload(item):
-    return 3
+# def upload(item):
+#     return 3
 
-## deque에 이미지를 put으로 추가하고 get을 통해 순차적으로 처리되도록 할 수 있다.
-## 데이터 경합을 피하기 위해 Lock을 사용해서 deque에 접근
-from collections import deque
-from threading import Lock
+# ## deque에 이미지를 put으로 추가하고 get을 통해 순차적으로 처리되도록 할 수 있다.
+# ## 데이터 경합을 피하기 위해 Lock을 사용해서 deque에 접근
+# from collections import deque
+# from threading import Lock
 
-class MyQueue:
-    def __init__(self):
-        self.items = deque()
-        self.lock = Lock()
+# class MyQueue:
+#     def __init__(self):
+#         self.items = deque()
+#         self.lock = Lock()
         
-    def put(self, item):
-        with self.lock:
-            self.items.append(item)
+#     def put(self, item):
+#         with self.lock:
+#             self.items.append(item)
             
-    def get(self):
-        with self.lock:
-            return self.items.popleft()
+#     def get(self):
+#         with self.lock:
+#             return self.items.popleft()
 
 
 
-import time
-from threading import Thread
+# import time
+# from threading import Thread
 
 
-class Worker(Thread):
-    def __init__(self, func, in_queue, out_queue):
-        super().__init__()
-        self.func = func
-        self.in_queue = in_queue
-        self.out_queue = out_queue
-        self.polled_count = 0
-        self.work_done = 0
+# class Worker(Thread):
+#     def __init__(self, func, in_queue, out_queue):
+#         super().__init__()
+#         self.func = func
+#         self.in_queue = in_queue
+#         self.out_queue = out_queue
+#         self.polled_count = 0
+#         self.work_done = 0
 
-    def run(self):
-        while True:
-            self.polled_count += 1
-            try:
-                item = self.in_queue.get()
-            except IndexError:
-                # print('index error occur, polled count: ', self.polled_count)
-                time.sleep(0.01) # 할 일이 없음
-            else:
-                result = self.func(item)
-                self.out_queue.put(result)
-                self.work_done += 1
+#     def run(self):
+#         while True:
+#             self.polled_count += 1
+#             try:
+#                 item = self.in_queue.get()
+#             except IndexError:
+#                 # print('index error occur, polled count: ', self.polled_count)
+#                 time.sleep(0.01) # 할 일이 없음
+#             else:
+#                 result = self.func(item)
+#                 self.out_queue.put(result)
+#                 self.work_done += 1
 
-## 각 단계마다 큐를 생성하고 
-# 각 단계에 맞는 작업 스레드를 만들어서 서로 연결할 수 있음                
-download_queue = MyQueue()
-resize_queue = MyQueue()
-upload_queue = MyQueue()
+# ## 각 단계마다 큐를 생성하고 
+# # 각 단계에 맞는 작업 스레드를 만들어서 서로 연결할 수 있음                
+# download_queue = MyQueue()
+# resize_queue = MyQueue()
+# upload_queue = MyQueue()
 
-done_queue = MyQueue()
-threads = [
-    Worker(download, download_queue, resize_queue),
-    Worker(resize, resize_queue, upload_queue),
-    Worker(upload, upload_queue, done_queue),
-]
+# done_queue = MyQueue()
+# threads = [
+#     Worker(download, download_queue, resize_queue),
+#     Worker(resize, resize_queue, upload_queue),
+#     Worker(upload, upload_queue, done_queue),
+# ]
         
-for thread in threads:
-    thread.start()
+# for thread in threads:
+#     thread.start()
 
-for _ in range(1000):
-    download_queue.put(object())
+# for _ in range(1000):
+#     download_queue.put(object())
     
-# print(len(done_queue.items))
+# # print(len(done_queue.items))
 
-while len(done_queue.items) < 1000:
-    ## 다른 작업
-    print('length of done_queue: ', len(done_queue.items))
+# while len(done_queue.items) < 1000:
+#     ## 다른 작업
+#     print('length of done_queue: ', len(done_queue.items))
 
-processed = len(done_queue.items)
+# processed = len(done_queue.items)
 
-polled = sum(t.polled_count for t  in threads)
-# 1000 개의 아에템을 처리했습니다. 이때 폴링을3006회 했습니다.
-print(f'{processed} 개의 아에템을 처리했습니다. 이때 폴링을{polled}회 했습니다.')
+# polled = sum(t.polled_count for t  in threads)
+# # 1000 개의 아에템을 처리했습니다. 이때 폴링을3006회 했습니다.
+# print(f'{processed} 개의 아에템을 처리했습니다. 이때 폴링을{polled}회 했습니다.')
 
 
 
-# 내장 queue를 사용해서 deque로 직접 구현한 파이프라인 문제를 해결할 수 있다.
-from queue import Queue
-import time
-from threading import Thread
+# # 내장 queue를 사용해서 deque로 직접 구현한 파이프라인 문제를 해결할 수 있다.
+# from queue import Queue
+# import time
+# from threading import Thread
 
-my_queue = Queue()
+# my_queue = Queue()
 
-def consumer():
-    print('소비자 대기')
-    my_queue.get()    # 아래의 put이 실행된 다음에 실행됨
-    print('소비자 완료')
+# def consumer():
+#     print('소비자 대기')
+#     my_queue.get()    # 아래의 put이 실행된 다음에 실행됨
+#     print('소비자 완료')
 
-thread = Thread(target=consumer)
-thread.start()
+# thread = Thread(target=consumer)
+# thread.start()
 
-print('생산자 데이터 추가')
-my_queue.put(object())
-print('생산자 완료')
-thread.join()
+# print('생산자 데이터 추가')
+# my_queue.put(object())
+# print('생산자 완료')
+# thread.join()
 
-# 소비자 대기
-# 생산자 데이터 추가
-# 생산자 완료
-# 소비자 완료
+# # 소비자 대기
+# # 생산자 데이터 추가
+# # 생산자 완료
+# # 소비자 완료
 
-print('---------------------')
+# print('---------------------')
 
-my_queue = Queue(1)
+# my_queue = Queue(1)
 
-def consumer():
-    time.sleep(0.1)
-    my_queue.get()
-    print('소비자 1')
-    my_queue.get()
-    print('소비자 2')
-    print('소비자 완료')
+# def consumer():
+#     time.sleep(0.1)
+#     my_queue.get()
+#     print('소비자 1')
+#     my_queue.get()
+#     print('소비자 2')
+#     print('소비자 완료')
     
-thread = Thread(target=consumer)
-thread.start()
+# thread = Thread(target=consumer)
+# thread.start()
 
-my_queue.put(object())
-print('생산자1')
-my_queue.put(object())
-print('생산자2')
-print('생산자 완료')
-thread.join()
+# my_queue.put(object())
+# print('생산자1')
+# my_queue.put(object())
+# print('생산자2')
+# print('생산자 완료')
+# thread.join()
 
-# 생산자1
-# 소비자 1
-# 생산자2
-# 소비자 2
-# 생산자 완료
-# 소비자 완료
-print('---------------------')
+# # 생산자1
+# # 소비자 1
+# # 생산자2
+# # 소비자 2
+# # 생산자 완료
+# # 소비자 완료
+# print('---------------------')
 
-from queue import Queue
-from threading import Thread
-
-
-in_queue = Queue()
-def consumer():
-    print('소비자 대기')
-    work = in_queue.get()
-    print('소비자 작업 중')
-    print('소비자 완료')
-    in_queue.task_done() ## queue가 완료되었다고 알려줌
-
-thread = Thread(target=consumer)
-thread.start()
-
-## 스레드를 join 하거나 폴링할 필요가 없음
-## Queue 인스턴스의 join 메서드를 호출함해서 in_queue가 끝나길 기다림
-
-print('생산자 데이터 추가')
-in_queue.put(object())
-print('생산자 대기')
-in_queue.join()
-print('생산자 완료')
-thread.join()
-
-# 소비자 대기
-# 생산자 데이터 추가
-# 생산자 대기
-# 소비자 작업 중
-# 소비자 완료
-# 생산자 완료
+# from queue import Queue
+# from threading import Thread
 
 
+# in_queue = Queue()
+# def consumer():
+#     print('소비자 대기')
+#     work = in_queue.get()
+#     print('소비자 작업 중')
+#     print('소비자 완료')
+#     in_queue.task_done() ## queue가 완료되었다고 알려줌
+
+# thread = Thread(target=consumer)
+# thread.start()
+
+# ## 스레드를 join 하거나 폴링할 필요가 없음
+# ## Queue 인스턴스의 join 메서드를 호출함해서 in_queue가 끝나길 기다림
+
+# print('생산자 데이터 추가')
+# in_queue.put(object())
+# print('생산자 대기')
+# in_queue.join()
+# print('생산자 완료')
+# thread.join()
+
+# # 소비자 대기
+# # 생산자 데이터 추가
+# # 생산자 대기
+# # 소비자 작업 중
+# # 소비자 완료
+# # 생산자 완료
 
 
-class ClosableQueue(Queue):
-    SENTINEL = object()
+
+
+# class ClosableQueue(Queue):
+#     SENTINEL = object()
     
-    def close(self):
-        self.put(self.SENTINEL)
+#     def close(self):
+#         self.put(self.SENTINEL)
     
-    def __iter__(self):
-        while True:
-            item = self.get()
-            try:
-                if item is self.SENTINEL:
-                    return # 스레드 종료
-                yield item
-            finally:
-                self.task_done()
+#     def __iter__(self):
+#         while True:
+#             item = self.get()
+#             try:
+#                 if item is self.SENTINEL:
+#                     return # 스레드 종료
+#                 yield item
+#             finally:
+#                 self.task_done()
 
 
-class StoppableWorker(Thread):
-    def __init__(self, func, in_queue, out_queue):
-        super().__init__()
-        self.func = func
-        self.in_queue = in_queue
-        self.out_queue = out_queue
+# class StoppableWorker(Thread):
+#     def __init__(self, func, in_queue, out_queue):
+#         super().__init__()
+#         self.func = func
+#         self.in_queue = in_queue
+#         self.out_queue = out_queue
     
-    def run(self):
-        for item in self.in_queue:
-            result = self.func(item)
-            self.out_queue.put(result)
+#     def run(self):
+#         for item in self.in_queue:
+#             result = self.func(item)
+#             self.out_queue.put(result)
 
 
-download_queue = ClosableQueue()
-resize_queue = ClosableQueue()
-upload_queue = ClosableQueue()
-done_queue = ClosableQueue()
+# download_queue = ClosableQueue()
+# resize_queue = ClosableQueue()
+# upload_queue = ClosableQueue()
+# done_queue = ClosableQueue()
 
-threads = [
-    StoppableWorker(download, download_queue, resize_queue),
-    StoppableWorker(resize, resize_queue, upload_queue),
-    StoppableWorker(upload, upload_queue, done_queue),
-]
+# threads = [
+#     StoppableWorker(download, download_queue, resize_queue),
+#     StoppableWorker(resize, resize_queue, upload_queue),
+#     StoppableWorker(upload, upload_queue, done_queue),
+# ]
 
-for thread in threads:
-    thread.start()
+# for thread in threads:
+#     thread.start()
 
-for _ in range(1000):
-    download_queue.put(object())
-
-
-download_queue.close() # 1000 개 이후 마지막에 SENTINEL 넣어줌
-download_queue.join()  # SENTINEL 만나면 료됨! (return)
-resize_queue.close()
-resize_queue.join()
-upload_queue.close()
-upload_queue.join()
-
-print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
-
-for thread in threads:
-    thread.join()
+# for _ in range(1000):
+#     download_queue.put(object())
 
 
+# download_queue.close() # 1000 개 이후 마지막에 SENTINEL 넣어줌
+# download_queue.join()  # SENTINEL 만나면 료됨! (return)
+# resize_queue.close()
+# resize_queue.join()
+# upload_queue.close()
+# upload_queue.join()
+
+# print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
+
+# for thread in threads:
+#     thread.join()
 
 
-def start_thread(count, *args):
-    threads = [StoppableWorker(*args) for _ in range(count)]
-    for thread in threads:
-        thread.start()
-    return threads
 
-def stop_thread(closable_queue, threads):
-    for _ in threads:
-        closable_queue.close()
+
+# def start_thread(count, *args):
+#     threads = [StoppableWorker(*args) for _ in range(count)]
+#     for thread in threads:
+#         thread.start()
+#     return threads
+
+# def stop_thread(closable_queue, threads):
+#     for _ in threads:
+#         closable_queue.close()
     
-    closable_queue.join()
+#     closable_queue.join()
     
-    for thread in threads:
-        thread.join()
+#     for thread in threads:
+#         thread.join()
 
 
-download_queue = ClosableQueue()
-resize_queue = ClosableQueue()
-upload_queue = ClosableQueue()
-done_queue = ClosableQueue()
+# download_queue = ClosableQueue()
+# resize_queue = ClosableQueue()
+# upload_queue = ClosableQueue()
+# done_queue = ClosableQueue()
 
-download_threads = start_thread(3, download, download_queue, resize_queue)
-resize_threads = start_thread(4, resize, resize_queue, upload_queue)
-upload_threads = start_thread(5, upload, upload_queue, done_queue)
+# download_threads = start_thread(3, download, download_queue, resize_queue)
+# resize_threads = start_thread(4, resize, resize_queue, upload_queue)
+# upload_threads = start_thread(5, upload, upload_queue, done_queue)
 
-for _ in range(1000):
-    download_queue.put(object())
+# for _ in range(1000):
+#     download_queue.put(object())
 
 
-stop_thread(download_queue, download_threads)
-stop_thread(resize_queue, resize_threads)
-stop_thread(upload_queue, upload_threads)
+# stop_thread(download_queue, download_threads)
+# stop_thread(resize_queue, resize_threads)
+# stop_thread(upload_queue, upload_threads)
 
-print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
+# print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 처리됨
 
+
+## 57
+
+
+EMPTY = '-'
+ALIVE = '*'
+
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+
+## 어떤 셀의 주변 셀 상태를 얻는 함수
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+## 게임 로직 구현
+def game_logic(state, neighbors):
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+
+## 그리드 인스턴스를 넘기는 대신 그리드를 설정하는 함수를 set파라미터로 받는 함수 인터페이스를 사용
+## >> 코드 결합도를 낮춤
+def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = game_logic(state, neighbors)
+    set(y, x, next_stage)
+    
+
+## 다음 tick(세대)로 진행하는 함수
+def simulate(grid):
+    next_grid = Grid(grid.height, grid.width)
+    for y in range(grid.height):
+        for x in range(grid.width):
+            step_cell(y, x, grid.get, next_grid.set)
+    return next_grid
+
+    
+grid = Grid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+
+for i in range(5):
+    grid = simulate(grid)
+    print(grid)
+    print('=============')

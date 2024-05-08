@@ -782,10 +782,126 @@ print(done_queue.qsize(), '개의 원소가 처리됨') # 1000 개의 원소가 
 <br>
 
 ## BetterWay56. 언제 동시성이 필요한지 인식하는 방법을 알아두라
+
+
+- 생명게임 예시
+- 생명게임 규칙
+    1. 이웃한 셀 중 두 개 이하가 살아있으면 가운데 셀이 죽는다. 
+    2. 네 개 이상 살아있으면 가운데 셀이 죽는다.
+    3. 세 개가 살아있을 때 가운데 셀이 살아있으면 계속 살아있고, 빈 셀이면 살아있는 상태로 바뀐다.
+
+```python
+EMPTY = '-'
+ALIVE = '*'
+
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+
+## 어떤 셀의 주변 셀 상태를 얻는 함수
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+## 게임 로직 구현
+def game_logic(state, neighbors):
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+
+## 그리드 인스턴스를 넘기는 대신 그리드를 설정하는 함수를 set파라미터로 받는 함수 인터페이스를 사용
+## >> 코드 결합도를 낮춤
+def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = game_logic(state, neighbors)
+    set(y, x, next_stage)
+    
+
+## 다음 tick(세대)로 진행하는 함수
+def simulate(grid):
+    next_grid = Grid(grid.height, grid.width)
+    for y in range(grid.height):
+        for x in range(grid.width):
+            step_cell(y, x, grid.get, next_grid.set)
+    return next_grid
+
+    
+grid = Grid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+
+for i in range(5):
+    grid = simulate(grid)
+    print(grid)
+    print('=============')
+```
+
+- 위 코드는 단일 스레드에서 잘 동작한다.
+- 조건이 바뀌어서 이제 `game_logic`함수에 약간의 IO(소켓통신 등)이 필요하다고 가정하자
+- 가장 단순한 방법은 블로킹 IO를 game_logic함수 안에 직접 추가하는 것이다.
+    - 하지만 이 방법은 셀 계수가 늘어남에 통신 횟수가 직렬적으로 쌓이기 때문에 시간이 엄청나게 오래 걸리게 된다.
+```python
+def game_logic(state, neighbors):
+    ...
+    data = my_socket.recv(100)
+    ...
+```
+
+- 해결책은 I/O를 병렬로 수행하서 그래드 크기와 관계없이 각 세대를 계산할 수 있게 만드는 것
+    - 동시에 실행되는 여러 실행 흐름을 만들어내는 과정을 `팬아웃(fan-out)`이라고 함
+    - 다음단계로 진행하기 전 동시 작업이 모두 끝날 때까지 기다리는 것을 `팬인(fan-in)`이라고 함
+- 파이썬은 팬인과 팬아웃을 지원하는 도구를 제공
+    - Queue, ThreadpoolExcutor, coroutine 등
+
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 프로그램이 커지면서 동시에 실행되는 여러 실행 흐름이 필요해짐</br>
+> - 동시성을 조율하는 일방적인 방법으로는 팬아웃과 팬인이 있다.</br>
+> - 파이썬의 팬아웃, 팬인을 구현하는 방법은 여러가지가 있다.</br>
 
 <br>
 
