@@ -1509,10 +1509,151 @@ for t in threads:
 <br>
 
 ## BetterWay59. 동시성을 위해 스레드가 필요한 경우에는 ThreadpoolExecutor를 사용해라
+
+
+- `concurrent.futures` 라는 내장모듈의 `ThreadPoolExecutor`클래스
+    - `Thread`와 `Queue`를 사용한 접근 방법들의 장점을 조합해 병렬 IO문제를 해결합니다.
+
+- 생명게임 예제에 ThreadPoolExecutor 클래스 적용
+    - 사용할 스레드를 미리 생성해서 사용함. `ThreadPoolExecuter` 생성시 max_workers 로 지정
+        - 스레드를 계속 생성해서 메모리를 과도하게 사용하는 문제 해결
+    - `submit`메서드가 반환하는 `Future`인스턴스에 대해 `result()`메서드를 호출하면 스레드 실행 중 발생한 예외를 전파시켜줌
+        - 스레드에서 발생한 예외를 감지할 수 있으므로 종료 시점을 정할 수 있다.
+    - 만일 다른함수(`count_neighbors()`함수)에도 I/O 병렬성을 제공해야 해도 코드를 변경하지 않아도 됨
+        - 이미 각 스레드에서 따로 `step_cell`을 실행하고, 포함되어 있기 때문
+```python
+import time
+from threading import Thread, Lock
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+EMPTY = '-'
+ALIVE = '*'
+
+## (그대로)
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+
+## Thread safe 하도록 Lock 적용한 클래스
+class LockingGrid(Grid):
+    def __init__(self, height, width):
+        super().__init__(height, width)
+        self.lock = Lock()
+
+    def get(self, y, x):
+        with self.lock:
+            return super().get(y, x)
+    
+    def set(self, y, x, state):
+        with self.lock:
+            super().set(y, x, state)
+            
+    def __str__(self):
+        with self.lock:
+            return super().__str__()
+
+
+## 어떤 셀의 주변 셀 상태를 얻는 함수 (그대로)
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+def game_logic(state, neighbors):
+    # raise OSError('OSError 발생') # OSError: OSError 발생
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = game_logic(state, neighbors)
+    set(y, x, next_stage)
+    
+
+## ThreadPoolExecutor 적용!
+def simulate_pool(pool, grid):
+    next_grid = LockingGrid(grid.height, grid.width)
+    
+    futures = []
+    for y in range(grid.height):
+        for x in range(grid.width):
+            args = (y, x, grid.get, next_grid.set)
+            future = pool.submit(step_cell, *args) # 팬아웃
+            futures.append(future)
+    
+    for f in futures:
+        f.result()  # 팬인
+        
+    return next_grid
+
+grid = LockingGrid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+print('=============')
+
+## 사용할 스레드를 10개 미리 생성함
+with ThreadPoolExecutor(max_workers=10) as pool:
+    for i in range(5):
+        grid = simulate_pool(pool=pool, grid=grid)
+        print(grid)
+        print('=============')
+```
+
+- `ThreadPoolExecutor`의 단점은 제한된 수의 I/O 병렬성만 제공한다는 것
+- 비동기적인 해법이 존재하지 않는 상황(파일 I/O)을 처리할 때는 좋은 방법이지만..
+    - 그 외 많은 경우에는 I/O 병렬성을 최대화 할 수 있는 더 나은 방법이 있음(ex 코루틴)
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `ThreadPoolExecutor`를 사용하면 한정도니 리팩터링만으로 간단한 I/O 병렬성을 활성화 할수 있고, 동시성을 팬아웃 하는 경우에 발생하는 스레드 시작 비용을 쉽게 줄일 수 있다.</br>
+> - `ThreadPoolExecutor`를 사용하면, 스레드를 직접 사용할 때 발생하는 잠재적인 메모리 낭비 문제를 없애주지만, 스레드 개수를 한정해두고 써야 하므로 I/O 확장성을 제한함</br>
+
 
 <br>
 

@@ -855,47 +855,246 @@ print(result.stdout)
 
 # 58
 
+# import time
+# from queue import Queue
+# from threading import Thread, Lock
+
+# EMPTY = '-'
+# ALIVE = '*'
+
+# class ClosableQueue(Queue):
+#     SENTINEL = object()
+    
+#     def close(self):
+#         self.put(self.SENTINEL)
+    
+#     def __iter__(self):
+#         while True:
+#             item = self.get()
+#             try:
+#                 if item is self.SENTINEL:
+#                     return # 스레드 종료 할수 있도록..
+#                 yield item
+#             finally:
+#                 self.task_done() # 
+
+
+# class StoppableWorker(Thread):
+#     def __init__(self, func, in_queue, out_queue):
+#         super().__init__()
+#         self.func = func
+#         self.in_queue = in_queue
+#         self.out_queue = out_queue
+    
+#     def run(self):
+#         for item in self.in_queue:
+#             result = self.func(item)
+#             self.out_queue.put(result)
+
+
+# class SimulationError(Exception):
+#     pass
+
+
+# class Grid:
+#     def __init__(self, height, width):
+#         self.height = height
+#         self.width = width
+#         self.rows = []
+#         for _ in range(self.height):
+#             self.rows.append([EMPTY] * self.width)
+    
+#     def get(self, y, x):
+#         return self.rows[y % self.height][x % self.width]
+
+#     def set(self, y, x, state):
+#         self.rows[y % self.height][x % self.width] = state
+    
+#     def __str__(self):
+#         result = ""
+#         for r in self.rows:
+#             for cell in r:
+#                 result += cell
+#             result += '\n'
+#         return result
+
+# class LockingGrid(Grid):
+#     def __init__(self, height, width):
+#         super().__init__(height, width)
+#         self.lock = Lock()
+
+#     def get(self, y, x):
+#         with self.lock:
+#             return super().get(y, x)
+    
+#     def set(self, y, x, state):
+#         with self.lock:
+#             super().set(y, x, state)
+            
+#     def __str__(self):
+#         with self.lock:
+#             return super().__str__()
+
+
+# ## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+# def game_logic(state, neighbors):
+#     # raise OSError('OSError 발생') # OSError: OSError 발생
+#     time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+#     if state == ALIVE:
+#         if neighbors < 2:
+#             return EMPTY
+#         elif neighbors >3:
+#             return EMPTY
+#     else:
+#         if neighbors == 3:
+#             return ALIVE
+#     return state
+
+# def game_logic_thread(item):
+#     y, x, state, neighbors = item
+#     try:
+#         next_state = game_logic(state, neighbors)
+#     except Exception as e:
+#         next_state = e
+#     return (y, x, next_state)
+
+# def count_neighbors(y, x, get):
+#     n_ = get(y-1, x+0)
+#     ne = get(y-1, x+1)
+#     e_ = get(y-0, x+1)
+#     se = get(y+1, x+1)
+#     s_ = get(y+1, x+0)
+#     sw = get(y+1, x-1)
+#     w_ = get(y-0, x-1)
+#     nw = get(y-1, x-1)
+#     neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+#     count = 0
+    
+#     for state in neibor_states:
+#         if state == ALIVE:
+#             count += 1
+#     return count
+
+# def simulate_pipeline(grid, in_queue, out_queue):
+#     for y in range(grid.height):
+#         for x in range(grid.width):
+#             state = grid.get(y, x)
+#             neighbors = count_neighbors(y, x, grid.get)
+#             in_queue.put((y, x, state, neighbors))
+    
+#     in_queue.join()
+#     out_queue.close()
+#     next_grid = Grid(grid.height, grid.width)
+#     for item in out_queue:
+#         y, x, next_state = item
+#         if isinstance(next_state, Exception):
+#             raise SimulationError(y, x) from next_state
+#         next_grid.set(y, x, next_state)
+    
+#     return next_grid
+
+# ### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+# def simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue):
+#     for y in range(grid.height):
+#         for x in range(grid.width):
+#             state = grid.get(y, x)
+#             item = (y, x, state, grid.get)
+#             in_queue.put(item) ## 팬아웃
+    
+#     in_queue.join()
+#     logic_queue.join()
+#     out_queue.close()
+    
+#     next_grid = LockingGrid(grid.height, grid.width)
+#     for item in out_queue:
+#         y, x, next_state = item
+#         if isinstance(next_state, Exception):
+#             raise SimulationError(y, x) from next_state
+#         next_grid.set(y, x, next_state)
+    
+#     return next_grid
+
+# ### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+# def count_neighbors_thread(item):
+#     y, x, state, get = item
+#     try:
+#         neighbors = count_neighbors(y, x, get)
+#     except Exception as e:
+#         neighbors = e
+#     return (y, x, state, neighbors)
+
+# ### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+# def game_logic_thread(item):
+#     y, x, state, neighbors = item
+#     if isinstance(neighbors, Exception):
+#         next_stage = neighbors
+#     else:
+#         try:
+#             next_stage = game_logic(state, neighbors)
+#         except Exception as e:
+#             next_stage = e
+#     return (y, x, next_stage)
+
+
+# in_queue = ClosableQueue()
+# logic_queue = ClosableQueue()
+# out_queue = ClosableQueue()
+
+# threads = []
+# for _ in range(5):
+#     thread = StoppableWorker(
+#         count_neighbors_thread,
+#         in_queue,
+#         logic_queue
+#     )
+#     thread.start()
+#     threads.append(thread)  
+
+# for _ in range(5):
+#     thread = StoppableWorker(
+#         game_logic_thread,
+#         logic_queue,
+#         out_queue
+#     )
+#     thread.start()
+#     threads.append(thread)
+    
+    
+# grid = LockingGrid(5, 9)
+# grid.set(0, 3, ALIVE)
+# grid.set(1, 4, ALIVE)
+# grid.set(2, 2, ALIVE)
+# grid.set(2, 3, ALIVE)
+# grid.set(2, 4, ALIVE)
+# print(grid)
+# print('=============')
+
+# for i in range(5):
+#     grid = simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue)
+#     print(grid)
+#     print('=============')
+
+# for t in threads:
+#     in_queue.close()
+    
+# for t in threads:
+#     logic_queue.close()
+    
+# for t in threads:
+#     t.join()
+
+
+# 59
+
 import time
-from queue import Queue
 from threading import Thread, Lock
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 EMPTY = '-'
 ALIVE = '*'
 
-class ClosableQueue(Queue):
-    SENTINEL = object()
-    
-    def close(self):
-        self.put(self.SENTINEL)
-    
-    def __iter__(self):
-        while True:
-            item = self.get()
-            try:
-                if item is self.SENTINEL:
-                    return # 스레드 종료 할수 있도록..
-                yield item
-            finally:
-                self.task_done() # 
-
-
-class StoppableWorker(Thread):
-    def __init__(self, func, in_queue, out_queue):
-        super().__init__()
-        self.func = func
-        self.in_queue = in_queue
-        self.out_queue = out_queue
-    
-    def run(self):
-        for item in self.in_queue:
-            result = self.func(item)
-            self.out_queue.put(result)
-
-
-class SimulationError(Exception):
-    pass
-
-
+## (그대로)
 class Grid:
     def __init__(self, height, width):
         self.height = height
@@ -918,6 +1117,8 @@ class Grid:
             result += '\n'
         return result
 
+
+## Thread safe 하도록 Lock 적용한 클래스
 class LockingGrid(Grid):
     def __init__(self, height, width):
         super().__init__(height, width)
@@ -936,28 +1137,7 @@ class LockingGrid(Grid):
             return super().__str__()
 
 
-## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
-def game_logic(state, neighbors):
-    # raise OSError('OSError 발생') # OSError: OSError 발생
-    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
-    if state == ALIVE:
-        if neighbors < 2:
-            return EMPTY
-        elif neighbors >3:
-            return EMPTY
-    else:
-        if neighbors == 3:
-            return ALIVE
-    return state
-
-def game_logic_thread(item):
-    y, x, state, neighbors = item
-    try:
-        next_state = game_logic(state, neighbors)
-    except Exception as e:
-        next_state = e
-    return (y, x, next_state)
-
+## 어떤 셀의 주변 셀 상태를 얻는 함수 (그대로)
 def count_neighbors(y, x, get):
     n_ = get(y-1, x+0)
     ne = get(y-1, x+1)
@@ -975,90 +1155,45 @@ def count_neighbors(y, x, get):
             count += 1
     return count
 
-def simulate_pipeline(grid, in_queue, out_queue):
-    for y in range(grid.height):
-        for x in range(grid.width):
-            state = grid.get(y, x)
-            neighbors = count_neighbors(y, x, grid.get)
-            in_queue.put((y, x, state, neighbors))
-    
-    in_queue.join()
-    out_queue.close()
-    next_grid = Grid(grid.height, grid.width)
-    for item in out_queue:
-        y, x, next_state = item
-        if isinstance(next_state, Exception):
-            raise SimulationError(y, x) from next_state
-        next_grid.set(y, x, next_state)
-    
-    return next_grid
 
-### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
-def simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue):
-    for y in range(grid.height):
-        for x in range(grid.width):
-            state = grid.get(y, x)
-            item = (y, x, state, grid.get)
-            in_queue.put(item) ## 팬아웃
-    
-    in_queue.join()
-    logic_queue.join()
-    out_queue.close()
-    
-    next_grid = LockingGrid(grid.height, grid.width)
-    for item in out_queue:
-        y, x, next_state = item
-        if isinstance(next_state, Exception):
-            raise SimulationError(y, x) from next_state
-        next_grid.set(y, x, next_state)
-    
-    return next_grid
-
-### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
-def count_neighbors_thread(item):
-    y, x, state, get = item
-    try:
-        neighbors = count_neighbors(y, x, get)
-    except Exception as e:
-        neighbors = e
-    return (y, x, state, neighbors)
-
-### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
-def game_logic_thread(item):
-    y, x, state, neighbors = item
-    if isinstance(neighbors, Exception):
-        next_stage = neighbors
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+def game_logic(state, neighbors):
+    # raise OSError('OSError 발생') # OSError: OSError 발생
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
     else:
-        try:
-            next_stage = game_logic(state, neighbors)
-        except Exception as e:
-            next_stage = e
-    return (y, x, next_stage)
+        if neighbors == 3:
+            return ALIVE
+    return state
 
-
-in_queue = ClosableQueue()
-logic_queue = ClosableQueue()
-out_queue = ClosableQueue()
-
-threads = []
-for _ in range(5):
-    thread = StoppableWorker(
-        count_neighbors_thread,
-        in_queue,
-        logic_queue
-    )
-    thread.start()
-    threads.append(thread)  
-
-for _ in range(5):
-    thread = StoppableWorker(
-        game_logic_thread,
-        logic_queue,
-        out_queue
-    )
-    thread.start()
-    threads.append(thread)
+def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = game_logic(state, neighbors)
+    set(y, x, next_stage)
     
+
+## ThreadPoolExecutor 적용!
+def simulate_pool(pool, grid):
+    next_grid = LockingGrid(grid.height, grid.width)
+    
+    futures = []
+    for y in range(grid.height):
+        for x in range(grid.width):
+            args = (y, x, grid.get, next_grid.set)
+            future = pool.submit(step_cell, *args) # 팬아웃
+            futures.append(future)
+    
+    for f in futures:
+        f.result()  # 팬인
+        
+    return next_grid
+
+
     
 grid = LockingGrid(5, 9)
 grid.set(0, 3, ALIVE)
@@ -1069,17 +1204,9 @@ grid.set(2, 4, ALIVE)
 print(grid)
 print('=============')
 
-for i in range(5):
-    grid = simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue)
-    print(grid)
-    print('=============')
-
-for t in threads:
-    in_queue.close()
-    
-for t in threads:
-    logic_queue.close()
-    
-for t in threads:
-    t.join()
-
+## 사용할 스레드를 10개 미리 생성함
+with ThreadPoolExecutor(max_workers=10) as pool:
+    for i in range(5):
+        grid = simulate_pool(pool=pool, grid=grid)
+        print(grid)
+        print('=============')
