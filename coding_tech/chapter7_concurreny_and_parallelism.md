@@ -906,18 +906,605 @@ def game_logic(state, neighbors):
 <br>
 
 ## BetterWay57. 요구에 따라 팬아웃을 진행하려면 새로운 스레드를 생성하지 말라
+
+
+- python 에서 병렬 I/O 실행에 스레드를 가장 먼저 생각한다.
+- 하지만 여러 흐름을 만ㄷ르어내는 팬아웃을 수행할 때 스레드를 사용할 경우 단점이 있음
+    - Thread 인스턴스를 서로 안정하게 조율하려면 특별한 도구가 필요함(Lock 같은것)
+        - 코드가 복잡해짐, 디버깅이 어려움, 개발 확장이 어려움
+    - 스레드는 메모리를 많이 잡아먹음 (개당 8MB정도)
+        - 코드 크기가 늘어갈수록 컴퓨터가 감당하지 못할 용량이 됨 (scalable하지 않음)
+    - 스레드는 시작한느 비용이 비싸고, 컨텍스트 전환에 비용이 소모됨
+        - 결과적으로 I/O 블록 보다 더 큰 시간을 기다리게 될 수도 있음.
+
+- 생명게임 스레드 여러개 생성한 것으로 재구성
+    - 셀 한개 마다 Thread 생성해서 처리. (총 45개)
+        - 이런식으로 하면 게임 크기가 커지면 감당 못함.
+    - 디버깅이 어렵다.
+        - 블로킹 I/O 과정을 신뢰할 수 없기 때무에 예외가 발생할 가능성이 매우 높다.
+
+```python
+import time
+from threading import Thread, Lock
+
+EMPTY = '-'
+ALIVE = '*'
+
+## (그대로)
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+
+## Thread safe 하도록 Lock 적용한 클래스
+class LockingGrid(Grid):
+    def __init__(self, height, width):
+        super().__init__(height, width)
+        self.lock = Lock()
+
+    def get(self, y, x):
+        with self.lock:
+            return super().get(y, x)
+    
+    def set(self, y, x, state):
+        with self.lock:
+            super().set(y, x, state)
+            
+    def __str__(self):
+        with self.lock:
+            return super().__str__()
+        
+        
+
+## 어떤 셀의 주변 셀 상태를 얻는 함수 (그대로)
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+def game_logic(state, neighbors):
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+
+## 그리드 인스턴스를 넘기는 대신 그리드를 설정하는 함수를 set파라미터로 받는 함수 인터페이스를 사용
+## >> 코드 결합도를 낮춤
+def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = game_logic(state, neighbors)
+    set(y, x, next_stage)
+    
+## 다음 tick(세대)로 진행하는 함수
+# def simulate(grid):
+#     next_grid = Grid(grid.height, grid.width)
+#     for y in range(grid.height):
+#         for x in range(grid.width):
+#             step_cell(y, x, grid.get, next_grid.set)
+#     return next_grid
+
+## 다음 세대로 진행하는 스레드 그리드 함수
+def simulate_threaded(grid):
+    next_grid = LockingGrid(grid.height, grid.width)
+    
+    thread_list = []
+    for y in range(grid.height):
+        for x in range(grid.width):
+            args = (y, x, grid.get, next_grid.set)
+            thread = Thread(target=step_cell, args=args)
+            thread.start() ## 팬아웃
+            thread_list.append(thread)
+    
+    for thread in thread_list:
+        thread.join()
+        
+    return next_grid
+    
+
+    
+grid = LockingGrid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+print('=============')
+
+for i in range(5):
+    grid = simulate_threaded(grid)
+    print(grid)
+    print('=============')
+```
+
+- 만일 io 과정에서 문제가 생긴다면
+    - `OSError`가 발생하지만 Thread를 만들고 join을 호출하는 코드는 영향을 받지 않는다.
+        - `Thread`클래스가 target함수에서 발생하는 예외를 독립적으로 잡아내서 sys.stderr로 예외의 트레이스를 출력하기 때문
+        - 최초에 스레드를 시작한 곳으로 예외가 던져지지 않음.
+    - 그래서 동시성 함수를 시작하고 끝내야 하는 경우 스레드는 적절한 방법이 아님
+        - 예외가 던져지지 않으니 언제 끝낼 지 알 수가 없음
+
+```python
+import contextlib
+import io
+
+fake_stderr = io.StringIO()
+
+def game_logic_error(state, neighbors):
+    ...
+    raise OSError('I/O 문제 발생')
+
+with contextlib.redirect_stderr(fake_stderr):
+    thread = Thread(target=game_logic_error, args=(ALIVE, 3))
+    thread.start()
+    thread.join()
+
+print(fake_stderr.getvalue())
+# raise OSError('I/O 문제 발생')
+# OSError: I/O 문제 발생
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 스레드에는 시작 및 실행 비용, 메모리 소모, 코드 복잡성과 같은 단점들이 있다.</br>
+> - 스레드를 시작하거나 종료하기를 기다리는 코드에서 스레드 실행 중 발생한 예외를 돌려주는 파이썬 내장 기능이 없다.</br>
 
 <br>
 
 ## BetterWay58. 동시성과 Queue를 사용하기 위해 코드를 어떻게 리팩터링해야 하는지 이해하라
+
+
+- Queue를 사용 파이프라인을 스레드로 실행하게 구현
+    - 셀마다 Thread를 직접 구현하는 것 대신 미리 정해진 작업자 스레드를 생성
+    - 미리 생성한 작업자 스레드를 Queue로 태스크를 전달해 처리
+    - 새로운 스레드를 계속 만드는 부가 비용을 줄일 수 있음
+
+- 생명게임 예제에 작성해보자.
+    - 결과는 이전과 같음
+    - 메모리를 폭발적으로 사용하는 문제와 에러 처리 문제는 해결. 아직 문제가 남아있음
+        - 새로 구현한 `simulate_pipeline` 구현을 따라가기 어렵다.
+        - 코드 가독성을 올리려면 `ClosableQueue`, `StoppableWorker`라는 추가 클래스가 필요함
+        - 병렬성을 활용해 자동으로 시스템 규모가 확장되지 않음
+        - 디버깅을 활성화 하려면 발생한 예외를 직접 스레드에서 수동으로 잡아 `Queue`로 전달해주고 다시 발생시켜야 함.
+```python
+import time
+from queue import Queue
+from threading import Thread
+
+EMPTY = '-'
+ALIVE = '*'
+
+class ClosableQueue(Queue):
+    SENTINEL = object()
+    
+    def close(self):
+        self.put(self.SENTINEL)
+    
+    def __iter__(self):
+        while True:
+            item = self.get()
+            try:
+                if item is self.SENTINEL:
+                    return # 스레드 종료
+                yield item
+            finally:
+                self.task_done()
+
+
+class StoppableWorker(Thread):
+    def __init__(self, func, in_queue, out_queue):
+        super().__init__()
+        self.func = func
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+    
+    def run(self):
+        for item in self.in_queue:
+            result = self.func(item)
+            self.out_queue.put(result)
+
+
+class SimulationError(Exception):
+    pass
+
+
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+    
+
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+def game_logic(state, neighbors):
+    # raise OSError('OSError 발생') # OSError: OSError 발생
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+def game_logic_thread(item):
+    y, x, state, neighbors = item
+    try:
+        next_state = game_logic(state, neighbors)
+    except Exception as e:
+        next_state = e
+    return (y, x, next_state)
+
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+def simulate_pipeline(grid, in_queue, out_queue):
+    for y in range(grid.height):
+        for x in range(grid.width):
+            state = grid.get(y, x)
+            neighbors = count_neighbors(y, x, grid.get)
+            in_queue.put((y, x, state, neighbors))
+    
+    in_queue.join()
+    out_queue.close()
+    next_grid = Grid(grid.height, grid.width)
+    for item in out_queue:
+        y, x, next_state = item
+        if isinstance(next_state, Exception):
+            raise SimulationError(y, x) from next_state
+        next_grid.set(y, x, next_state)
+    
+    return next_grid
+            
+          
+in_queue = ClosableQueue()
+out_queue = ClosableQueue()
+
+threads = []
+for _ in range(5):
+    thread = StoppableWorker(
+        game_logic_thread,
+        in_queue,
+        out_queue
+    )
+    thread.start()
+    threads.append(thread)  
+    
+grid = Grid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+print('=============')
+
+for i in range(5):
+    grid = simulate_pipeline(grid, in_queue, out_queue)
+    print(grid)
+    print('=============')
+
+for t in threads:
+    in_queue.close()
+
+for t in threads:
+    t.join()
+
+```
+
+- 가장 큰 문제는 요구사항이 변경될 떄 드러남
+    - `game_logic` 뿐 아니라 다른 함수`count_neighbors`에도 I/O를 수행해야 할 경우
+        - 별도의 스레드에서 실행하는 단계를 파이프라인에 추가해야 함.
+        - 예외가 제대로 주 스레드까지 전달되는지 확인해야 함.
+        - 작업자 쓰레드 간의 동기화를 위해 Grid 클래스에 Lock을 적용해야 함.
+- `count_neighbors()`함수에 I/O 적용할 예제..
+    - 문제
+        - 코드가 너무 길어짐
+        - Thread보다 Queue방식이 낫지만, 다른 도구가 더 나음..(ThreadPoolExcutor)
+```python
+import time
+from queue import Queue
+from threading import Thread, Lock
+
+EMPTY = '-'
+ALIVE = '*'
+
+class ClosableQueue(Queue):
+    SENTINEL = object()
+    
+    def close(self):
+        self.put(self.SENTINEL)
+    
+    def __iter__(self):
+        while True:
+            item = self.get()
+            try:
+                if item is self.SENTINEL:
+                    return # 스레드 종료
+                yield item
+            finally:
+                self.task_done()
+
+
+class StoppableWorker(Thread):
+    def __init__(self, func, in_queue, out_queue):
+        super().__init__()
+        self.func = func
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+    
+    def run(self):
+        for item in self.in_queue:
+            result = self.func(item)
+            self.out_queue.put(result)
+
+
+class SimulationError(Exception):
+    pass
+
+
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+class LockingGrid(Grid):
+    def __init__(self, height, width):
+        super().__init__(height, width)
+        self.lock = Lock()
+
+    def get(self, y, x):
+        with self.lock:
+            return super().get(y, x)
+    
+    def set(self, y, x, state):
+        with self.lock:
+            super().set(y, x, state)
+            
+    def __str__(self):
+        with self.lock:
+            return super().__str__()
+
+
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+def game_logic(state, neighbors):
+    # raise OSError('OSError 발생') # OSError: OSError 발생
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+def game_logic_thread(item):
+    y, x, state, neighbors = item
+    try:
+        next_state = game_logic(state, neighbors)
+    except Exception as e:
+        next_state = e
+    return (y, x, next_state)
+
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+def simulate_pipeline(grid, in_queue, out_queue):
+    for y in range(grid.height):
+        for x in range(grid.width):
+            state = grid.get(y, x)
+            neighbors = count_neighbors(y, x, grid.get)
+            in_queue.put((y, x, state, neighbors))
+    
+    in_queue.join()
+    out_queue.close()
+    next_grid = Grid(grid.height, grid.width)
+    for item in out_queue:
+        y, x, next_state = item
+        if isinstance(next_state, Exception):
+            raise SimulationError(y, x) from next_state
+        next_grid.set(y, x, next_state)
+    
+    return next_grid
+
+### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+def simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue):
+    for y in range(grid.height):
+        for x in range(grid.width):
+            state = grid.get(y, x)
+            item = (y, x, state, grid.get)
+            in_queue.put(item) ## 팬아웃
+    
+    in_queue.join()
+    logic_queue.join()
+    out_queue.close()
+    
+    next_grid = LockingGrid(grid.height, grid.width)
+    for item in out_queue:
+        y, x, next_state = item
+        if isinstance(next_state, Exception):
+            raise SimulationError(y, x) from next_state
+        next_grid.set(y, x, next_state)
+    
+    return next_grid
+
+### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+def count_neighbors_thread(item):
+    y, x, state, get = item
+    try:
+        neighbors = count_neighbors(y, x, get)
+    except Exception as e:
+        neighbors = e
+    return (y, x, state, neighbors)
+
+### count_neighbors에 IO 적용 하기 위해 스레드 함수 추가개발
+def game_logic_thread(item):
+    y, x, state, neighbors = item
+    if isinstance(neighbors, Exception):
+        next_stage = neighbors
+    else:
+        try:
+            next_stage = game_logic(state, neighbors)
+        except Exception as e:
+            next_stage = e
+    return (y, x, next_stage)
+
+
+in_queue = ClosableQueue()
+logic_queue = ClosableQueue()
+out_queue = ClosableQueue()
+
+threads = []
+for _ in range(5):
+    thread = StoppableWorker(
+        count_neighbors_thread,
+        in_queue,
+        logic_queue
+    )
+    thread.start()
+    threads.append(thread)  
+
+for _ in range(5):
+    thread = StoppableWorker(
+        game_logic_thread,
+        logic_queue,
+        out_queue
+    )
+    thread.start()
+    threads.append(thread)
+    
+    
+grid = LockingGrid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+print('=============')
+
+for i in range(5):
+    grid = simulate_phased_pipeline(grid, in_queue, logic_queue, out_queue)
+    print(grid)
+    print('=============')
+
+for t in threads:
+    in_queue.close()
+    
+for t in threads:
+    logic_queue.close()
+    
+for t in threads:
+    t.join()
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 작업자 스레드 수를 고정하고 `Queue`와 함께 사용하면 스레드를 사용할 때 팬인과 팬아웃 규모 확장성을 개선할 수 있다.</br>
+> - `Queue`를 사용하도록 기존 코드를 리팩터링하려면 상당히 많은 작업이 필요하다. 특히 다단계로 이뤄진 파이프라인이 필요하면 작업량이 더 많아진다.</br>
+> - 다른 파이썬 내장 기능이나 모듈이 제공하는 병렬 I/O 를 가능하게 해주는 다른 기능과 비교하면 `Queue`는 프로그램이 활용할 수 있는 전체 I/O 병렬성의 정도를 제한한다는 단점이 있다.</br>
 
 <br>
 
