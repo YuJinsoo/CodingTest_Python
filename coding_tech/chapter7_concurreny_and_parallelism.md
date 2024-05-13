@@ -1658,10 +1658,145 @@ with ThreadPoolExecutor(max_workers=10) as pool:
 <br>
 
 ## BetterWay60. I/O를 할 때는 코루틴을 사용해 동시성을 높여라
+
+
+- 병렬 I/O 문제를 해결하는 다양한 방법을 학습했다.
+    - threading의 Thread, Lock
+    - Queue
+    - concurrent.future의 ThreadPoolExecutor
+
+- Python은 높은 동시성을 처리학 위해 `코루틴(coroutine)`을 지원
+- 코루틴은
+    - 동시에 실행되는 것처럼 보이는 함수를 아주 많이 쓸 수 있음
+    - `async`와 `await`키워드를 사용해 구현함
+    - 제너레이터를 실행하기 위한 인프라를 사용
+    - **동시성 프로그래밍 방식으로 병렬 프로그래밍은 아님!**
+
+- 코루틴의 소모 비용
+    - 함수 호출 뿐...
+    - 활성화된 코루틴은 종료될 때까지 1KB 미만의 메모리 사용
+
+- 코루틴 동작
+    - 환경으로부터 입력을 소비하고 결과를 출력할 수 있는 독립적인 함수
+    - 매 `await` 식에서 일시 중단되고, 대기 가능성이 해결된 다음 `async` 함수로부터 실행을 재개함
+        (제너레이터의 `yield`와 비슷함)
+    - 여러 `async` 함수가 적절히 실행되면 동시에 실행되는 것처럼 보임
+    - 스레드처럼 컨텍스트 비용, 메모리 부가 비용, 시작비용 등이 들지 않음
+    - `이벤트 루프` 메커니즘으로 다수의 I/O를 효과적으로 빠르게 전환하면서 실행할수있음
+
+
+- 코루틴을 활용하여 생명게임을 구현
+    - `async`함수는 `coroutine`인스턴스를 반환하고, 나중에 `await`를 사용해서 결과를 꺼낼 수 있음.
+        - 이러한 메커니즘을 사용해서 많은 코루틴 인스턴스를 만드는 것으로 팬아웃을 함
+    - `asyncio`내장 라이브러리가 제공하는 `gather()`는 팬인을 수행함.
+    - 모든 실행이 단일 스레드에서 이뤄지므로 Grid에 Lock을 사용할 필요가 ㅇ벗음
+    - 코루틴 안에서 에러를 발생시켜도 메인 스레트에서 감지할 수 있음
+```python
+# 60
+
+import time
+from threading import Thread, Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
+
+EMPTY = '-'
+ALIVE = '*'
+
+class Grid:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.rows = []
+        for _ in range(self.height):
+            self.rows.append([EMPTY] * self.width)
+    
+    def get(self, y, x):
+        return self.rows[y % self.height][x % self.width]
+
+    def set(self, y, x, state):
+        self.rows[y % self.height][x % self.width] = state
+    
+    def __str__(self):
+        result = ""
+        for r in self.rows:
+            for cell in r:
+                result += cell
+            result += '\n'
+        return result
+
+
+def count_neighbors(y, x, get):
+    n_ = get(y-1, x+0)
+    ne = get(y-1, x+1)
+    e_ = get(y-0, x+1)
+    se = get(y+1, x+1)
+    s_ = get(y+1, x+0)
+    sw = get(y+1, x-1)
+    w_ = get(y-0, x-1)
+    nw = get(y-1, x-1)
+    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+    count = 0
+    
+    for state in neibor_states:
+        if state == ALIVE:
+            count += 1
+    return count
+
+## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+async def game_logic(state, neighbors):
+    # raise OSError('OSError 발생') # OSError: OSError 발생
+    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+    if state == ALIVE:
+        if neighbors < 2:
+            return EMPTY
+        elif neighbors >3:
+            return EMPTY
+    else:
+        if neighbors == 3:
+            return ALIVE
+    return state
+
+async def step_cell(y, x, get, set):
+    state = get(y, x)
+    neighbors = count_neighbors(y, x, get)
+    next_stage = await game_logic(state, neighbors) ## async 호출시 await
+    set(y, x, next_stage)
+
+async def simulate(grid: Grid):
+    next_grid = Grid(grid.height, grid.width)
+    
+    tasks = []
+    for y in range(grid.height):
+        for x in range(grid.width):
+            task = step_cell(y, x, grid.get, next_grid.set) # 팬아웃
+            tasks.append(task)
+    
+    await asyncio.gather(*tasks) # 팬인
+    
+    return next_grid
+
+
+grid = Grid(5, 9)
+grid.set(0, 3, ALIVE)
+grid.set(1, 4, ALIVE)
+grid.set(2, 2, ALIVE)
+grid.set(2, 3, ALIVE)
+grid.set(2, 4, ALIVE)
+print(grid)
+print('=============')
+
+
+for i in range(5):
+    grid = asyncio.run(simulate(grid))
+    print(grid)
+    print('=============')
+
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `async`키워드로 정의한 함수를 코루틴이라고 함. 코루틴을 호출하는 호출자는 `await` 키워드를 사용해 자신이 의존하는 코루틴의 결과를 받을 수 있음</br>
+> - 코루틴은 수만 개의 함수가 동시에 실행되는 것처럼 보이게 만드는 효과적인 방법</br>
+> - I/O 를 병렬화하면서 스레드로 I/O를 수행할 때 생기는 문제를 극복하기 위해 팬인과 팬아웃에 코루틴을 사용할 수 있음</br>
 
 <br>
 

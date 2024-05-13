@@ -1086,15 +1086,142 @@ print(result.stdout)
 
 # 59
 
+# import time
+# from threading import Thread, Lock
+
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# EMPTY = '-'
+# ALIVE = '*'
+
+# ## (그대로)
+# class Grid:
+#     def __init__(self, height, width):
+#         self.height = height
+#         self.width = width
+#         self.rows = []
+#         for _ in range(self.height):
+#             self.rows.append([EMPTY] * self.width)
+    
+#     def get(self, y, x):
+#         return self.rows[y % self.height][x % self.width]
+
+#     def set(self, y, x, state):
+#         self.rows[y % self.height][x % self.width] = state
+    
+#     def __str__(self):
+#         result = ""
+#         for r in self.rows:
+#             for cell in r:
+#                 result += cell
+#             result += '\n'
+#         return result
+
+
+# ## Thread safe 하도록 Lock 적용한 클래스
+# class LockingGrid(Grid):
+#     def __init__(self, height, width):
+#         super().__init__(height, width)
+#         self.lock = Lock()
+
+#     def get(self, y, x):
+#         with self.lock:
+#             return super().get(y, x)
+    
+#     def set(self, y, x, state):
+#         with self.lock:
+#             super().set(y, x, state)
+            
+#     def __str__(self):
+#         with self.lock:
+#             return super().__str__()
+
+
+# ## 어떤 셀의 주변 셀 상태를 얻는 함수 (그대로)
+# def count_neighbors(y, x, get):
+#     n_ = get(y-1, x+0)
+#     ne = get(y-1, x+1)
+#     e_ = get(y-0, x+1)
+#     se = get(y+1, x+1)
+#     s_ = get(y+1, x+0)
+#     sw = get(y+1, x-1)
+#     w_ = get(y-0, x-1)
+#     nw = get(y-1, x-1)
+#     neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+#     count = 0
+    
+#     for state in neibor_states:
+#         if state == ALIVE:
+#             count += 1
+#     return count
+
+
+# ## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+# def game_logic(state, neighbors):
+#     # raise OSError('OSError 발생') # OSError: OSError 발생
+#     time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+#     if state == ALIVE:
+#         if neighbors < 2:
+#             return EMPTY
+#         elif neighbors >3:
+#             return EMPTY
+#     else:
+#         if neighbors == 3:
+#             return ALIVE
+#     return state
+
+# def step_cell(y, x, get, set):
+#     state = get(y, x)
+#     neighbors = count_neighbors(y, x, get)
+#     next_stage = game_logic(state, neighbors)
+#     set(y, x, next_stage)
+    
+
+# ## ThreadPoolExecutor 적용!
+# def simulate_pool(pool, grid):
+#     next_grid = LockingGrid(grid.height, grid.width)
+    
+#     futures = []
+#     for y in range(grid.height):
+#         for x in range(grid.width):
+#             args = (y, x, grid.get, next_grid.set)
+#             future = pool.submit(step_cell, *args) # 팬아웃
+#             futures.append(future)
+    
+#     for f in futures:
+#         f.result()  # 팬인
+        
+#     return next_grid
+
+
+    
+# grid = LockingGrid(5, 9)
+# grid.set(0, 3, ALIVE)
+# grid.set(1, 4, ALIVE)
+# grid.set(2, 2, ALIVE)
+# grid.set(2, 3, ALIVE)
+# grid.set(2, 4, ALIVE)
+# print(grid)
+# print('=============')
+
+# ## 사용할 스레드를 10개 미리 생성함
+# with ThreadPoolExecutor(max_workers=10) as pool:
+#     for i in range(5):
+#         grid = simulate_pool(pool=pool, grid=grid)
+#         print(grid)
+#         print('=============')
+
+
+# 60
+
 import time
 from threading import Thread, Lock
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 
 EMPTY = '-'
 ALIVE = '*'
 
-## (그대로)
 class Grid:
     def __init__(self, height, width):
         self.height = height
@@ -1118,26 +1245,6 @@ class Grid:
         return result
 
 
-## Thread safe 하도록 Lock 적용한 클래스
-class LockingGrid(Grid):
-    def __init__(self, height, width):
-        super().__init__(height, width)
-        self.lock = Lock()
-
-    def get(self, y, x):
-        with self.lock:
-            return super().get(y, x)
-    
-    def set(self, y, x, state):
-        with self.lock:
-            super().set(y, x, state)
-            
-    def __str__(self):
-        with self.lock:
-            return super().__str__()
-
-
-## 어떤 셀의 주변 셀 상태를 얻는 함수 (그대로)
 def count_neighbors(y, x, get):
     n_ = get(y-1, x+0)
     ne = get(y-1, x+1)
@@ -1156,8 +1263,9 @@ def count_neighbors(y, x, get):
     return count
 
 
+
 ## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
-def game_logic(state, neighbors):
+async def game_logic(state, neighbors):
     # raise OSError('OSError 발생') # OSError: OSError 발생
     time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
     if state == ALIVE:
@@ -1170,32 +1278,27 @@ def game_logic(state, neighbors):
             return ALIVE
     return state
 
-def step_cell(y, x, get, set):
+async def step_cell(y, x, get, set):
     state = get(y, x)
     neighbors = count_neighbors(y, x, get)
-    next_stage = game_logic(state, neighbors)
+    next_stage = await game_logic(state, neighbors) ## async 호출시 await
     set(y, x, next_stage)
-    
 
-## ThreadPoolExecutor 적용!
-def simulate_pool(pool, grid):
-    next_grid = LockingGrid(grid.height, grid.width)
+async def simulate(grid: Grid):
+    next_grid = Grid(grid.height, grid.width)
     
-    futures = []
+    tasks = []
     for y in range(grid.height):
         for x in range(grid.width):
-            args = (y, x, grid.get, next_grid.set)
-            future = pool.submit(step_cell, *args) # 팬아웃
-            futures.append(future)
+            task = step_cell(y, x, grid.get, next_grid.set) # 팬아웃
+            tasks.append(task)
     
-    for f in futures:
-        f.result()  # 팬인
-        
+    await asyncio.gather(*tasks) # 팬인
+    
     return next_grid
 
 
-    
-grid = LockingGrid(5, 9)
+grid = Grid(5, 9)
 grid.set(0, 3, ALIVE)
 grid.set(1, 4, ALIVE)
 grid.set(2, 2, ALIVE)
@@ -1204,9 +1307,9 @@ grid.set(2, 4, ALIVE)
 print(grid)
 print('=============')
 
-## 사용할 스레드를 10개 미리 생성함
-with ThreadPoolExecutor(max_workers=10) as pool:
-    for i in range(5):
-        grid = simulate_pool(pool=pool, grid=grid)
-        print(grid)
-        print('=============')
+
+for i in range(5):
+    grid = asyncio.run(simulate(grid))
+    print(grid)
+    print('=============')
+
