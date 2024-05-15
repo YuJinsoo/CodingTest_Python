@@ -1214,102 +1214,478 @@ print(result.stdout)
 
 # 60
 
-import time
-from threading import Thread, Lock
-from concurrent.futures import ThreadPoolExecutor, as_completed
+# import time
+# from threading import Thread, Lock
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+# import asyncio
+
+# EMPTY = '-'
+# ALIVE = '*'
+
+# class Grid:
+#     def __init__(self, height, width):
+#         self.height = height
+#         self.width = width
+#         self.rows = []
+#         for _ in range(self.height):
+#             self.rows.append([EMPTY] * self.width)
+    
+#     def get(self, y, x):
+#         return self.rows[y % self.height][x % self.width]
+
+#     def set(self, y, x, state):
+#         self.rows[y % self.height][x % self.width] = state
+    
+#     def __str__(self):
+#         result = ""
+#         for r in self.rows:
+#             for cell in r:
+#                 result += cell
+#             result += '\n'
+#         return result
+
+
+# def count_neighbors(y, x, get):
+#     n_ = get(y-1, x+0)
+#     ne = get(y-1, x+1)
+#     e_ = get(y-0, x+1)
+#     se = get(y+1, x+1)
+#     s_ = get(y+1, x+0)
+#     sw = get(y+1, x-1)
+#     w_ = get(y-0, x-1)
+#     nw = get(y-1, x-1)
+#     neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
+#     count = 0
+    
+#     for state in neibor_states:
+#         if state == ALIVE:
+#             count += 1
+#     return count
+
+
+
+# ## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
+# async def game_logic(state, neighbors):
+#     # raise OSError('OSError 발생') # OSError: OSError 발생
+#     time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
+#     if state == ALIVE:
+#         if neighbors < 2:
+#             return EMPTY
+#         elif neighbors >3:
+#             return EMPTY
+#     else:
+#         if neighbors == 3:
+#             return ALIVE
+#     return state
+
+# async def step_cell(y, x, get, set):
+#     state = get(y, x)
+#     neighbors = count_neighbors(y, x, get)
+#     next_stage = await game_logic(state, neighbors) ## async 호출시 await
+#     set(y, x, next_stage)
+
+# async def simulate(grid: Grid):
+#     next_grid = Grid(grid.height, grid.width)
+    
+#     tasks = []
+#     for y in range(grid.height):
+#         for x in range(grid.width):
+#             task = step_cell(y, x, grid.get, next_grid.set) # 팬아웃
+#             tasks.append(task)
+    
+#     await asyncio.gather(*tasks) # 팬인
+    
+#     return next_grid
+
+
+# grid = Grid(5, 9)
+# grid.set(0, 3, ALIVE)
+# grid.set(1, 4, ALIVE)
+# grid.set(2, 2, ALIVE)
+# grid.set(2, 3, ALIVE)
+# grid.set(2, 4, ALIVE)
+# print(grid)
+# print('=============')
+
+
+# for i in range(5):
+#     grid = asyncio.run(simulate(grid))
+#     print(grid)
+#     print('=============')
+
+
+# 61
+
+class EOFError(Exception):
+    pass
+
+class ConnectionBase:
+    def __init__(self, connection):
+        self.connection = connection
+        self.file = connection.makefile('rb')
+    
+    def send(self, command):
+        line = command + '\n'
+        data = line.encode()
+        self.connection.send(data)
+        
+    def receive(self):
+        line = self.file.readline()
+        if not line:
+            raise EOFError('Connection closed')
+        return line[:-1].decode()
+
+
+import random
+
+WARMER = '더 따뜻함'
+COLDER = '더 차가움'
+UNSURE = '잘 모르겠음'
+CORRECT = '맞음'
+
+class UnknownCommandError(Exception):
+    pass
+
+# 서버 동작 클래스 정의
+class Session(ConnectionBase):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._clear_state(None, None)
+        
+    def _clear_state(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self.secret = None
+        self.guesses = []
+        
+    ## 들어오는 입력 메시지
+    def loop(self):
+        while command := self.receive():
+            parts = command.split(' ')
+            if parts[0] == 'PARAMS':
+                self.set_params(parts)
+            elif parts[0] == 'NUMBER':
+                self.send_number()
+            elif parts[0] == 'REPORT':
+                self.receive_report(parts)
+            else:
+                raise UnknownCommandError(command)
+    
+    def set_params(self, parts):
+        assert len(parts) == 3
+        lower = int(parts[1])
+        upper = int(parts[2])
+        self._clear_state(lower, upper)
+        
+    def next_guess(self):
+        if self.secret is not None:
+            return self.secret
+        
+        while True:
+            guess = random.randint(self.lower, self.upper)
+            if guess not in self.guesses:
+                return guess
+    
+    def send_number(self):
+        guess = self.next_guess()
+        self.guesses.append(guess)
+        self.send(format(guess))
+        
+    def reveive_report(self, parts):
+        assert len(parts) == 2
+        decision = parts[1]
+        
+        last = self.guesses[-1]
+        if decision == CORRECT:
+            self.secret = last
+            
+        print(f'서버: {last}는 {decision}')
+        
+    
+##클라이언트 구현
+import contextlib
+import math
+
+class Client(ConnectionBase):
+    def __inti__(self, *args):
+        super().__init__(*args)
+        self._clear_state()
+        
+    def _clear_state(self):
+        self.secret = None
+        self.last_distance = None
+        
+    @contextlib.contextmanager
+    def session(self, lower, upper, secret):
+        print(f'\n{lower}와 {upper} 사이의 숫자를 맞춰보세요! 쉿! 그 숫자는 {secret} 입니다.')
+        
+        self.secret = secret
+        self.send(f'PARAMS {lower} {upper}')
+        try:
+            yield
+        finally:
+            self._clear_state()
+            self.send('PARAMS 0 -1')
+            
+    def request_numbers(self, count):
+        for _ in range(count):
+            self.send('NUMBER')
+            data = self.receive()
+            yield int(data)
+        if self.last_distance == 0:
+            return
+    
+    def report_outcome(self, number):
+        new_distance = math.fabs(number - self.secret)
+        decision = UNSURE
+        
+        if new_distance == 0:
+            decision = CORRECT
+        elif self.last_distance is None:
+            pass
+        elif new_distance < self.last_distance:
+            decision = WARMER
+        elif new_distance > self.last_distance:
+            decision = COLDER
+        
+        self.last_distance = new_distance
+        
+        self.send(f'REPORT {decision}')
+        return decision
+    
+
+# 소켓에 리슨 하는 스레드를 하나 사용하고 
+# 새 연결이 들어올 때마다 스레드를 추가로 시작하는 방식으로 서버를 실행
+import socket
+from threading import Thread
+
+def handle_connection(connection):
+    with connection:
+        session = Session(connection)
+        try:
+            session.loop()
+        except EOFError:
+            pass
+
+def run_server(address):
+    with socket.socket() as listener:
+        listener.bind(address)
+        listener.listen()
+        while True:
+            connection, _ = listener.accept()
+            thread = Thread(target=handle_connection,
+                            args=(connection,),
+                            daemon=True)
+            thread.start()
+            
+
+def run_client(address):
+    with socket.create_connection(address) as connection:
+        client = Client(connection)
+        
+        with client.session(1, 5, 3):
+            results = [(x, client.report_outcome(x)) for x in client.request_numbers(5)]
+            
+        with client.session(10,15,12):
+            for number in client.request_numbers(5):
+                outcome = client.report_outcome(number)
+                results.append((number, outcome))
+        
+    return results
+
+def main():
+    address = ('127.0.0.1', 1234)
+    server_thread = Thread(
+        target=run_server,
+        args=(address,),
+        daemon=True
+    )
+    server_thread.start()
+    
+    results = run_client(address)
+    for number, outcome in results:
+        print(f'클라이언트: {number}는 {outcome}')
+
+main()
+
+
+## 비동기로 포팅
+
+## 먼저 ConnectionBase클래스가 블로킹 I/O 대신 send 와 receive라는 코루틴을 제공하도록 수정
+
+class AsyncConnectionBase:
+    def __init__(self, reader, writer):
+        self.reader = reader
+        self.writer = writer
+        
+    async def send(self, command):
+        line = command + '\n'
+        data = line.encode(0)
+        self.writer.write(data)     # 변경
+        await self.writer.drain()   # 변경
+    
+    async def receive(self):
+        line = await self.reader.readline() #변경
+        if not line:
+            raise EOFError('연결에러')
+        return line[:-1].decode()
+    
+
+## 단일 연결 세션 클래스는 상속하는 클래스가 바뀜
+## 코루틴이 적용될 곳만 바뀜
+class AsnycSession(AsyncConnectionBase):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._clear_state(None, None)
+        
+    def _clear_state(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self.secret = None
+        self.guesses = []
+        
+    ## 들어오는 입력 메시지
+    ## 코루틴 적용
+    async def loop(self):
+        while command := await self.receive():
+            parts = command.split(' ')
+            if parts[0] == 'PARAMS':
+                self.set_params(parts)
+            elif parts[0] == 'NUMBER':
+                await self.send_number()
+            elif parts[0] == 'REPORT':
+                self.receive_report(parts)
+            else:
+                raise UnknownCommandError(command)
+    
+    ## 명령 처리 부분은 그대로
+    def set_params(self, parts):
+        assert len(parts) == 3
+        lower = int(parts[1])
+        upper = int(parts[2])
+        self._clear_state(lower, upper)
+        
+    def next_guess(self):
+        if self.secret is not None:
+            return self.secret
+        
+        while True:
+            guess = random.randint(self.lower, self.upper)
+            if guess not in self.guesses:
+                return guess
+    
+    ## 추측한 값을 클라이언트에 보낼 때 비동기 IO
+    async def send_number(self):
+        guess = self.next_guess()
+        self.guesses.append(guess)
+        await self.send(format(guess))
+        
+    def reveive_report(self, parts):
+        assert len(parts) == 2
+        decision = parts[1]
+        
+        last = self.guesses[-1]
+        if decision == CORRECT:
+            self.secret = last
+            
+        print(f'서버: {last}는 {decision}')
+        
+
+## 클라이언트도 상속하는 클래스가 바뀜
+class AsyncClient(AsyncConnectionBase):
+    def __inti__(self, *args):
+        super().__init__(*args)
+        self._clear_state()
+        
+    def _clear_state(self):
+        self.secret = None
+        self.last_distance = None
+    
+    ## 클라이언트에서도 명령을 처리하는 함수에 비동기 처리해야함
+    ## contextlib도 async로 적용해야함
+    @contextlib.asynccontextmanager
+    async def session(self, lower, upper, secret):
+        print(f'\n{lower}와 {upper} 사이의 숫자를 맞춰보세요! 쉿! 그 숫자는 {secret} 입니다.')
+        
+        self.secret = secret
+        await self.send(f'PARAMS {lower} {upper}')
+        try:
+            yield
+        finally:
+            self._clear_state()
+            await self.send('PARAMS 0 -1')
+            
+    async def request_numbers(self, count):
+        for _ in range(count):
+            await self.send('NUMBER')
+            data = self.receive()
+            yield int(data)
+        if self.last_distance == 0:
+            return
+    
+    async def report_outcome(self, number):
+        new_distance = math.fabs(number - self.secret)
+        decision = UNSURE
+        
+        if new_distance == 0:
+            decision = CORRECT
+        elif self.last_distance is None:
+            pass
+        elif new_distance < self.last_distance:
+            decision = WARMER
+        elif new_distance > self.last_distance:
+            decision = COLDER
+        
+        self.last_distance = new_distance
+        
+        await self.send(f'REPORT {decision}')
+        return decision
+
 import asyncio
 
-EMPTY = '-'
-ALIVE = '*'
-
-class Grid:
-    def __init__(self, height, width):
-        self.height = height
-        self.width = width
-        self.rows = []
-        for _ in range(self.height):
-            self.rows.append([EMPTY] * self.width)
+async def handel_async_connection(reader, writer):
+    session = AsnycSession(reader, writer)
+    try:
+        await session.loop()
+    except EOFError:
+        pass
     
-    def get(self, y, x):
-        return self.rows[y % self.height][x % self.width]
+async def run_async_server(address):
+    server = await asyncio.start_server(
+        handel_async_connection, *address
+    )
+    async with server:
+        await server.server_forever()
 
-    def set(self, y, x, state):
-        self.rows[y % self.height][x % self.width] = state
+## 게임을 시작하는 run_client함수는 거의 모두 바꿔야 한다.   
+async def run_async_clinet(address):
+    streams = await asyncio.open_connection(*address)
+    client = AsyncClient(*streams)
     
-    def __str__(self):
-        result = ""
-        for r in self.rows:
-            for cell in r:
-                result += cell
-            result += '\n'
-        return result
-
-
-def count_neighbors(y, x, get):
-    n_ = get(y-1, x+0)
-    ne = get(y-1, x+1)
-    e_ = get(y-0, x+1)
-    se = get(y+1, x+1)
-    s_ = get(y+1, x+0)
-    sw = get(y+1, x-1)
-    w_ = get(y-0, x-1)
-    nw = get(y-1, x-1)
-    neibor_states = [n_, ne, e_, se, s_, sw, w_, nw]
-    count = 0
+    async with client.session(1, 5, 3):
+        results = [(x, await client.report_outcome(x)) async for x in client.request_numbers(5)]
+        
+    async with client.session(10, 15, 12):
+        async for number in client.request_numbers(5):
+            outcome = await client.report_outcome(number)
+            results.append((number, outcome))
     
-    for state in neibor_states:
-        if state == ALIVE:
-            count += 1
-    return count
-
-
-
-## 게임 로직 구현 ( 블로킹 I/O 작업을 sleep으로 대체 )
-async def game_logic(state, neighbors):
-    # raise OSError('OSError 발생') # OSError: OSError 발생
-    time.sleep(0.1) ## 0.1 초 블로킹 I/O 작업
-    if state == ALIVE:
-        if neighbors < 2:
-            return EMPTY
-        elif neighbors >3:
-            return EMPTY
-    else:
-        if neighbors == 3:
-            return ALIVE
-    return state
-
-async def step_cell(y, x, get, set):
-    state = get(y, x)
-    neighbors = count_neighbors(y, x, get)
-    next_stage = await game_logic(state, neighbors) ## async 호출시 await
-    set(y, x, next_stage)
-
-async def simulate(grid: Grid):
-    next_grid = Grid(grid.height, grid.width)
+    _, writer = streams
+    writer.close()
+    await writer.wait_closed()
     
-    tasks = []
-    for y in range(grid.height):
-        for x in range(grid.width):
-            task = step_cell(y, x, grid.get, next_grid.set) # 팬아웃
-            tasks.append(task)
+    return results
+
+
+## 전체 실행 코드
+async def main_async():
+    address = ('127.0.0.1', 1234)
     
-    await asyncio.gather(*tasks) # 팬인
+    server = run_async_server(address)
+    asyncio.create_task(server)
     
-    return next_grid
-
-
-grid = Grid(5, 9)
-grid.set(0, 3, ALIVE)
-grid.set(1, 4, ALIVE)
-grid.set(2, 2, ALIVE)
-grid.set(2, 3, ALIVE)
-grid.set(2, 4, ALIVE)
-print(grid)
-print('=============')
-
-
-for i in range(5):
-    grid = asyncio.run(simulate(grid))
-    print(grid)
-    print('=============')
-
+    results = await run_async_clinet(address)
+    for number, outcome in results:
+        print(f'클라이언트: {number}는 {outcome}')
+        
+asyncio.run(main_async())

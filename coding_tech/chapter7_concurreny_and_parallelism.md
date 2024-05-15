@@ -1801,10 +1801,396 @@ for i in range(5):
 <br>
 
 ## BetterWay61. 스레드를 사용한 I/O를 어떻게 asyncio로 포팅할 수 있는지 알아두라
+
+- 숫자 추측 게임 TCP 서버 게임 예제
+    - 비동기 적용 X
+    - 동작X
+```python
+class EOFError(Exception):
+    pass
+
+
+class ConnectionBase:
+    def __init__(self, connection):
+        self.connection = connection
+        self.file = connection.makefile('rb')
+    
+    def send(self, command):
+        line = command + '\n'
+        data = line.encode()
+        self.connection.send(data)
+        
+    def receive(self):
+        line = self.file.readline()
+        if not line:
+            raise EOFError('Connection closed')
+        return line[:-1].decode()
+
+
+import random
+
+## 서버로 전송할 명령 코드 정의
+WARMER = '더 따뜻함'
+COLDER = '더 차가움'
+UNSURE = '잘 모르겠음'
+CORRECT = '맞음'
+
+class UnknownCommandError(Exception):
+    pass
+
+# 서버 동작 클래스 정의
+class Session(ConnectionBase):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._clear_state(None, None)
+        
+    def _clear_state(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self.secret = None
+        self.guesses = []
+        
+    ## 들어오는 입력 메시지 처리
+    def loop(self):
+        while command := self.receive():
+            parts = command.split(' ')
+            if parts[0] == 'PARAMS':
+                self.set_params(parts)
+            elif parts[0] == 'NUMBER':
+                self.send_number()
+            elif parts[0] == 'REPORT':
+                self.receive_report(parts)
+            else:
+                raise UnknownCommandError(command)
+    
+    def set_params(self, parts):
+        assert len(parts) == 3
+        lower = int(parts[1])
+        upper = int(parts[2])
+        self._clear_state(lower, upper)
+        
+    def next_guess(self):
+        if self.secret is not None:
+            return self.secret
+        
+        while True:
+            guess = random.randint(self.lower, self.upper)
+            if guess not in self.guesses:
+                return guess
+    
+    def send_number(self):
+        guess = self.next_guess()
+        self.guesses.append(guess)
+        self.send(format(guess))
+        
+    def reveive_report(self, parts):
+        assert len(parts) == 2
+        decision = parts[1]
+        
+        last = self.guesses[-1]
+        if decision == CORRECT:
+            self.secret = last
+            
+        print(f'서버: {last}는 {decision}')
+        
+    
+##클라이언트 구현
+import contextlib
+import math
+
+class Client(ConnectionBase):
+    def __inti__(self, *args):
+        super().__init__(*args)
+        self._clear_state()
+        
+    def _clear_state(self):
+        self.secret = None
+        self.last_distance = None
+        
+    @contextlib.contextmanager
+    def session(self, lower, upper, secret):
+        print(f'\n{lower}와 {upper} 사이의 숫자를 맞춰보세요! 쉿! 그 숫자는 {secret} 입니다.')
+        
+        self.secret = secret
+        self.send(f'PARAMS {lower} {upper}')
+        try:
+            yield
+        finally:
+            self._clear_state()
+            self.send('PARAMS 0 -1')
+            
+    def request_numbers(self, count):
+        for _ in range(count):
+            self.send('NUMBER')
+            data = self.receive()
+            yield int(data)
+        if self.last_distance == 0:
+            return
+    
+    def report_outcome(self, number):
+        new_distance = math.fabs(number - self.secret)
+        decision = UNSURE
+        
+        if new_distance == 0:
+            decision = CORRECT
+        elif self.last_distance is None:
+            pass
+        elif new_distance < self.last_distance:
+            decision = WARMER
+        elif new_distance > self.last_distance:
+            decision = COLDER
+        
+        self.last_distance = new_distance
+        
+        self.send(f'REPORT {decision}')
+        return decision
+    
+
+# 소켓에 리슨 하는 스레드를 하나 사용하고 
+# 새 연결이 들어올 때마다 스레드를 추가로 시작하는 방식으로 서버를 실행
+import socket
+from threading import Thread
+
+def handle_connection(connection):
+    with connection:
+        session = Session(connection)
+        try:
+            session.loop()
+        except EOFError:
+            pass
+
+def run_server(address):
+    with socket.socket() as listener:
+        listener.bind(address)
+        listener.listen()
+        while True:
+            connection, _ = listener.accept()
+            thread = Thread(target=handle_connection,
+                            args=(connection,),
+                            daemon=True)
+            thread.start()
+            
+
+def run_client(address):
+    with socket.create_connection(address) as connection:
+        client = Client(connection)
+        
+        with client.session(1, 5, 3):
+            results = [(x, client.report_outcome(x)) for x in client.request_numbers(5)]
+            
+        with client.session(10,15,12):
+            for number in client.request_numbers(5):
+                outcome = client.report_outcome(number)
+                results.append((number, outcome))
+        
+    return results
+
+def main():
+    address = ('127.0.0.1', 1234)
+    server_thread = Thread(
+        target=run_server,
+        args=(address,),
+        daemon=True
+    )
+    server_thread.start()
+    
+    results = run_client(address)
+    for number, outcome in results:
+        print(f'클라이언트: {number}는 {outcome}')
+
+main()
+```
+- 위 코드를 비동기로 포팅한 코드
+    - for, with, contextlib 등 비동기에 대응하는 라이브러리들이 있음
+    - 하지만 `__iter__`, `__next__`에 해당하는 비동기 기능은 없음
+        - 직접 `__aiter__`, `__anext__`등으로 메서드에 대해 await를 해야한다.
+        - yield from에 대응하는 비동기 버전도 없어서 제너레이터를 함께 사용하면 어렵다.
+```python
+## 비동기로 포팅
+
+## 먼저 ConnectionBase클래스가 블로킹 I/O 대신 send 와 receive라는 코루틴을 제공하도록 수정
+
+class AsyncConnectionBase:
+    def __init__(self, reader, writer):
+        self.reader = reader
+        self.writer = writer
+        
+    async def send(self, command):
+        line = command + '\n'
+        data = line.encode(0)
+        self.writer.write(data)     # 변경
+        await self.writer.drain()   # 변경
+    
+    async def receive(self):
+        line = await self.reader.readline() #변경
+        if not line:
+            raise EOFError('연결에러')
+        return line[:-1].decode()
+    
+
+## 단일 연결 세션 클래스는 상속하는 클래스가 바뀜
+## 코루틴이 적용될 곳만 바뀜
+class AsnycSession(AsyncConnectionBase):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._clear_state(None, None)
+        
+    def _clear_state(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self.secret = None
+        self.guesses = []
+        
+    ## 들어오는 입력 메시지
+    ## 코루틴 적용
+    async def loop(self):
+        while command := await self.receive():
+            parts = command.split(' ')
+            if parts[0] == 'PARAMS':
+                self.set_params(parts)
+            elif parts[0] == 'NUMBER':
+                await self.send_number()
+            elif parts[0] == 'REPORT':
+                self.receive_report(parts)
+            else:
+                raise UnknownCommandError(command)
+    
+    ## 명령 처리 부분은 그대로
+    def set_params(self, parts):
+        assert len(parts) == 3
+        lower = int(parts[1])
+        upper = int(parts[2])
+        self._clear_state(lower, upper)
+        
+    def next_guess(self):
+        if self.secret is not None:
+            return self.secret
+        
+        while True:
+            guess = random.randint(self.lower, self.upper)
+            if guess not in self.guesses:
+                return guess
+    
+    ## 추측한 값을 클라이언트에 보낼 때 비동기 IO
+    async def send_number(self):
+        guess = self.next_guess()
+        self.guesses.append(guess)
+        await self.send(format(guess))
+        
+    def reveive_report(self, parts):
+        assert len(parts) == 2
+        decision = parts[1]
+        
+        last = self.guesses[-1]
+        if decision == CORRECT:
+            self.secret = last
+            
+        print(f'서버: {last}는 {decision}')
+        
+
+## 클라이언트도 상속하는 클래스가 바뀜
+class AsyncClient(AsyncConnectionBase):
+    def __inti__(self, *args):
+        super().__init__(*args)
+        self._clear_state()
+        
+    def _clear_state(self):
+        self.secret = None
+        self.last_distance = None
+    
+    ## 클라이언트에서도 명령을 처리하는 함수에 비동기 처리해야함
+    ## contextlib도 async로 적용해야함
+    @contextlib.asynccontextmanager
+    async def session(self, lower, upper, secret):
+        print(f'\n{lower}와 {upper} 사이의 숫자를 맞춰보세요! 쉿! 그 숫자는 {secret} 입니다.')
+        
+        self.secret = secret
+        await self.send(f'PARAMS {lower} {upper}')
+        try:
+            yield
+        finally:
+            self._clear_state()
+            await self.send('PARAMS 0 -1')
+            
+    async def request_numbers(self, count):
+        for _ in range(count):
+            await self.send('NUMBER')
+            data = self.receive()
+            yield int(data)
+        if self.last_distance == 0:
+            return
+    
+    async def report_outcome(self, number):
+        new_distance = math.fabs(number - self.secret)
+        decision = UNSURE
+        
+        if new_distance == 0:
+            decision = CORRECT
+        elif self.last_distance is None:
+            pass
+        elif new_distance < self.last_distance:
+            decision = WARMER
+        elif new_distance > self.last_distance:
+            decision = COLDER
+        
+        self.last_distance = new_distance
+        
+        await self.send(f'REPORT {decision}')
+        return decision
+
+import asyncio
+
+async def handel_async_connection(reader, writer):
+    session = AsnycSession(reader, writer)
+    try:
+        await session.loop()
+    except EOFError:
+        pass
+    
+async def run_async_server(address):
+    server = await asyncio.start_server(
+        handel_async_connection, *address
+    )
+    async with server:
+        await server.server_forever()
+
+## 게임을 시작하는 run_client함수는 거의 모두 바꿔야 한다.   
+async def run_async_clinet(address):
+    streams = await asyncio.open_connection(*address)
+    client = AsyncClient(*streams)
+    
+    async with client.session(1, 5, 3):
+        results = [(x, await client.report_outcome(x)) async for x in client.request_numbers(5)]
+        
+    async with client.session(10, 15, 12):
+        async for number in client.request_numbers(5):
+            outcome = await client.report_outcome(number)
+            results.append((number, outcome))
+    
+    _, writer = streams
+    writer.close()
+    await writer.wait_closed()
+    
+    return results
+
+
+## 전체 실행 코드
+async def main_async():
+    address = ('127.0.0.1', 1234)
+    
+    server = run_async_server(address)
+    asyncio.create_task(server)
+    
+    results = await run_async_clinet(address)
+    for number, outcome in results:
+        print(f'클라이언트: {number}는 {outcome}')
+        
+asyncio.run(main_async())
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - 파이썬은 for, with, 제너레이터, 컴프리헨션의 비동기 버전을 제공하고 코루틴 안에서 기존 라이브러리 도우미 함수를 대신해 즉시 사용할 수 있는 대안을 제공한다.<br>
+> - `asyncio` 내장 모듈을 사용하면 스레드와 블로킹 I/O를 사용하는 기존 코드를 코루틴과 비동기 I/O를 사용하느 코드로 쉽게 포팅할 수 있다.<br>
 
 <br>
 
