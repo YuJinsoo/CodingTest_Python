@@ -1689,3 +1689,149 @@ async def main_async():
         print(f'클라이언트: {number}는 {outcome}')
         
 asyncio.run(main_async())
+
+
+# 62
+
+import time
+from threading import Lock, Thread
+
+## 새로운 데이터가 없으면 에러를 발생.
+class NoNewData(Exception):
+    pass
+
+def readline(handle):
+    offset = handle.tell()
+    handle.seek(0,2)
+    length = handle.tell()
+    
+    if length == offset:
+        raise NoNewData
+    
+    handle.seek(offset, 0)
+    return handle.readline()
+
+# 작업자 함수?
+def tail_file(handle, interval, write_func):
+    while not handle.closed:
+        try:
+            line = readline(handle)
+        except NoNewData:
+            time.sleep(interval)
+        else:
+            write_func(line)
+
+# 입력파일마다 작접자 스레드를 시작
+# 스레들의 출력을 한 출력 파일에 모으기
+def run_threads(handles, interval, output_path):
+    with open(output_path, 'wb') as output:
+        lock = Lock()
+        def write(data):
+            with lock:
+                output.write(data)
+                threads = []
+                for handle in handles:
+                    args = (handle, interval, write)
+                    thread = Thread(target=tail_file, args=args)
+                    thread.start()
+                    threads.append(thread)
+                
+                for thread in threads:
+                    thread.join()
+                    
+# 주어진 입력 결로 집합와 출력경로에 대해 run_threads를 싱행하고
+# 코드가 제대로 작동했느지 확이 ㄴ가능
+
+def confirm_merge(input_paths, output_path):
+    pass
+
+input_paths = ''
+handles = ''
+output_path = ...
+run_threads(handles, 0.1, output_path)
+confirm_merge(input_paths, output_path)
+
+
+## 하향식 1단계
+
+import asyncio
+
+async def run_tasks_mixed(handles, interval, output_path):
+    loop = asyncio.get_event_loop()
+    
+    with open(output_path, 'wb') as output:
+        async def write_async(data):
+            output.write(data)
+            
+        def write(data):
+            coro = write_async(data)
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            future.result()
+        
+        tasks = []
+        for handle in handles:
+            task = loop.run_in_executor(
+                None, tail_file, handle, interval, write
+            )
+            tasks.append(task)
+        
+        await asyncio.gather(*tasks)
+
+input_paths = ''
+handles = ''
+output_path = ...
+asyncio.run(run_tasks_mixed(handles, 0.1, output_path))
+confirm_merge(input_paths, output_path)
+
+# 하향식 4단계 추가
+
+async def tail_async(handle, interval, write_func):
+    loop = asyncio.get_event_loop()
+    
+    while not handle.closed:
+        try:
+            line = await loop.run_in_executor(None, readline, handle)
+        except NoNewData:
+            await asyncio.sleep(interval)
+        else:
+            await write_func(line)\
+                
+async def run_tasks(handles, interval, output_path):
+    with open(output_path, 'wb') as output:
+        async def write_async(data):
+            output.write(data)
+            
+        tasks = []
+        for handle in handles:
+            coro = tail_async(handle, interval, write_async)
+            task = asyncio.create_task(coro)
+            tasks.append(task)
+        
+        await asyncio.gather(*tasks)
+
+input_paths = ''
+handles = ''
+output_path = ...
+asyncio.run(run_tasks(handles, 0.1, output_path))
+confirm_merge(input_paths, output_path)
+
+
+
+## 상향식
+
+def tail_file(handle, interval, write_func):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    async def write_async(data):
+        write_func(data)
+    
+    coro = tail_async(handle, interval, write_async)
+    loop.run_until_complete(coro)
+
+## 변경하지 않고 바로 실행가능
+input_paths = ''
+handles = ''
+output_path = ...
+run_threads(handles, 0.1, output_path)
+confirm_merge(input_paths, output_path)

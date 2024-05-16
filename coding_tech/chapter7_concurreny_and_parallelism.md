@@ -2195,10 +2195,191 @@ asyncio.run(main_async())
 <br>
 
 ## BetterWay62. asyncio로 쉽게 옮겨갈 수 있도록 스레드와 코루틴을 함께 사용하라
+
+- 블로킹 IO에 스레드를 사용하는 부분과 비동기 IO에 코루틴을 사용하는 부분이 서로 호환되면서 공존할 수 있어야 함
+    - 스레드가 코루틴을 실행
+    - 코루틴이 스레드를 시작하거나 기다림
+
+- 로그파일을 한 출력 스트림으로 병합해 디버깅을 돕는 프로그램 예제
+    - 파일 핸들이 주어지면 데이터가 도착했는지 감지해서 다음 줄을 반환할 방법 필요
+    - 파일 핸들의 `tell` 메서드를 활용해서 현재 읽기 중이 위치 확인 가능
+
+    - 스레드와 코루틴의 상호작용 기능에 집중해보자
+```python
+import time
+from threading import Lock, Thread
+
+## 새로운 데이터가 없으면 에러를 발생.
+class NoNewData(Exception):
+    pass
+
+def readline(handle):
+    offset = handle.tell()
+    handle.seek(0,2)
+    length = handle.tell()
+    
+    if length == offset:
+        raise NoNewData
+    
+    handle.seek(offset, 0)
+    return handle.readline()
+
+# 작업자 함수?
+def tail_file(handle, interval, write_func):
+    while not handle.closed:
+        try:
+            line = readline(handle)
+        except NoNewData:
+            time.sleep(interval)
+        else:
+            write_func(line)
+
+# 입력파일마다 작접자 스레드를 시작
+# 스레들의 출력을 한 출력 파일에 모으기
+def run_threads(handles, interval, output_path):
+    with open(output_path, 'wb') as output:
+        lock = Lock()
+        def write(data):
+            with lock:
+                output.write(data)
+                threads = []
+                for handle in handles:
+                    args = (handle, interval, write)
+                    thread = Thread(target=tail_file, args=args)
+                    thread.start()
+                    threads.append(thread)
+                
+                for thread in threads:
+                    thread.join()
+                    
+# 주어진 입력 결로 집합와 출력경로에 대해 run_threads를 싱행하고
+# 코드가 제대로 작동했느지 확이 ㄴ가능
+
+def confirm_merge(input_paths, output_path):
+    pass
+
+input_paths = ''
+handles = ''
+output_path = ...
+run_threads(handles, 0.1, output_path)
+confirm_merge(input_paths, output_path)
+```
+
+
+- 위의 스레드 기반 구현으로부터 점진적으로 `asyncio`와 코루틴 기반으로 바꾸는 방법은?
+    - 하향식과 상향식이 있음
+
+- 하향식 방법
+    - main진입점처럼 코드베이스에서 가장 높은 구성으로부터 시작
+    - 점차 호출 계층의 잎 부분에 위치한 갭라 함수와 클래스로 내려가면서 작업
+    - 공통 모듈이 많다면 이런 접근 방법이 유용
+
+    - 구체적인 단계
+        1. 최상위 함수가 `def`대신 `async def` 사용
+        2. 최상위 함수가 I/O를 호출하는 모든 부분(이벤트 루프가 블록될 가능성이 있다.)을 `asyncio.run_in_executor`로 감싸라
+        3. `run_in_executor` 호출이 사용하는 자원이나 콜백이 제대로 동기화 됐는지 확인(`Lock`이나 `asyncio.run_coroutine_threadsafe`함수를 사용)
+        4. 호출 계층의 잎 쪽으로 내려가면서 중간에 있는 함수와 메서드를 코루틴으로 변환. `get_event_loop`와 `run_in_executor`호출을 없애려고 시도하자
+
+    - 이 단계별로 반복 리팩터링 진행
+        - `readline()`함수를 비동기 코루틴 함수로 변경할 수도 있다.
+```python
+## 하향식 1~3단계
+import asyncio
+
+async def run_tasks_mixed(handles, interval, output_path):
+    loop = asyncio.get_event_loop()
+    
+    with open(output_path, 'wb') as output:
+        async def write_async(data):
+            output.write(data)
+            
+        def write(data):
+            coro = write_async(data)
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            future.result()
+        
+        tasks = []
+        for handle in handles:
+            task = loop.run_in_executor(
+                None, tail_file, handle, interval, write
+            )
+            tasks.append(task)
+        
+        await asyncio.gather(*tasks)
+
+input_paths = ''
+handles = ''
+output_path = ...
+asyncio.run(run_tasks_mixed(handles, 0.1, output_path))
+confirm_merge(input_paths, output_path)
+
+
+## 하향식 4단계 추가
+async def tail_async(handle, interval, write_func):
+    loop = asyncio.get_event_loop()
+    
+    while not handle.closed:
+        try:
+            line = await loop.run_in_executor(None, readline, handle)
+        except NoNewData:
+            await asyncio.sleep(interval)
+        else:
+            await write_func(line)\
+                
+async def run_tasks(handles, interval, output_path):
+    with open(output_path, 'wb') as output:
+        async def write_async(data):
+            output.write(data)
+            
+        tasks = []
+        for handle in handles:
+            coro = tail_async(handle, interval, write_async)
+            task = asyncio.create_task(coro)
+            tasks.append(task)
+        
+        await asyncio.gather(*tasks)
+
+input_paths = ''
+handles = ''
+output_path = ...
+asyncio.run(run_tasks(handles, 0.1, output_path))
+confirm_merge(input_paths, output_path)
+```
+
+
+- 상향식 방법
+    - 구체적인 단계
+        1. 프로그램에서 잎 부분에 있는, 포팅하려는 함수의 비동기 코루틴 버전을 새로 작성
+        2. 기존 동기 함수를 변경해서 코루틴 버전을 호출하고, 실제 동작을 구현하는 대신 이벤트 루프를 실행하게 하자
+        3. 호출 꼐층으 한 단계 올려서 다른 코루틴 계층을 만들고, 기존에 동기적 함수를 호출하던 부분을 1단계에서 정의한 코루틴 호출로 바꿔라
+        4. 이제 비동기 부분을 결합하기 위해 2단계에서 만든 동기적인 래퍼가 더이상 필요하지 않다. 이를 삭제한다.
+
+    - 가장 밑단 함수라고 할 수 있는 `tail_file`함수부터 변환을 시작.
+    - 다음 단계를 `run_thread`를 코루틴으로 변경
+```python
+
+def tail_file(handle, interval, write_func):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    async def write_async(data):
+        write_func(data)
+    
+    coro = tail_async(handle, interval, write_async)
+    loop.run_until_complete(coro)
+
+## 변경하지 않고 바로 실행가능
+input_paths = ''
+handles = ''
+output_path = ...
+run_threads(handles, 0.1, output_path)
+confirm_merge(input_paths, output_path)
+```
+
 ### 기억해야 할 Point
-> - <br>
-> - <br>
-> - <br>
+> - `asyncio` 이벤트 루프의 `run_in_executor`메서드를 사용하면 코루틴이 `ThreadPoolExecutor`사용해 동기적인 함수를 호출할 수 있다. 하향식으로 `asyncio`로 마이그레이션할 수 있다.</br>
+> - `asyncio` 이벤트 루프의 `run_until_complte`메서드를 사용하면 동기적인 코드가 코루틴을 호출하고 완료를 기다릴 수 있다. `asyncio.run_coroutine_threadsafe`도 같은 기능을 제고하지만 스레드 경계에서도 안전하게 작동한다. 두 메서드를 활용하면 상향식으로 asyncio에 마이그레이션에 도움이 된다.</br>
+
 
 <br>
 
