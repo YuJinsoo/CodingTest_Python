@@ -217,4 +217,59 @@ print(d)
 
 ## deque
 
+- 양방향 큐(Queue)
+- 컨테이너의 양 끝 엘리먼트에 접근해 삽입 또는 제거를 할 경우 리스트는 O(n)이 소요되는데 반해 데크(deque)는 O(1)로 접근이 가능
+
+- 데크를 왜 사용하는가?
+    - stack 혹은 queue 처럼 사용할 수 있음
+    - 대부분의 경우에 list 보다 속도가 빠름
+    - 양쪽에서 데이터를 삽입/추출 하는 기능을 자주 사용할때 사용
+        - 예를 들어 round robin 알고리즘
+
+- 기능
+```python
+from collections import deque
+
+# 생성
+deq = deque() # 빈 deque 생성
+
+my_deq = deque('abc')
+iter_deq2 = deque([1,2,3])
+
+print(deq)          # deque([])
+print(my_deq)     # deque(['a', 'b', 'c'])    
+print(iter_deq2)    # deque([1, 2, 3])        
+
+# 삽입
+
+my_deq.append(1)        # 오른 쪽 끝에 삽입
+my_deq.appendleft(10)   # 왼쪽 끝에 삽입
+print(my_deq) # deque([10, 'a', 'b', 'c', 1])
+
+# 삭제
+my_deq.pop() # 데크의 오른쪽 끝 엘리먼트를 가져오는 동시에 데크에서 삭제
+print(my_deq) # deque([10, 'a', 'b', 'c'])
+my_deq.popleft() # 데크의 왼쪽 끝 엘리먼트는 가져오는 동시에 데크에서 삭제
+print(my_deq) # deque(['a', 'b', 'c'])
+
+my_deq.remove('b') # 해당 원소를 찾아서 삭제 
+print(my_deq) # deque(['a', 'c'])
+
+# 수정
+array = [11, 22, 33]
+
+my_deq.extend(array)        # 배열을 순환하면서 데크의 오른쪽에 추가
+print(my_deq) # deque(['a', 'c', 11, 22, 33])
+
+my_deq.extendleft(array)    # 배열을 순환하면서 데크의 왼쪽에 추가
+print(my_deq) # deque([33, 22, 11, 'a', 'c', 11, 22, 33])
+
+my_deq.rotate(1)    # 우측으로 순회
+print(my_deq) # eque([33, 33, 22, 11, 'a', 'c', 11, 22])
+
+my_deq.rotate(-1)   # 좌측으로 순회
+print(my_deq) # deque([33, 22, 11, 'a', 'c', 11, 22, 33])
+
+
+```
 ## heapq
